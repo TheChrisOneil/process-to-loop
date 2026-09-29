@@ -1,0 +1,27 @@
+Inbound RFPs arrive and somebody has to decide whether we bid. We see roughly 60 a month,
+mostly public sector, each between 30 and 200 pages, usually with a mandatory requirements
+section and a deadline.
+
+Two people in sales operations read them. For each one they check the submission deadline
+against our capacity calendar, whether we hold the certifications the buyer names as mandatory,
+whether the contract value is inside the range we serve, whether we are already incumbent or
+conflicted, and whether the buyer's required contract terms include anything our legal team has
+previously refused.
+
+A lot of them can be answered without reading much. The deadline is inside ten days and we
+cannot staff a response that fast. It names a certification we do not hold. The ceiling value
+is below our minimum. Those are the majority, and reading two hundred pages to find out is the
+part our people hate.
+
+The judgment is whether we can actually meet the mandatory requirements as written, which is
+different from whether we could do the work. The requirements are drafted by the buyer, often
+reusing language from a previous award, and deciding whether our capability satisfies the words
+on the page is a call somebody has to make. About one in four.
+
+Anything above two million dollars in ceiling value requires the VP of Sales to approve a bid
+decision. Anything naming a state we are not registered to do business in goes to Legal before
+anyone spends time on it. Last year we spent about six weeks of effort on a bid we were
+disqualified from because we did not hold a certification that was named on page 140.
+
+We currently take eight days to reach a bid or no-bid decision, and the deadline is usually
+thirty.

@@ -1,0 +1,26 @@
+We onboard new business customers, and before an account can trade we have to satisfy
+ourselves about who owns it. Around 180 applications a month come through the web form. Each
+one arrives with a company registration number, a list of the people the applicant says own
+more than twenty-five percent of it, and whatever documents they chose to upload.
+
+Three analysts work the queue. For each application they check that the registration number
+exists and is active in the registry, that the company is not in a country on our restricted
+list, that every named owner has an identity document that has not expired, and that the
+ownership percentages add up to a hundred.
+
+Most applications fail on something small and mechanical. A document photographed at an angle
+so the expiry date is unreadable. A percentage list that adds to ninety. A registry lookup
+that comes back dissolved. Those go straight back to the applicant with a standard message.
+
+The part that needs a person is different: whether the documents actually evidence the
+ownership being claimed. A holding company sits between the applicant and the named owner, or
+the registry lists a nominee, or the shareholding was restructured last quarter and the
+paperwork describes the old shape. An analyst has to read the chain and decide whether it
+hangs together. That is maybe one application in five.
+
+Anything where a named owner is a politically exposed person goes to the Financial Crime
+Officer regardless of how clean it looks. So does any application from a company less than six
+months old. We once opened an account where the ownership chain terminated in a company that
+had been struck off two years earlier, and nobody caught it for eleven months.
+
+Today it takes about six days from submission to a decision, and most of that is waiting.

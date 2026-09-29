@@ -1,0 +1,49 @@
+# Use case 2 — the decomposition is a judgment, so something has to check it.
+
+@meta
+use_case: Contract renewals arriving with changed terms, about 40 a quarter
+author: Team 2
+date: 2026-09-21
+approver: J. Lindqvist, Commercial Counsel
+exit_criterion: Shut down if a material change is missed more than 1 time in any 12 months
+
+@assumptions
+- The signed version of every contract is retrievable and is the correct comparison baseline
+- Clause section identifiers are stable between the signed version and the renewal
+- Counterparties send renewals as text, not as scanned images
+
+@unit
+definition: One renewal, with its changed clauses grouped by the obligation they affect
+kind: judgment
+two_people_test: Two counsel would argue about where one obligation ends and the next begins
+checked_by: A deterministic crosscheck confirms every changed clause appears in exactly one unit; any clause in none is listed for a human
+fanout: 4
+fanout_reason: Bounded by counsel review capacity, and renewals of one counterparty are judged together
+
+@steps
+1 | fetch | mechanical | code | Pull renewals due within 60 days and diff each against the signed version | batch
+2 | group | mechanical | code | Group changed clauses by section identifier into candidate units | batch
+3 | select | coordination | code | Order by contract value and renewal date, capped at the budget | batch
+4 | gate-scope | gate | code | Refuse high-value or restricted counterparties before any clause is assessed
+5 | assess | thinking | model | Decide whether a changed clause is cosmetic, material, or a new obligation
+6 | crosscheck | test | code | Confirm every changed clause appears in exactly one unit and none was dropped
+7 | gate-coverage | gate | code | Refuse when a clause belongs to no unit or to more than one
+8 | prove | mechanical | code | Write the diff, the grouping, the coverage result and the assessment, then checksum it
+9 | deliver | coordination | code | Write a review pack assigned to the named approver
+
+@gates
+4 | contract value is over 250000 USD, or the counterparty is on the restricted list | Route to counsel before any clause is assessed, with the full diff attached
+7 | a changed clause appears in no unit, or in more than one | Return the clause list to the contracts owner and have a person reconcile it before review
+9 | proof checksum differs from the checksum recorded when it was written | Stop the review pack and have the contracts owner establish who edited the proof and when
+
+@evidence
+writer_step: 8
+artifact: The clause diff, the grouping into units, the coverage crosscheck, and the assessment of each change
+integrity: SHA-256 recorded at write time and re-checked before the pack is sent
+
+@kpis
+cost per completed decision | cost | unmeasured
+material changes missed | quality | 1 in the last 12 months
+days from receipt to counsel review | throughput | 11 days
+refusals per 100 renewals | control | not applicable before this loop
+renewals countersigned before the notice deadline | tvr-velocity | unmeasured

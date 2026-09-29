@@ -1,0 +1,26 @@
+We handle prior authorization requests from referring clinics. About 900 a month. Each request
+names a patient, a procedure code, a diagnosis code, and carries whatever clinical notes the
+referring office attached.
+
+Four nurse reviewers work the queue. For each request they check that the member is eligible on
+the date of service, that the procedure is covered under the member's plan, that the diagnosis
+and procedure codes are a permitted pairing, and that any prerequisite therapy the policy
+requires has been tried and documented.
+
+A large share never needed a person at all. The member's coverage lapsed. The code pairing is
+on the auto-approve list and the notes are complete. The same request was already submitted and
+approved last week. Our reviewers say the routine ones cost as much attention as the hard ones,
+because nothing looks different until you open it.
+
+The judgment is whether the attached documentation actually supports medical necessity as the
+policy defines it. The notes are free text written by a busy clinician, the policy language is
+specific, and the two rarely use the same words. A reviewer decides whether what is described
+meets the criterion. Roughly one request in four.
+
+Anything the reviewer would deny goes to the Medical Director, without exception, because a
+denial has to be made by a clinician of equal or greater specialty. Requests marked urgent must
+have an answer inside 72 hours. Everything here is PHI, so records stay inside our environment
+and no patient identifier may appear in any log we keep.
+
+We once approved a duplicate of a request that had already been denied, because the second
+submission used a different referral number. Today the median turnaround is four days.

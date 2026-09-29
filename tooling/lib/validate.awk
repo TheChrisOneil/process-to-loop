@@ -1,0 +1,193 @@
+
+function rec(sev,id,msg,fix) { n++; SEV[n]=sev; ID[n]=id; MSG[n]=msg; FIX[n]=fix
+                               if (sev=="ERROR") errs++; if (sev=="WARN") warns++ }
+function ok(id,msg) { n++; SEV[n]="PASS"; ID[n]=id; MSG[n]=msg; passes++ }
+function checkable(c,   s) { s=tolower(c)
+  # A condition is checkable when a script could evaluate it with no judgment: a figure, a
+  # comparison, an absolute, or a stated equality or absence test.
+  return (s ~ /[0-9]/ || s ~ /never/ || s ~ /[<>=]/ || s ~ /at least|at most/ ||
+          s ~ /more than|less than|over |under |outside|not in/ ||
+          s ~ /differs|mismatch|does not match|is missing|is absent|is empty|is not |fails|failed/) }
+
+END {
+  # V1 sections
+  missing=""
+  if (!("meta.use_case" in V) && !("meta.author" in V)) missing=missing " @meta"
+  if (a==0) missing=missing " @assumptions"
+  if (!("unit.definition" in V)) missing=missing " @unit"
+  if (s==0) missing=missing " @steps"
+  if (g==0) missing=missing " @gates"
+  if (!("evidence.writer_step" in V)) missing=missing " @evidence"
+  if (k==0) missing=missing " @kpis"
+  if (missing=="") ok("V1","every required section is present")
+  else rec("ERROR","V1","sections missing or empty:" missing,"add them — see schema/DESIGN-FORMAT.md")
+
+  # V2 meta completeness
+  miss=""
+  split("use_case author date approver exit_criterion",MK," ")
+  for (i=1;i<=5;i++) if (!("meta." MK[i] in V) || V["meta." MK[i]]=="") miss=miss " " MK[i]
+  if (miss=="") ok("V2","every @meta key is set")
+  else rec("ERROR","V2","@meta is missing:" miss,"every key in @meta is required")
+  if (length(V["meta.use_case"])>0 && length(V["meta.use_case"])<20)
+      rec("ERROR","V2","use_case is " length(V["meta.use_case"]) " characters","state the business process in a full sentence")
+
+  # V3 approver is human
+  ap=tolower(V["meta.approver"])
+  if (ap ~ /system|agent|automatic|the loop|n\/a|tbd|none/)
+      rec("ERROR","V3","approver is \"" V["meta.approver"] "\"","name a role or a person — the machine never approves its own work")
+  else if (ap!="") ok("V3","the approver is a named role or person")
+
+  # V4 exit criterion has a figure
+  if (V["meta.exit_criterion"]!="") {
+      if (V["meta.exit_criterion"] ~ /[0-9]/) ok("V4","the exit criterion contains a figure")
+      else rec("ERROR","V4","exit_criterion has no number","name the number on which you shut this down")
+  }
+
+  # V5 assumptions
+  if (a>0) ok("V5",a " assumption(s) declared")
+  else rec("ERROR","V5","no assumptions declared","a design that declares none is hiding them")
+
+  # V6 / V7 unit
+  ukind=tolower(V["unit.kind"])
+  if (V["unit.definition"]=="") rec("ERROR","V6","the unit is not defined","name the smallest thing that gets one decision")
+  else if (ukind!="rule" && ukind!="judgment") rec("ERROR","V6","unit kind is \"" V["unit.kind"] "\"","must be rule or judgment")
+  else ok("V6","the unit is defined and its kind is " ukind)
+  if (ukind=="judgment") {
+      if (V["unit.checked_by"]=="" ) rec("ERROR","V7","the decomposition is a judgment and nothing checks it","a model deciding what work exists is an unchecked step — say what checks it")
+      else ok("V7","the judgment decomposition names what checks it")
+  } else if (ukind=="rule") ok("V7","the decomposition is a rule — nothing to check")
+
+  # V8 fanout
+  if (V["unit.fanout"] ~ /^[0-9]+$/ && V["unit.fanout_reason"]!="") ok("V8","fan-out is " V["unit.fanout"] " with a stated reason")
+  else rec("ERROR","V8","fanout must be a number and fanout_reason must be set","width is bounded by contention, blast radius, or review capacity")
+
+  # V9 step ids
+  bad=0; for (i=1;i<=s;i++) if (SID[i]+0 != i) bad=1
+  if (!bad && s>0) ok("V9","step ids run 1.." s)
+  else rec("ERROR","V9","step ids are not sequential from 1","renumber them")
+
+  # V10 / V11 step fields
+  terr=""; aerr=""; derr=""; xerr=""
+  for (i=1;i<=s;i++) {
+      t=tolower(STYPE[i]); ac=tolower(SACT[i])
+      if (t!="coordination" && t!="mechanical" && t!="thinking" && t!="test" && t!="gate") terr=terr " " SID[i]
+      if (ac!="code" && ac!="model" && ac!="human") aerr=aerr " " SID[i]
+      if (length(SDESC[i])<15) derr=derr " " SID[i]
+      if (t!="thinking" && ac!="code") xerr=xerr " " SID[i]
+      if (t=="thinking" && ac=="code") xerr=xerr " " SID[i]
+      if (t=="thinking") { th++; THI[th]=i }
+  }
+  if (terr=="") ok("V10","every step has a known type"); else rec("ERROR","V10","unknown step type at step(s)" terr,"use coordination, mechanical, thinking, test or gate")
+  if (aerr=="" && derr=="") ok("V10","every step has a known actor and a description of substance")
+  else { if (aerr!="") rec("ERROR","V10","unknown actor at step(s)" aerr,"use code, model or human")
+         if (derr!="") rec("ERROR","V10","description too short at step(s)" derr,"say what the step does, 15 characters minimum") }
+  if (xerr=="") ok("V11","type and actor agree on every step")
+  else rec("ERROR","V11","type and actor disagree at step(s)" xerr,"only a thinking step is performed by a model or a human")
+
+  # V12 one thinking step
+  if (th==1) ok("V12","exactly one thinking step")
+  else if (th==0) rec("WARN","V12","no thinking step","a loop with no judgment is ordinary automation — correct, and cheaper")
+  else if (V["unit.thinking_justification"]!="") rec("WARN","V12",th " thinking steps, with a justification","two of three are usually rules — check again")
+  else rec("ERROR","V12",th " thinking steps and no justification","isolate one, or set thinking_justification in @unit")
+
+  # V13 judgment is surrounded
+  unsurrounded=""
+  for (j=1;j<=th;j++) { i=THI[j]; found=0
+      for (m=i+1;m<=s;m++) { t=tolower(STYPE[m]); if (t=="test" || t=="gate") { found=1; break } }
+      if (!found) unsurrounded=unsurrounded " " SID[i] }
+  if (th>0 && unsurrounded=="") ok("V13","every thinking step is followed by a test or a gate")
+  else if (unsurrounded!="") rec("ERROR","V13","nothing checks the judgment at step(s)" unsurrounded,"a thinking step is surrounded, or it is unverified")
+
+  # V14 gates
+  if (g>=2) ok("V14",g " gates")
+  else rec("ERROR","V14","only " g " gate(s)","at least two: one before the work, one before delivery")
+
+  # V15 / V16 gate quality
+  cerr=""; rerr=""; perr=""
+  for (i=1;i<=g;i++) {
+      if (!checkable(GCOND[i])) cerr=cerr " " i
+      if (length(GREF[i])<25) rerr=rerr " " i
+      r=tolower(GREF[i])
+      if (r ~ /needs review|cannot proceed|escalate|tbd|for review|review required|see above/) perr=perr " " i
+  }
+  if (cerr=="") ok("V15","every gate condition is checkable")
+  else rec("ERROR","V15","gate condition is not checkable at gate(s)" cerr,"state a number, a comparison, or the word never")
+  if (rerr=="" && perr=="") ok("V16","every refusal names a next human action")
+  else { if (rerr!="") rec("ERROR","V16","refusal too short at gate(s)" rerr,"name the next human action, 25 characters minimum")
+         if (perr!="") rec("ERROR","V16","refusal is a placeholder at gate(s)" perr,"\"needs review\" is a state — name the action and who takes it") }
+
+  # V21 scope
+  serr=""; order_err=""; seen_unit=0
+  for (i=1;i<=s;i++) {
+      sc=SSCOPE[i]
+      if (sc!="batch" && sc!="unit") serr=serr " " SID[i]
+      if (sc=="unit") seen_unit=1
+      else if (sc=="batch" && seen_unit) order_err=order_err " " SID[i]
+  }
+  if (serr=="" && order_err=="") ok("V21","step scopes are valid and batch steps come first")
+  else { if (serr!="") rec("ERROR","V21","scope must be batch or unit at step(s)" serr,"leave the field off for unit, or write batch")
+         if (order_err!="") rec("ERROR","V21","batch step(s)" order_err " come after a unit step","everything that runs once happens before the units exist") }
+
+  # V25 every step typed gate is named by a gate
+  orphan=""
+  for (i=1;i<=s;i++) if (tolower(STYPE[i])=="gate") {
+    hit=0; for (j=1;j<=g;j++) if (GAFT[j]==SID[i]) hit=1
+    if (!hit) orphan = orphan " " SID[i]
+  }
+  if (orphan=="") ok("V25","every step typed gate is named by a gate")
+  else rec("ERROR","V25","step(s)" orphan " are typed gate but no gate names them","a step that looks like a control and enforces nothing is worse than no step — it reads as a gate in every diagram and refuses nothing")
+
+  # V22 every gate attaches to a real step
+  ghost=""
+  for (i=1;i<=g;i++) { found=0
+    for (j=1;j<=s;j++) if (SID[j]==GAFT[i]) { found=1; break }
+    if (!found) ghost=ghost " " GAFT[i] }
+  if (g>0 && ghost=="") ok("V22","every gate attaches to a real step")
+  else if (ghost!="") rec("ERROR","V22","gate(s) name step id(s)" ghost ", which do not exist","a gate nobody can place is a control that silently disappears from the diagram and the build")
+
+  # V17 proof writer is mechanical
+  ws=V["evidence.writer_step"]; wt=""
+  for (i=1;i<=s;i++) if (SID[i]==ws) wt=tolower(STYPE[i])
+  if (wt=="mechanical") ok("V17","the proof is written by a mechanical step")
+  else if (wt=="") rec("ERROR","V17","evidence.writer_step " (ws==""?"is unset":"names no step: " ws),"point it at a mechanical step")
+  else rec("ERROR","V17","the proof is written by a " wt " step","evidence a model can edit is not evidence")
+
+  # V18 integrity
+  if (V["evidence.integrity"]!="") ok("V18","evidence declares an integrity check")
+  else rec("ERROR","V18","no integrity check on the evidence","say how tampering is detected")
+
+  # V19 / V20 kpis
+  for (i=1;i<=k;i++) { kk=tolower(KKIND[i]); KIND[kk]++
+                       if (tolower(KBASE[i])=="unmeasured") unmeas++ }
+  if (k>=3 && KIND["cost"]>0 && KIND["quality"]>0) ok("V19",k " KPIs, including cost and quality")
+  else rec("ERROR","V19","need at least 3 KPIs including one cost and one quality; have " k,"cost funds it, quality stops it")
+  if (unmeas>0) rec("WARN","V20",unmeas " KPI baseline(s) unmeasured","measure the manual process first, or you can never claim an improvement")
+  else if (k>0) ok("V20","every KPI carries a baseline")
+
+  # V23 total value realized
+  tvr=KIND["tvr-velocity"]+KIND["tvr-throughput"]+KIND["tvr-speed"]+KIND["tvr-margin"]
+  if (tvr>0) ok("V23",tvr " KPI(s) measure total value realized")
+  else rec("ERROR","V23","no KPI measures total value realized","add a tvr-velocity, tvr-throughput, tvr-speed or tvr-margin KPI; cost says what it spends, TVR says what it returns")
+
+  # V24 every kind is one of the eight
+  badkind=""
+  for (i=1;i<=k;i++) { kk=tolower(KKIND[i])
+    if (kk !~ /^(cost|quality|throughput|control|tvr-velocity|tvr-throughput|tvr-speed|tvr-margin)$/)
+      badkind=badkind " \"" KKIND[i] "\"" }
+  if (badkind=="") { if (k>0) ok("V24","every KPI kind is a known kind") }
+  else rec("ERROR","V24","unknown KPI kind(s):" badkind,"use cost, quality, throughput, control, tvr-velocity, tvr-throughput, tvr-speed or tvr-margin")
+
+  # ---- output ----
+  if (mode=="tsv") {
+      for (i=1;i<=n;i++) printf "%s\t%s\t%s\t%s\n", SEV[i], ID[i], MSG[i], FIX[i]
+      exit (errs>0 ? 1 : 0)
+  }
+  for (i=1;i<=n;i++) {
+      if (SEV[i]=="PASS") printf "  \033[32mPASS\033[0m  %-4s %s\n", ID[i], MSG[i]
+      else if (SEV[i]=="WARN") printf "  \033[33mWARN\033[0m  %-4s %s\n            %s\n", ID[i], MSG[i], FIX[i]
+      else printf "  \033[31mFAIL\033[0m  %-4s %s\n            fix: %s\n", ID[i], MSG[i], FIX[i]
+  }
+  printf "\n  %d passed, %d failed, %d warning(s)\n", passes+0, errs+0, warns+0
+  if (errs>0) printf "\n  This design is not ready to be shown. Every failure above is a rule,\n  not an opinion, and the fix is named.\n"
+  exit (errs>0 ? 1 : 0)
+}

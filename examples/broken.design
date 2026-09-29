@@ -1,0 +1,35 @@
+# A design that looks reasonable and fails fourteen checks. Use it in the session:
+# run the validator on it, read the findings aloud, and ask the room which of the
+# fourteen they would have caught in a review meeting.
+
+@meta
+use_case: Refunds
+author: Team 5
+date: 2026-09-21
+approver: the system
+exit_criterion: We will review it periodically
+
+@assumptions
+- (none stated)
+
+@unit
+definition: A refund request
+kind: judgment
+fanout: as many as possible
+fanout_reason:
+
+@steps
+1 | read the queue | coordination | code | Pull refund requests
+2 | assess | thinking | model | Work out whether the refund is justified and write the decision record
+3 | decide | thinking | model | Decide the amount and approve it
+4 | send | coordination | code | Email the customer
+
+@gates
+4 | the amount looks reasonable | Needs review
+
+@evidence
+writer_step: 2
+artifact: The model's explanation of its decision
+
+@kpis
+requests processed | throughput | 200 a week

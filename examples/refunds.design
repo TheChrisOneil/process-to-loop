@@ -1,0 +1,48 @@
+# Use case 1 — a human sits in the judgment seat. Same architecture, no model at all.
+
+@meta
+use_case: Refund requests over 500 dollars, roughly 120 a week across three storefronts
+author: Team 1
+date: 2026-09-21
+approver: M. Okafor, Refunds Team Lead
+exit_criterion: Shut down if wrong refunds released exceeds 1 in any quarter
+
+@assumptions
+- Order history and prior refunds are retrievable from the payments system by account
+- The reason code is chosen by the agent raising the request, not by the customer
+- Storefront refund policy is identical across all three brands
+
+@unit
+definition: One refund request, with the order it refers to
+kind: rule
+two_people_test: Two agents given the same queue produce the same list of requests
+fanout: 10
+fanout_reason: Bounded by what one team lead reviews between the morning and the payment run
+
+@steps
+1 | fetch | mechanical | code | Pull refund requests over 500 dollars from the payments system | batch
+2 | enrich | mechanical | code | Attach order history, prior refunds and the stated reason code to each request | batch
+3 | select | coordination | code | Order by value and age, capped at the daily budget | batch
+4 | gate-intake | gate | code | Refuse high-value or repeat-refund accounts before anything is assessed
+5 | judge | thinking | human | Decide whether the stated reason is consistent with the order history
+6 | recheck | test | code | Recompute the refundable amount from the original order and compare
+7 | gate-amount | gate | code | Refuse when the recomputed amount disagrees with the request
+8 | prove | mechanical | code | Write the order, the history, the recomputation and the decision, then checksum it
+9 | deliver | coordination | code | Write a release proposal assigned to the named approver
+
+@gates
+4 | requested amount is more than 2000 USD, or the account has more than 3 refunds in 90 days | Send to the fraud desk with the account history attached before any amount is released
+7 | the recomputed refundable amount differs from the requested amount | Return both figures to the agent who raised the request and have a person decide which is right
+9 | proof checksum differs from the checksum recorded when it was written | Stop the release and have the refunds owner establish who edited the proof and when
+
+@evidence
+writer_step: 8
+artifact: The original order, the refund history, the recomputed amount, and the reviewer's decision
+integrity: SHA-256 recorded at write time and re-checked before release
+
+@kpis
+cost per completed decision | cost | unmeasured
+wrong refunds released | quality | 2 in the last quarter
+days from request to release | throughput | 6 days
+refusal rate | control | not applicable before this loop
+refund requests closed per reviewer per week | tvr-throughput | unmeasured

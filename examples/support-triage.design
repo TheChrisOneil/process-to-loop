@@ -1,0 +1,49 @@
+# Use case 3 — the input is written by strangers, so the intake gate is a security control.
+
+@meta
+use_case: Inbound support messages grouped into cases, roughly 900 a week
+author: Team 3
+date: 2026-09-21
+approver: D. Aluko, Support Duty Manager
+exit_criterion: Shut down if misrouted cases exceeds 15 percent in any month
+
+@assumptions
+- Messages arrive with a thread identifier the mail system sets and does not reuse
+- Customer tier is retrievable from the account system at ingest time
+- Attachments are not read by this loop in its first version
+
+@unit
+definition: One case, being the set of messages about a single problem from one customer
+kind: judgment
+two_people_test: Two agents would disagree about whether two messages are one problem or two
+checked_by: A deterministic coverage check confirms every selected message belongs to exactly one case; orphans go to a human
+fanout: 3
+fanout_reason: Bounded by what the duty manager reviews in one sitting, and a misroute is expensive to unwind
+
+@steps
+1 | ingest | mechanical | code | Pull unassigned inbound messages and strip signatures and quoted history | batch
+2 | cluster | mechanical | code | Group messages by sender, thread identifier and subject into candidate cases | batch
+3 | select | coordination | code | Order by age and customer tier, capped at the review budget | batch
+4 | gate-intake | gate | code | Refuse messages carrying credentials or from senders that are not customers
+5 | triage | thinking | model | Decide whether the messages are one case, and which product area owns it
+6 | coverage | test | code | Confirm every selected message belongs to exactly one case and none is orphaned
+7 | gate-routing | gate | code | Refuse when a message belongs to no case or to more than one
+8 | prove | mechanical | code | Write the message list, the clustering, the coverage result and the routing, then checksum it
+9 | deliver | coordination | code | Write a routing proposal assigned to the named approver
+
+@gates
+4 | the message contains an account credential, or the sender is not a known customer | Hand the message to the security desk and do not place its text into any downstream system
+7 | a selected message belongs to no case, or to more than one | Return the batch to the duty manager and have a person assign the orphaned messages by hand
+9 | proof checksum differs from the checksum recorded when it was written | Stop the routing and have the support owner establish who edited the proof and when
+
+@evidence
+writer_step: 8
+artifact: The message identifiers, the clustering that produced the case, the coverage check, and the routing decision
+integrity: SHA-256 recorded at write time and re-checked before routing
+
+@kpis
+cost per completed decision | cost | unmeasured
+misrouted cases | quality | 12 percent last quarter
+hours to first response | throughput | 9 hours
+refusal rate at intake | control | not applicable before this loop
+cases resolved per agent per shift | tvr-throughput | unmeasured

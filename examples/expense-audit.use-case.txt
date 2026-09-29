@@ -1,0 +1,25 @@
+Somebody has to audit expense reports before we reimburse them. About 1,200 line items a month
+across roughly 300 reports. Each line has an amount, a date, a category the employee chose, a
+merchant name, and usually a receipt image.
+
+One person in finance does this alongside other work. For each line they check that a receipt
+is attached where the policy requires one, that the amount matches the receipt, that the
+category is plausible for that merchant, that the date falls inside the reporting period, and
+that the same receipt has not been submitted before.
+
+The overwhelming majority are fine and boring. Under our receipt threshold, so no image is
+needed. Amount matches. Merchant obviously a hotel, category hotel. Those should never have
+reached a human at all, and today every one of them does.
+
+What needs judgment is business purpose. The policy allows client entertainment and does not
+allow personal entertainment, and the difference is usually a sentence the employee wrote in a
+hurry, read alongside who else was there and what else happened that week. Our auditor makes
+that call perhaps eight times in a hundred lines.
+
+Lines over 75 dollars require a receipt. Any single line over 1,000 dollars needs the employee's
+department head to approve it before we pay, regardless of how ordinary it looks. Anything
+categorized as a gift goes to the Controller. We have twice reimbursed the same hotel receipt
+submitted on two different reports a month apart.
+
+Reports currently take about nine days to clear, and the finance team gets asked about it
+constantly.

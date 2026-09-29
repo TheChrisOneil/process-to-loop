@@ -1,0 +1,50 @@
+# The design of the working loop in ../../demo, written in this schema.
+# Every line here is true of the code that runs.
+
+@meta
+use_case: Supplier invoices that do not match their purchase order, roughly 400 a month
+author: The Loop, worked example
+date: 2026-09-21
+approver: A. Rivera, Accounts Payable
+exit_criterion: Shut down if review minutes per unit exceeds 4 for two consecutive weeks
+
+@assumptions
+- Invoice and purchase order lines are retrievable from the ERP as structured records
+- A supplier reusing a purchase order number across periods is out of scope for now
+- Tolerance limits are set by finance policy and reviewed quarterly
+- The supervised supplier list is maintained by the contract owner, not by this loop
+
+@unit
+definition: One (supplier, purchase order) pair
+kind: rule
+two_people_test: Two buyers given the same two files, unable to confer, produce the same units
+fanout: 7
+fanout_reason: Bounded by what one approver reads in a morning, not by machine capacity
+
+@steps
+1 | decompose | mechanical | code | Group invoice lines and purchase order lines into units by supplier and order | batch
+2 | match | mechanical | code | Reconcile each unit by arithmetic and screen memo text for instructions | batch
+3 | select | coordination | code | Choose what is worked tonight, worst first, under a budget | batch
+4 | gate-pre | gate | code | Refuse no-PO, injection-suspect, supervised supplier, or over the cap
+5 | judge | thinking | model | Decide whether a variance is a dispute, discount, duplicate, partial or typo
+6 | verify | test | code | Recompute the claimed adjustment from the raw files and compare
+7 | gate-post | gate | code | Refuse an unusable call, missing evidence, or an unverified adjustment
+8 | prove | mechanical | code | Write the arithmetic, the commands and the judgment, then checksum it
+9 | deliver | coordination | code | Re-check the checksum and write a proposal for the named approver
+
+@gates
+4 | exposure over 2000 USD, or supplier on the supervised list, or no purchase order exists | Route to a second approver, or raise a purchase order for this spend before any amount is approved
+7 | recomputed adjustment differs from the claimed adjustment by more than 0.01 | Return both figures to the reviewer and have a person decide which is right
+9 | proof checksum differs from the checksum recorded when it was written | Stop delivery and have the loop owner establish who edited the proof and when
+
+@evidence
+writer_step: 8
+artifact: The invoice as filed, the purchase order as raised, the arithmetic, the judgment, and the checks that ran
+integrity: SHA-256 recorded at write time and re-checked at delivery; a mismatch blocks delivery
+
+@kpis
+cost per completed decision | cost | unmeasured
+escaped defect rate | quality | 0 known in the last quarter
+review minutes per unit | throughput | 9 minutes manual
+refusal rate | control | not applicable before this loop
+days from invoice receipt to payment decision | tvr-velocity | unmeasured

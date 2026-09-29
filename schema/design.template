@@ -1,0 +1,52 @@
+# Copy this, fill it in, run ../validate.sh on it.
+# Every line beginning with # is a comment. Delete them as you go.
+
+@meta
+use_case:
+author:
+date:
+# A named role or person. Never "the system".
+approver:
+# The number on which you shut this down.
+exit_criterion:
+
+@assumptions
+# One per line. A design that declares none is hiding them.
+-
+
+@unit
+# The smallest thing that gets exactly one decision.
+definition:
+# rule, if two competent people unable to confer produce the same units. Otherwise judgment.
+kind:
+two_people_test:
+# Required only when kind is judgment: what checks the decomposition?
+checked_by:
+# How many run at once, and what bounds that number.
+fanout:
+fanout_reason:
+# Required only if you have more than one thinking step.
+thinking_justification:
+
+@steps
+# id | name | type | actor | description
+# type:  coordination | mechanical | thinking | test | gate
+# actor: code | model | human   (only thinking is model or human)
+1 |  |  |  |
+
+@gates
+# after step | the condition that refuses | the next human action
+# The condition needs a number, a comparison, or the word "never".
+ |  |
+
+@evidence
+# The step id that writes the proof. It must be a mechanical step.
+writer_step:
+artifact:
+integrity:
+
+@kpis
+# name | kind | baseline today, or "unmeasured"
+# kind: cost | quality | throughput | control | tvr-velocity | tvr-throughput | tvr-speed | tvr-margin
+# at least one cost, one quality and one tvr-* KPI; no other kind is accepted
+ |  |
