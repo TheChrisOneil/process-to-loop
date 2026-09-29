@@ -41,6 +41,35 @@ and exit 75 means the check could not run at all. That is a control, not a hope.
 Every generated check refuses until somebody implements it, and says so on its own output. The
 compiler will not emit a stub that passes, because a gate that cannot run is not a gate.
 
+## Checks are authored, then attacked
+
+A generated check script is frequently wrong in the same few ways: the polarity
+is inverted, the boundary is off by one, a value is read from the model's own
+output instead of the source record, or a business failure exits 75 and so never
+consumes an attempt.
+
+`formulas/check-authoring.toml` puts three things in front of a person, cheapest
+first:
+
+| | | |
+|---|---|---|
+| **selftest** | deterministic | runs the script against fixtures generated from the gate condition itself. Costs nothing, and catches polarity and boundary without anyone's opinion |
+| **audit** | a *different* model | reviews what the first one wrote, against five named dimensions. Two lanes on one model produce correlated blind spots, and the review then looks like agreement when it is one opinion twice |
+| **audit-verdict** | deterministic | decides whether the audit passed. The auditor does not grade itself, and it **refuses when the same model authored and audited** |
+
+Then `[steps.gate]` holds the workflow until a person closes it.
+
+The fixture table is the interesting part. From `exposure over 2000 USD` it
+generates `1999 proceed`, `2001 refuse`, and `2000 declare` — the boundary is
+left undecided on purpose, and the self-test refuses until somebody says which
+side it falls on. An undecided threshold is the off-by-one you otherwise find
+with the first real unit.
+
+```bash
+make compile DESIGN=examples/invoices.design NAME=my-method
+make selftest NAME=my-method     # every check against its fixtures, no model
+```
+
 ## The two rule sets
 
 `gc` validates that the compiled graph is well formed. It does not validate that the method is
@@ -86,7 +115,7 @@ Investigative. The shape is settled and the tests pass; the edges are not finish
 - No scopes, so setup and teardown have nowhere correct to live.
 - The front door is two commands. Producing a design from a description is not yet part of this
   repo.
-- Check scripts are authored by a generator and reviewed by a human. Having them audited by a
-  second, different model is the next thing.
+- The audit workflow is written and it compiles, but it has not been run against live
+  providers. The deterministic halves are tested; the two model lanes are not.
 
 Contributions welcome — see `CONTRIBUTING.md`.

@@ -42,4 +42,12 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) && echo "cleaned $(OUT)/"
 
-.PHONY: help design compile conformance rules probe demo test clean
+.PHONY: help design compile conformance rules probe demo test selftest clean
+
+selftest:
+	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }
+	@set -e; for s in $(OUT)/.gc/scripts/checks/$(NAME)-g*.sh; do \
+	   f="$${s%.sh}.fixtures.tsv"; \
+	   echo "== $$(basename $$s)"; \
+	   tooling/selftest.sh "$$s" "$$f" || true; \
+	 done

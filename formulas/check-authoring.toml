@@ -1,0 +1,285 @@
+formula = "check-authoring"
+
+description = """
+Author one gate check, then have a different model try to break it.
+
+A gate is only a control if its script is right. Scripts written by a model are
+frequently wrong in the same few ways: the polarity is inverted, the boundary is
+off by one, the value is read from the model's own output instead of the source
+record, or a business failure exits 75 and so never consumes an attempt.
+
+Three things look at the script before a person does, cheapest first:
+
+  selftest      deterministic. Runs the script against fixtures generated from
+                the gate condition itself. Costs nothing and catches polarity
+                and boundary defects without an opinion from anybody.
+  audit         a DIFFERENT model, on a different provider. It reviews what the
+                first one wrote. Two lanes on one model produce correlated blind
+                spots, and the review then looks like agreement when it is one
+                opinion twice.
+  audit-verdict deterministic. Decides whether the audit passed. The auditor
+                does not grade itself, and it cannot waive this step.
+
+Only then does a person see it.
+
+Inputs: the design, which gate, and where the check should land. The author and
+audit lanes each take their own provider and model, and they must differ — the
+verdict check refuses when they do not.
+"""
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "check-authoring"
+description = "Author a gate check, self-test it, have a different model audit it, then ask a person."
+
+[vars]
+
+[vars.design_path]
+description = "Absolute path to the design this gate comes from."
+required = true
+
+[vars.gate_number]
+description = "Which gate in the design, as it is numbered in @gates. For example 01."
+required = true
+
+[vars.check_path]
+description = "Absolute path where the finished check script lands."
+required = true
+
+[vars.fixtures_path]
+description = "Absolute path to the fixture table for this gate."
+required = true
+
+[vars.author_provider]
+description = "Provider for the lane that writes the check."
+default = "claude"
+
+[vars.author_model]
+description = "Model for the lane that writes the check."
+default = "claude-opus-5"
+
+[vars.audit_provider]
+description = "Provider for the lane that audits it. Different from the author's, on purpose."
+default = "claude"
+
+[vars.audit_model]
+description = "Model for the audit lane. MUST differ from author_model; the verdict check refuses when it does not."
+default = "claude-sonnet-5"
+
+[vars.notify]
+description = "Who is asked to accept the finished check. A named role, never a team."
+required = true
+
+[vars.artifact_root]
+description = "Absolute path where this run writes the script, the verdict and the log."
+required = true
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "load-gate"
+title = "Read the gate and generate its fixtures"
+description = """
+Deterministic work only. Do not infer, do not fill gaps, and do not decide
+anything this step was not told to decide.
+
+1. Read gate {{gate_number}} from {{design_path}}: its condition, its refusal,
+   and the step it attaches to. Report all three verbatim.
+2. Confirm the fixture table at {{fixtures_path}} exists and print it. It is
+   generated from the condition, not written by hand.
+3. Report every fixture row still marked `declare`. Those are boundaries the
+   generator could not settle, and they must be decided before the check can be
+   trusted.
+4. Record CHECK_SCRIPT={{check_path}} and CHECK_FIXTURES={{fixtures_path}} in
+   the workflow output, because the selftest gate reads them.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason. Closing without
+an outcome is read as a failure.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "author-check"
+title = "Write the check script"
+needs = ["load-gate"]
+description = """
+Write the check script for gate {{gate_number}} to {{check_path}}, and make it
+executable.
+
+The condition in a design describes WHAT REFUSES. Everything follows from that
+one sentence:
+
+  the condition holds      the gate fires   exit non-zero, refusal on stderr
+  the condition does not   work continues   exit 0
+  the check cannot run     not a verdict    exit 75, and only ever for this
+
+Read every value from the unit or from configuration. Never from a model's
+output, including your own — a check that trusts the thing it is checking is
+not a check.
+
+Decide every fixture row marked `declare` and write your decision into
+{{fixtures_path}}. Say in your output which way you decided each boundary and
+why. "over 2000" excludes 2000; if you believe otherwise for this gate, say so
+in one sentence.
+
+The refusal message names the next human action. "Needs review" is not an
+action.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{author_provider}}", "opt_model" = "{{author_model}}" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "selftest"
+title = "Gate: the script satisfies its fixtures"
+needs = ["author-check"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The check runs the authored script against every fixture and refuses if any row
+fails or any boundary is still undeclared. It costs nothing and it catches the
+two defects that actually occur: inverted polarity, and an off-by-one at the
+threshold.
+
+Exit 0 passes. Any other non-zero is "not yet" and consumes an attempt. Exit 75
+only when the script or the fixtures are not there to test.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/selftest-gate.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "audit-check"
+title = "Audit the script, adversarially"
+needs = ["selftest"]
+description = """
+You did not write this script. Your job is to find what is wrong with it, not to
+agree with it. A review that finds nothing and says so in one line is worthless;
+if you genuinely find nothing, say what you checked and how you satisfied
+yourself.
+
+Read {{check_path}} against gate {{gate_number}} in {{design_path}} and cover
+all five of these, by name:
+
+  polarity         does the script refuse when the condition HOLDS, and proceed
+                   when it does not? This is inverted more often than any other
+                   defect.
+  boundary         at exactly the threshold, which way does it go, and does that
+                   match what the condition says?
+  source-of-truth  where does each value come from? A value read from a model's
+                   output, rather than from the unit or configuration, is a
+                   finding on its own.
+  exit-75          is 75 used only for "the check could not run"? A business
+                   failure exiting 75 never consumes an attempt, so the gate
+                   silently never exhausts.
+  refusal-text     does the refusal name a next human action a person could
+                   take?
+
+Write your verdict as JSON to {{artifact_root}}/audit-verdict.json:
+
+  author_model  "{{author_model}}"
+  audit_model   "{{audit_model}}"
+  verdict       "sound" or "defective"
+  checked       the five names above
+  defects       [] when sound; otherwise one object per defect with
+                severity ("critical", "major" or "minor"), what, and why
+  confidence    "high", "medium" or "low"
+
+Record AUDIT_VERDICT as that path in your output, because the next step reads it.
+
+You cannot approve this check. A deterministic step decides whether your audit
+passed, and it refuses if you and the author were the same model.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{audit_provider}}", "opt_model" = "{{audit_model}}", "gc.output_json_required" = "true" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "audit-verdict"
+title = "Gate: the audit is real and came from a different model"
+needs = ["audit-check"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The check refuses when the verdict is missing or malformed, when the same model
+authored and audited, when a defective verdict names no defect, or when the
+audit skipped any of the five required dimensions.
+
+Exit 0 passes. Any other non-zero is "not yet". Exit 75 only when there is no
+JSON parser on the host, which is not a business failure.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/audit-verdict.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "accept-check"
+title = "A person accepts the check"
+needs = ["audit-verdict"]
+description = """
+A person does this. The gate below holds the method here until they close it.
+Notify {{notify}}.
+
+Put in front of them, on one screen:
+
+  - the gate condition and its refusal, from the design
+  - the script, whole
+  - the fixture table, with every boundary now decided and who decided it
+  - the audit verdict, including anything it found and what was done about it
+
+Ask one question: would you sign for this check refusing a real unit next week?
+
+Do not approve on their behalf. Do not summarize the audit into a sentence that
+loses what it found.
+
+Close with `gc.outcome=pass` once they have closed the gate, or
+`gc.outcome=fail` with their reason.
+"""
+metadata = { "eb.seat" = "{{notify}}" }
+
+[steps.gate]
+id = "accept-check-approval"
+# The gate bead blocks this step until a person closes it. The type vocabulary
+# has no runtime consumer, so it is not set.
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "install-check"
+title = "Install the accepted check"
+needs = ["accept-check"]
+description = """
+Deterministic work only.
+
+1. Copy the accepted script to {{check_path}} and make it executable.
+2. Copy the fixture table beside it, with its decided boundaries.
+3. Copy the audit verdict to {{artifact_root}}, so the record survives the run.
+4. Report the SHA-256 of the installed script. That digest is what was accepted.
+
+Do not edit the script here. A change after acceptance is a new script and
+belongs in a new run.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }

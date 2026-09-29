@@ -46,11 +46,55 @@ then no "a formula naming a check script that does not exist still validated"
 else ok "a check script that does not exist fails F5 — the dropped-gate class of bug"; fi
 
 echo
+echo "THE AUDIT WORKFLOW"
+if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/check-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
+then ok "check-authoring passes the formula rules"
+else no "check-authoring fails the formula rules"; fi
+
+T=$(mktemp -d)
+printf '{"author_model":"m1","audit_model":"m1","verdict":"sound","checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"]}' > "$T/v.json"
+if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then no "an audit graded by the authoring model was accepted"
+else ok "an audit by the same model is refused — correlated blind spots"; fi
+printf '{"author_model":"m1","audit_model":"m2","verdict":"defective","defects":[],"checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"]}' > "$T/v.json"
+if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then no "a defective verdict naming no defect was accepted"
+else ok "a defective verdict that names no defect is refused"; fi
+printf '{"author_model":"m1","audit_model":"m2","verdict":"sound","checked":["polarity"]}' > "$T/v.json"
+if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then no "an audit that skipped four of five dimensions was accepted"
+else ok "an audit that skipped a required dimension is refused"; fi
+AUDIT_VERDICT="$T/gone.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+[ $? -eq 75 ] && ok "a missing verdict exits 75 — could not run, not a business failure" \
+              || no "a missing verdict did not exit 75"
+rm -rf "$T"
+
+echo
+echo "THE FIXTURES"
+FX=$(awk -f "$HERE/tooling/lib/parse.awk" -f "$HERE/tooling/lib/gates.awk" "$HERE/examples/invoices.design" | head -1)
+COND=$(printf '%s' "$FX" | cut -f2); REF=$(printf '%s' "$FX" | cut -f3)
+TF=$(mktemp)
+awk -f "$HERE/tooling/lib/fixtures.awk" -v N=01 -v COND="$COND" -v REFUSAL="$REF" /dev/null > "$TF"
+if grep -q "^above	2001	refuse" "$TF"
+then ok "over the threshold refuses — the condition describes what refuses"
+else no "fixture polarity is wrong for a threshold condition"; fi
+if grep -q "^at	2000	declare" "$TF"
+then ok "the threshold itself is left for a person to decide"
+else no "the boundary case was decided by the generator"; fi
+if "$HERE/tooling/selftest.sh" "$HERE/tooling/selftest.sh" "$TF" >/dev/null 2>&1
+then no "selftest passed a script that satisfies nothing"
+else ok "selftest refuses a script that does not satisfy its fixtures"; fi
+rm -f "$TF"
+
+echo
 echo "CONFORMANCE"
 if command -v gc >/dev/null; then
   if "$HERE/tooling/conformance.sh" "$OUT" fc-invoices >/dev/null 2>&1
   then ok "gc compiles the emitted formula"
   else no "gc refused the emitted formula"; fi
+  if "$HERE/tooling/conformance.sh" "$HERE" check-authoring >/dev/null 2>&1
+  then ok "gc compiles the audit workflow"
+  else no "gc refused the audit workflow"; fi
 else
   printf "  SKIP  gc is not installed\n"
 fi

@@ -54,6 +54,8 @@ while IFS=$'\t' read -r n cond ref; do
   awk -f "$HERE/lib/emit-check.awk" -v NAME="$NAME" -v N="$NN" \
       -v COND="$cond" -v REFUSAL="$ref" /dev/null > "$OUT/$CHECKDIR/$NAME-g$NN.sh"
   chmod +x "$OUT/$CHECKDIR/$NAME-g$NN.sh"
+  awk -f "$HERE/lib/fixtures.awk" -v N="$NN" \
+      -v COND="$cond" -v REFUSAL="$ref" /dev/null > "$OUT/$CHECKDIR/$NAME-g$NN.fixtures.tsv"
 done <<< "$GATEROWS"
 
 # ---- 4. the build guard: every gate reached the formula AND has a script
@@ -76,6 +78,10 @@ fi
 echo
 echo "  $FORMULA"
 echo "  $OUT/$CHECKDIR/    $GATES check script(s), each refusing until implemented"
+echo "                        $GATES fixture table(s) — the cases each check must satisfy"
 echo
 echo "  Next:  make conformance OUT=$OUT NAME=$NAME     # ask gc whether it compiles"
-echo "         then implement each check script, because a gate that cannot run is not a gate"
+echo "         make selftest NAME=$NAME                    # run the checks against their fixtures"
+echo
+echo "  Each fixture table has boundary rows marked declare. Decide them — an"
+echo "  undecided boundary is the off-by-one you find with the first real unit."
