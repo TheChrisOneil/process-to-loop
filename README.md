@@ -99,6 +99,14 @@ qualification — for anyone who wants to start from a description rather than a
 `schema/DESIGN-FORMAT.md` is the design format. `REFERENCE.md` is the Gas City formula surface,
 organized as a compile target, with the spec cited and every claim's provenance marked.
 
+## Running one, rather than compiling one
+
+Compiling and validating needs nothing but bash and awk. **Running** a workflow needs a Gas
+City city, and standing one up has five sharp edges that each cost a failed run to find — the
+git-remote inheritance trap, the import namespace that is also the target namespace, the
+rig-scoped role, the resident mayor session, and a folder-trust prompt no supervisor can
+answer. `docs/standing-up-a-city.md` has all of them, in order.
+
 ## Requirements
 
 Bash, awk and make — present on macOS and Linux. `gc` only for `make conformance` and
