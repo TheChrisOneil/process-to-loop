@@ -1,0 +1,303 @@
+formula = "step-authoring"
+
+description = """
+Author one step of a process, then have a different model try to break it.
+
+A gate has a condition, so it can be tested against values. A step has no
+condition — it has a declared TYPE, and the type is a promise about what the
+code may do. Those promises are what this workflow enforces.
+
+  mechanical, coordination, test   a rule. No provider call, and the same input
+                                   twice must produce byte-identical output.
+  thinking + model                 exactly one provider call, a usage row
+                                   recorded, and evidence quoted.
+  thinking + human                 blocks for a person and does not decide on
+                                   their behalf.
+
+Plus, for every step: it takes the unit as $1 and the value as $2, it writes a
+ledger line on every exit path, it writes only under memory/, proof/ and
+outbox/, and it writes evidence only if the design names it the writer.
+
+Three things look at the script before a person does, cheapest first:
+
+  selftest      deterministic. Runs the properties, including running the script
+                twice and comparing, which no opinion can substitute for.
+  audit         a DIFFERENT model, on a different provider, against six named
+                dimensions.
+  audit-verdict deterministic. Decides whether the audit passed. The auditor does
+                not grade itself, and it refuses when the two lanes were the same
+                model.
+"""
+
+[requires]
+formula_compiler = ">=2.0.0"
+
+[catalog]
+name = "step-authoring"
+description = "Author a process step, test it against its type's promises, have a different model audit it, then ask a person."
+
+[vars]
+
+[vars.design_path]
+description = "Absolute path to the design this step comes from."
+required = true
+
+[vars.step_id]
+description = "Which step in the design, as it is numbered in @steps."
+required = true
+
+[vars.step_path]
+description = "Absolute path where the finished step script lands, inside the bundle."
+required = true
+
+[vars.properties_path]
+description = "Absolute path to the property table for this step."
+required = true
+
+[vars.bundle_path]
+description = "Absolute path to the bundle the step belongs to. The selftest runs the script there."
+required = true
+
+[vars.author_provider]
+description = "Provider for the lane that writes the step."
+default = "claude"
+
+[vars.author_model]
+description = "Model for the lane that writes the step."
+default = "claude-opus-5"
+
+[vars.audit_provider]
+description = "Provider for the lane that audits it."
+default = "claude"
+
+[vars.audit_model]
+description = "Model for the audit lane. MUST differ from author_model; the verdict check refuses when it does not."
+default = "claude-sonnet-5"
+
+[vars.notify]
+description = "Who is asked to accept the finished step. A named role, never a team."
+required = true
+
+[vars.artifact_root]
+description = "Absolute path where this run writes the script, the verdict and the log."
+required = true
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "load-step"
+title = "Read the step and generate its properties"
+description = """
+Deterministic work only. Do not infer, do not fill gaps, and do not decide
+anything this step was not told to decide.
+
+1. Read step {{step_id}} from {{design_path}}: its name, type, actor, scope and
+   description. Report all of them verbatim.
+2. Confirm the property table at {{properties_path}} exists and print it. It is
+   generated from the step's declared type, not written by hand.
+3. Report which properties the selftest can decide and which are marked for a
+   person. A property nobody can check mechanically is one the audit lane and the
+   approver have to carry.
+4. Record STEP_SCRIPT={{step_path}}, STEP_PROPERTIES={{properties_path}} and
+   STEP_BUNDLE={{bundle_path}} in the workflow output, because the selftest gate
+   reads them.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason. Closing without
+an outcome is read as a failure.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "author-step"
+title = "Write the step script"
+needs = ["load-step"]
+description = """
+Write the script for step {{step_id}} to {{step_path}}, and make it executable.
+
+Its arguments are fixed:
+  $1  the unit id
+  $2  the value the step works on
+
+Read anything else from the unit record or from configuration. Never from model
+output, including your own.
+
+**The declared type is a promise, and the property table is that promise made
+checkable.** Hold every one of them. In particular:
+
+  - a mechanical, coordination or test step calls no provider, and running it
+    twice on the same input must produce byte-identical output
+  - a thinking step calls exactly one provider and records what it cost
+  - only the step the design names may write into proof/
+  - every exit path writes a ledger line, including the failures
+
+Source config.sh and lib/ledger.sh the way the other steps in {{bundle_path}} do.
+Use step_say to report what happened, with the step's own type on the line.
+
+Say in your output which properties you believe you satisfied and how. A property
+you cannot satisfy is a finding, not something to work around quietly.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{author_provider}}", "opt_model" = "{{author_model}}" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "selftest"
+title = "Gate: the step holds the properties its type promises"
+needs = ["author-step"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The check runs every property the type promises. The determinism property runs
+the script twice and compares the bytes, which is not an opinion anybody can
+substitute for. Properties marked for a person are reported, not decided.
+
+Exit 0 passes. Any other non-zero is "not yet" and consumes an attempt. Exit 75
+only when the script or the properties are not there to test.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/step-selftest.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "audit-step"
+title = "Audit the step, adversarially"
+needs = ["selftest"]
+description = """
+You did not write this script. Your job is to find what is wrong with it, not to
+agree with it. A review that finds nothing and says so in one line is worthless;
+if you genuinely find nothing, say what you checked and how you satisfied
+yourself.
+
+Read {{step_path}} against step {{step_id}} in {{design_path}} and its properties
+in {{properties_path}}. Cover all six of these, by name:
+
+  type-discipline  does the code do what its declared type permits, and nothing
+                   more? A mechanical step that reaches for a model, or a
+                   thinking step that decides by rule, is the whole finding.
+  scope            a batch step runs once per tick and cannot assume a unit; a
+                   unit step runs once per unit and must not loop. Which is this,
+                   and does the code agree?
+  ledger           does every exit path — including the failures and the early
+                   returns — write a ledger line? A step that returns silently
+                   cannot be costed or audited.
+  side-effects     does it write anywhere other than memory/, proof/ and outbox/?
+                   Does it write evidence when the design names a different step
+                   as the writer?
+  source-of-truth  where does each value come from? A value taken from model
+                   output rather than the unit record or configuration is a
+                   finding on its own.
+  determinism      for a rule-typed step, is there anything non-deterministic in
+                   it — a timestamp in the output, an unsorted glob, a random
+                   value — that the two-run check might not have surfaced?
+
+Write your verdict as JSON to {{artifact_root}}/step-audit-verdict.json:
+
+  author_model  "{{author_model}}"
+  audit_model   "{{audit_model}}"
+  verdict       "sound" or "defective"
+  checked       the six names above
+  defects       [] when sound; otherwise one object per defect with
+                severity ("critical", "major" or "minor"), what, and why
+  confidence    "high", "medium" or "low"
+
+Record AUDIT_VERDICT as that path, and AUDIT_DIMENSIONS as
+"type-discipline,scope,ledger,side-effects,source-of-truth,determinism", because
+the next step reads both.
+
+You cannot approve this step. A deterministic step decides whether your audit
+passed, and it refuses if you and the author were the same model.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{audit_provider}}", "opt_model" = "{{audit_model}}", "gc.output_json_required" = "true" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "audit-verdict"
+title = "Gate: the audit is real and came from a different model"
+needs = ["audit-step"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The check refuses when the verdict is missing or malformed, when the same model
+authored and audited, when a defective verdict names no defect, or when the audit
+skipped any of the six required dimensions.
+
+Exit 0 passes. Any other non-zero is "not yet". Exit 75 only when there is no
+JSON parser on the host, which is not a business failure.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/audit-verdict.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- thinking ----
+[[steps]]
+id = "accept-step"
+title = "A person accepts the step"
+needs = ["audit-verdict"]
+description = """
+A person does this. The gate below holds the method here until they close it.
+Notify {{notify}}.
+
+Put in front of them, on one screen:
+
+  - the step as the design describes it, with its type, actor and scope
+  - the script, whole
+  - the property table, with what the selftest decided and what it left for a
+    person
+  - the audit verdict, including anything it found and what was done about it
+
+Ask one question: would you sign for this step running unattended on a schedule?
+
+Do not approve on their behalf. Do not summarize the audit into a sentence that
+loses what it found.
+
+Close with `gc.outcome=pass` once they have closed the gate, or `gc.outcome=fail`
+with their reason.
+"""
+metadata = { "eb.seat" = "{{notify}}" }
+
+[steps.gate]
+id = "accept-step-approval"
+# The gate bead blocks this step until a person closes it. The type vocabulary
+# has no runtime consumer, so it is not set.
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "install-step"
+title = "Install the accepted step"
+needs = ["accept-step"]
+description = """
+Deterministic work only.
+
+1. Copy the accepted script to {{step_path}} and make it executable.
+2. Copy the property table beside it.
+3. Copy the audit verdict to {{artifact_root}}, so the record survives the run.
+4. Report the SHA-256 of the installed script. That digest is what was accepted.
+5. Run one tick of the bundle at {{bundle_path}} and report what happened. A step
+   that passes its properties and breaks the tick is still broken.
+
+Do not edit the script here. A change after acceptance is a new script and
+belongs in a new run.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }

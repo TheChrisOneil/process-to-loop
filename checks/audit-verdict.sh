@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Gate check: is the audit real, and did it come from a different model?
 #
+# Serves both lanes. AUDIT_DIMENSIONS names the dimensions the audit had to
+# cover; it defaults to the gate-check set.
+#
 # This decides whether the audit passed. The auditor does not. A model that
 # grades its own review is one opinion twice.
 #
@@ -20,7 +23,9 @@ else echo "no JSON parser on this host, so the verdict cannot be read. This is n
 if [ "$P" = python3 ]; then
 python3 - "$V" <<'PY'
 import json, sys
-REQUIRED = {"polarity", "boundary", "source-of-truth", "exit-75", "refusal-text"}
+import os
+REQUIRED = set((os.environ.get("AUDIT_DIMENSIONS") or
+                "polarity,boundary,source-of-truth,exit-75,refusal-text").split(","))
 try:
     d = json.load(open(sys.argv[1]))
 except Exception as e:
@@ -52,8 +57,8 @@ checked = set(d.get("checked") or [])
 missing = REQUIRED - checked
 if missing:
     bad("the audit did not cover: " + ", ".join(sorted(missing)) + ".",
-        "re-run the audit against every required dimension. Polarity and boundary "
-        "are where gate defects actually live.")
+        "re-run the audit against every required dimension. A skipped dimension is "
+        "a review that did not happen.")
 
 defects = d.get("defects") or []
 if verdict == "defective":

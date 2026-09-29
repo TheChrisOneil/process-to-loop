@@ -87,6 +87,41 @@ else ok "selftest refuses a script that does not satisfy its fixtures"; fi
 rm -f "$TF"
 
 echo
+echo "THE STEP LANE"
+if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/step-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
+then ok "step-authoring passes the formula rules"
+else no "step-authoring fails the formula rules"; fi
+
+PT=$(mktemp)
+"$HERE/tooling/properties.sh" "$HERE/examples/invoices.design" 5 > "$PT" 2>/dev/null
+if grep -q "^is-model" "$PT"; then ok "a thinking step must call exactly one provider"
+else no "the thinking step got no is-model property"; fi
+"$HERE/tooling/properties.sh" "$HERE/examples/invoices.design" 2 > "$PT" 2>/dev/null
+if grep -q "^no-model" "$PT" && grep -q "^determinism" "$PT"
+then ok "a rule-typed step must call nothing and repeat itself exactly"
+else no "the mechanical step got no no-model or determinism property"; fi
+if grep -q "^no-proof" "$PT"; then ok "only the step the design names may write evidence"
+else no "a non-writer step was not held to no-proof"; fi
+"$HERE/tooling/properties.sh" "$HERE/examples/invoices.design" 99 >/dev/null 2>&1 \
+  && no "a step id that does not exist was accepted" \
+  || ok "a step id that does not exist is refused"
+
+BT=$(mktemp -d)
+"$HERE/tooling/emit-bundle.sh" "$HERE/examples/invoices.design" --name s1 --out "$BT" >/dev/null 2>&1
+"$HERE/tooling/properties.sh" "$HERE/examples/invoices.design" 8 > "$BT/p8.tsv" 2>/dev/null
+if "$HERE/tooling/step-selftest.sh" "$BT/s1/steps/8-prove.sh" "$BT/p8.tsv" --bundle "$BT/s1" >/dev/null 2>&1
+then ok "the evidence-writing step holds its properties"
+else no "the evidence-writing step failed its properties"; fi
+# a rule step that calls a model must fail no-model
+sed 's|^RESULT="ok"|RESULT=$(claude -p "decide this" 2>/dev/null)|' "$BT/s1/steps/2-match.sh" > "$BT/bad.sh"
+chmod +x "$BT/bad.sh"
+"$HERE/tooling/properties.sh" "$HERE/examples/invoices.design" 2 > "$BT/p2.tsv" 2>/dev/null
+if "$HERE/tooling/step-selftest.sh" "$BT/bad.sh" "$BT/p2.tsv" --bundle "$BT/s1" >/dev/null 2>&1
+then no "a rule-typed step that calls a model was accepted"
+else ok "a rule-typed step that calls a model is refused"; fi
+rm -rf "$BT" "$PT"
+
+echo
 echo "THE BUNDLE"
 BOUT=$(mktemp -d)
 if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/invoices.design" --name b1 --out "$BOUT" >/dev/null 2>&1
@@ -113,8 +148,11 @@ if command -v gc >/dev/null; then
   then ok "gc compiles the emitted formula"
   else no "gc refused the emitted formula"; fi
   if "$HERE/tooling/conformance.sh" "$HERE" check-authoring >/dev/null 2>&1
-  then ok "gc compiles the audit workflow"
-  else no "gc refused the audit workflow"; fi
+  then ok "gc compiles the check-authoring workflow"
+  else no "gc refused the check-authoring workflow"; fi
+  if "$HERE/tooling/conformance.sh" "$HERE" step-authoring >/dev/null 2>&1
+  then ok "gc compiles the step-authoring workflow"
+  else no "gc refused the step-authoring workflow"; fi
 else
   printf "  SKIP  gc is not installed\n"
 fi

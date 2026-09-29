@@ -78,6 +78,34 @@ could not run, which is infrastructure and not business.
 **A gate with no installed check refuses.** It does not pass and it does not skip. Every unit
 lands in the register either way, because a unit that vanishes cannot be costed.
 
+## Two authoring lanes, both adversarial
+
+Generated code is wrong in the same few ways every time, so three things look at it before a
+person does, cheapest first — and the middle one is a **different model**, because two lanes on
+one model produce correlated blind spots and the review then looks like agreement when it is
+one opinion twice.
+
+| | `check-authoring` | `step-authoring` |
+|---|---|---|
+| what it writes | a gate's condition | a step's logic |
+| tested against | **values** from the condition | **properties** from the declared type |
+| cheap check | fixtures: `1999 proceed`, `2001 refuse`, `2000 declare` | runs the script twice and compares the bytes |
+| audit covers | polarity, boundary, source-of-truth, exit-75, refusal-text | type-discipline, scope, ledger, side-effects, source-of-truth, determinism |
+| then | a `[steps.gate]` bead nothing passes until a person closes it | the same |
+
+**A gate has a condition, so it can be tested against values. A step has none — it has a
+declared type, and the type is a promise about what the code may do.** A `mechanical` step calls
+no provider and produces byte-identical output on two runs. A `thinking` step calls exactly one
+provider and records what it cost. Only the step the design names may write evidence. Every exit
+path writes a ledger line.
+
+```bash
+make properties DESIGN=examples/invoices.design STEP=5    # what that step's type promises
+```
+
+The determinism property is the one worth noticing: it is not an opinion about the code, it runs
+the thing twice and compares. No model can substitute for it, and no model is asked to.
+
 ## Checks are authored, then attacked
 
 A generated check script is frequently wrong in the same few ways: the polarity
@@ -156,8 +184,9 @@ Investigative. The shape is settled and the tests pass; the edges are not finish
 
 - One formula per design. `scope: batch` and `scope: unit` should become a parent and a
   `[steps.drain]` item formula.
-- The bundle's non-gate steps are still placeholders carrying their design description. The
-  gates are real; the work between them is yours to write.
+- Neither authoring lane has been run end to end under the orchestrator. Both compile, both
+  sets of deterministic gates are tested, and the model lanes have only been exercised for
+  `check-authoring`, outside a city.
 - No `extends`, so shared method skeletons are not factored out.
 - No scopes, so setup and teardown have nowhere correct to live.
 - The front door is two commands. Producing a design from a description is not yet part of this

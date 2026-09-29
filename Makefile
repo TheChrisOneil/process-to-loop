@@ -8,6 +8,7 @@ help:
 	@echo "make compile DESIGN=<path> NAME=<formula-name>   design -> formula + check scripts"
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
+	@echo "make properties DESIGN=<path> STEP=<id>          what one step's type promises"
 	@echo "make rules                                       both rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
@@ -32,6 +33,10 @@ bundle:
 	@tooling/emit-bundle.sh "$(DESIGN)" --name "$(NAME)" --out "$(BUNDLES)" \
 	   $(if $(CHECKS),--checks "$(CHECKS)",) $(if $(INTERVAL),--interval "$(INTERVAL)",)
 
+properties:
+	@[ -n "$(DESIGN)" ] && [ -n "$(STEP)" ] || { echo "make properties DESIGN=<path> STEP=<id>"; exit 64; }
+	@tooling/properties.sh "$(DESIGN)" "$(STEP)"
+
 rules:
 	@echo "THE DESIGN RULES — is the method sound?"
 	@tooling/validate.sh --rules | sed 's/^/  /'
@@ -49,7 +54,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance bundle rules probe demo test selftest clean
+.PHONY: help design compile conformance bundle properties rules probe demo test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }
