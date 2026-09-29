@@ -2,7 +2,7 @@
 
 Investigative project. Opinions are welcome, especially ones that disagree with the design.
 
-## One house rule, and it is not negotiable
+## One house rule
 
 **This repository is public. Everything in it is public.**
 

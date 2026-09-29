@@ -32,7 +32,7 @@ while IFS=$'\t' read -r name value expect why; do
         pass=$((pass+1)); printf "  ${G}PASS${Z}     %-12s proceeded, as the fixture requires\n" "$name"
       elif [ "$expect" = refuse ] && [ "$code" != 0 ]; then
         pass=$((pass+1)); printf "  ${G}PASS${Z}     %-12s refused, as the fixture requires\n" "$name"
-        case "$out" in *REFUSED*|*refus*) : ;; *)
+        case "$out" in *REFUSE*|*refus*) : ;; *)
           printf "           %-12s but the refusal says nothing a person can act on\n" "" ;; esac
       else
         fail=$((fail+1))
