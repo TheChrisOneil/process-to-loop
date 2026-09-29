@@ -68,7 +68,12 @@ The contract:
   the condition does not  -> exit 0
   the check cannot run    -> exit 75, and ONLY for that
 
-The script takes the value under test as \$1.
+The script's arguments are fixed:
+  \$1  the unit id, for the message only
+  \$2  the value the condition compares
+
+A real check reads anything else it needs from the unit record or from
+configuration. Never from model output, including your own.
 
 It must satisfy this fixture table exactly. Rows marked declare are boundaries
 nobody has decided; decide them, and be prepared to say which way and why in a

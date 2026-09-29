@@ -1,11 +1,13 @@
 # process-to-loop. Every command a person runs is here.
 SHELL := /bin/bash
 OUT   ?= build
+BUNDLES ?= bundles
 
 help:
 	@echo "make design DESIGN=<path>                        validate a design, 25 rules"
 	@echo "make compile DESIGN=<path> NAME=<formula-name>   design -> formula + check scripts"
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
+	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
 	@echo "make rules                                       both rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
@@ -25,6 +27,11 @@ conformance:
 	@command -v gc >/dev/null || { echo "REFUSED: gc is not installed, so nothing can confirm this compiles."; exit 1; }
 	@tooling/conformance.sh "$(OUT)" "$(NAME)"
 
+bundle:
+	@[ -n "$(DESIGN)" ] && [ -n "$(NAME)" ] || { echo "make bundle DESIGN=<path> NAME=<bundle-name> [CHECKS=<dir>] [INTERVAL=<sec>]"; exit 64; }
+	@tooling/emit-bundle.sh "$(DESIGN)" --name "$(NAME)" --out "$(BUNDLES)" \
+	   $(if $(CHECKS),--checks "$(CHECKS)",) $(if $(INTERVAL),--interval "$(INTERVAL)",)
+
 rules:
 	@echo "THE DESIGN RULES — is the method sound?"
 	@tooling/validate.sh --rules | sed 's/^/  /'
@@ -40,9 +47,9 @@ demo:
 
 test: ; @./test.sh
 
-clean: ; @rm -rf $(OUT) && echo "cleaned $(OUT)/"
+clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance rules probe demo test selftest clean
+.PHONY: help design compile conformance bundle rules probe demo test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

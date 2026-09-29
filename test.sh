@@ -87,6 +87,26 @@ else ok "selftest refuses a script that does not satisfy its fixtures"; fi
 rm -f "$TF"
 
 echo
+echo "THE BUNDLE"
+BOUT=$(mktemp -d)
+if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/invoices.design" --name b1 --out "$BOUT" >/dev/null 2>&1
+then ok "a design becomes a standalone bundle"
+else no "the bundle did not build"; fi
+[ -x "$BOUT/b1/run.sh" ] && ok "run.sh is executable" || no "run.sh is not executable"
+[ -f "$BOUT/b1/com.process-to-loop.b1.plist" ] && ok "a launchd job is emitted" || no "no launchd plist"
+if grep -q "$BOUT/b1" "$BOUT/b1/com.process-to-loop.b1.plist" 2>/dev/null
+then ok "the plist carries an absolute path, so launchd can find it"
+else no "the plist path was not resolved"; fi
+if grep -rq "gc \|gascity" "$BOUT/b1/run.sh" "$BOUT/b1"/steps/*.sh 2>/dev/null
+then no "the bundle references gc — it must run standalone"
+else ok "nothing in the bundle needs gc, a city or a network"; fi
+( cd "$BOUT/b1" && ./run.sh >/dev/null 2>&1 )
+if grep -q "refused" "$BOUT/b1/memory/units.tsv" 2>/dev/null
+then ok "with no check installed the bundle refuses — it fails closed"
+else no "the bundle passed units with no check installed"; fi
+rm -rf "$BOUT"
+
+echo
 echo "CONFORMANCE"
 if command -v gc >/dev/null; then
   if "$HERE/tooling/conformance.sh" "$OUT" fc-invoices >/dev/null 2>&1

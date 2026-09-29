@@ -24,7 +24,7 @@ while IFS=$'\t' read -r name value expect why; do
       undeclared=$((undeclared+1))
       printf "  ${Y}DECLARE${Z}  %-12s %s\n" "$name" "$why" ;;
     proceed|refuse)
-      out=$("$SCRIPT" "$value" 2>&1); code=$?
+      out=$("$SCRIPT" "fixture-$name" "$value" 2>&1); code=$?
       if [ "$code" = 75 ] && [ "$name" != "unreadable" ]; then
         fail=$((fail+1))
         printf "  ${R}FAIL${Z}     %-12s exited 75 on a business case. 75 means the check could not run.\n" "$name"

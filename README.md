@@ -41,6 +41,43 @@ and exit 75 means the check could not run at all. That is a control, not a hope.
 Every generated check refuses until somebody implements it, and says so on its own output. The
 compiler will not emit a stub that passes, because a gate that cannot run is not a gate.
 
+## Gas City builds it. launchd runs it.
+
+The formulas are the **build** environment. What comes out is a standalone bundle that runs on
+a timer and needs no `gc`, no city and no network.
+
+```bash
+make compile DESIGN=examples/invoices.design NAME=invoices     # formula + check scripts
+make bundle  DESIGN=examples/invoices.design NAME=invoices \
+             CHECKS=build/.gc/scripts/checks INTERVAL=900      # the RPA process itself
+```
+
+The bundle:
+
+```
+run.sh                    one tick — batch steps once, unit steps per unit
+steps/NN-slug.sh          one per design step, carrying its type
+checks/                   the authored, self-tested, audited gate scripts
+config.sh                 every tunable in one file; no step invents a number
+memory/ledger.tsv         append-only, one line per transition
+memory/units.tsv          one row per unit, with what decided it
+proof/                    checksummed evidence
+outbox/                   refusals, each naming the next human action
+com.process-to-loop.<name>.plist
+```
+
+```bash
+cp com.process-to-loop.invoices.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.process-to-loop.invoices.plist
+```
+
+Exit codes are chosen so `launchd` can act on them: **0** the tick completed and refusals are
+an outcome rather than a failure, **1** a step failed for some other reason, **75** a check
+could not run, which is infrastructure and not business.
+
+**A gate with no installed check refuses.** It does not pass and it does not skip. Every unit
+lands in the register either way, because a unit that vanishes cannot be costed.
+
 ## Checks are authored, then attacked
 
 A generated check script is frequently wrong in the same few ways: the polarity
@@ -119,6 +156,8 @@ Investigative. The shape is settled and the tests pass; the edges are not finish
 
 - One formula per design. `scope: batch` and `scope: unit` should become a parent and a
   `[steps.drain]` item formula.
+- The bundle's non-gate steps are still placeholders carrying their design description. The
+  gates are real; the work between them is yours to write.
 - No `extends`, so shared method skeletons are not factored out.
 - No scopes, so setup and teardown have nowhere correct to live.
 - The front door is two commands. Producing a design from a description is not yet part of this
