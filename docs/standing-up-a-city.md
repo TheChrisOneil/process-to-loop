@@ -160,10 +160,17 @@ cd ~/cities/my-city/.gc/agents/bd.dog-1 && claude   # each agent workspace too
 with `gc agent suspend` — *"agent bd.dog is defined by a pack — use [[patches]] to override"*.
 Either trust its folder or patch it out; left alone it burns a reconciler wave every tick.
 
-## 8. Cook the workflow
+## 8. Sling the workflow — do not just cook it
+
+**`gc formula cook` does not route.** It compiles the formula and materializes the beads so you
+can look at them, and then stops. Nothing runs, nothing is assigned, and the supervisor logs
+`assignedWorkBeads: 0 beads` forever while the ready queue sits there looking healthy. The
+tutorial says so plainly; I spent hours not reading it.
+
+The normal path is one command:
 
 ```bash
-gc formula cook check-authoring --rig work \
+gc sling work/gc.run-operator check-authoring --formula \
   --var design_path=/abs/path/to.design --var gate_number=01 \
   --var check_path=/abs/path/gate-01.sh \
   --var fixtures_path=/abs/path/gate-01.fixtures.tsv \
@@ -171,23 +178,66 @@ gc formula cook check-authoring --rig work \
   --var artifact_root=/abs/path/run
 ```
 
+`sling` compiles, materializes **and** routes. Use `cook` only when you want to inspect the
+graph first — and then sling the root it printed to finish the job:
+
+```bash
+gc formula cook check-authoring --rig work --var …     # prints: Root: wk-wdl
+gc sling work/gc.run-operator wk-wdl                   # the half that routes
+```
+
+Confirm the routing landed rather than trusting the command's output:
+
+```bash
+cd ~/cities/my-rig && gc bd show wk-wdl --json | grep routed_to
+#   gc.routed_to = work/gc.run-operator
+```
+
+You should also see the pool respond in the supervisor log — `poolDesired` for your target goes
+up by one per routed workflow.
+
 A seven-step formula cooks to fourteen beads: your steps, plus a spec sidecar, an iteration and
-a control for each `[steps.check]`, plus the gate bead and `workflow-finalize`. Expect the
-count to differ from what you wrote — that is the compiler, not a fault.
+a control for each `[steps.check]`, plus the gate bead and `workflow-finalize`. Expect the count
+to differ from what you wrote — that is the compiler, not a fault.
 
 Check the graph gated correctly:
 
 ```bash
-cd ~/cities/my-rig && gc bd ready     # only the first step, not all of them
+gc bd ready          # only the first step, not all of them
 ```
+
+## 9. Watch the agents on the city's own tmux socket
+
+**Each city gets its own tmux socket, named after the city.** Plain `tmux ls` reads the default
+socket, finds nothing, and tells you no server is running while four agents are working a few
+inches away. I reported that as a finding three times before checking.
+
+```bash
+ls /private/tmp/tmux-501/            # one socket per city
+tmux -L my-city ls                   # the sessions actually running
+tmux -L my-city attach -t gc__run-operator-pc-xxxxx     # watch one work
+tmux -L my-city capture-pane -p -t gc__run-operator-pc-xxxxx | tail -30
+```
+
+`capture-pane` is the one to reach for: it prints what the agent is doing without attaching, so
+you can check on a session from a script without stealing the terminal. It also shows the
+session's running token count, which is how you notice an agent that is meandering rather than
+working.
 
 ## Known unresolved
 
-**Work is never assigned to the pool.** The reconciler reports `poolDesired = 1` and
-`scaleCheck = 1`, the session starts with `outcome=success`, and every tick still logs
-`assignedWorkBeads: 0 beads`. The ready bead is never claimed. `gc.run_target` is routing
-*intent* that resolves to `gc.routed_to` at dispatch, and something between those two is not
-happening here. Unsolved at the time of writing.
+**The role agent's preflight looks for a command that is not there.** With work routed and a
+session live, the run-operator fails its own startup check:
+
+```
+PREFLIGHT FAIL: gc gc claim not registered
+```
+
+There is no `gc gc` command group in this city, and none in a working city pinned to the same
+roles sha either — so the roles pack's prompt expects a command projection that this version
+does not ship. The agent stays alive and reasons about the gap, which costs tokens: mine reached
+35k before I suspended the rig. Unresolved, and a question for the Gas City side rather than
+something to work around.
 
 ## Other things that bit
 
