@@ -147,14 +147,22 @@ fi
 
 # ---- COMPATIBLE ------------------------------------------------------------
 LOCK="$CITY/.gc/capability.lock"
-PACK=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | while read -r d; do
-  [ -f "$d/pack.toml" ] && printf '%s\n' "$d"; done | head -1)
+# Identify the pack this city actually resolved, by commit — never by guessing
+# in the cache, whose directory names hash the SOURCE, not the version.
 RESOLVED=$(printf '%s\n' "$STATUS" | awk -F'\t' '$1=="pack:gc"{print $6}')
-for d in ~/.gc/cache/repos/*/gascity; do
-  [ -d "$d" ] || continue
-  case "$(basename "$(dirname "$d")")" in "$RESOLVED"*) PACK=$d; break ;; esac
-done
-if [ "${ACCEPT:-0}" = 1 ]; then
+PACK=""
+if [ -n "$RESOLVED" ] && [ "$RESOLVED" != "-" ]; then
+  for d in ~/.gc/cache/repos/*/; do
+    [ -d "$d/gascity" ] || continue
+    h=$(git -C "$d" rev-parse HEAD 2>/dev/null) || continue
+    [ "$h" = "$RESOLVED" ] && { PACK="$d/gascity"; break; }
+  done
+fi
+
+if [ -z "$PACK" ]; then
+  no COMPATIBLE "cannot identify the pack this city resolved (${RESOLVED:0:10})" \
+     "without knowing which pack is live, any comparison would be against an arbitrary one"
+elif [ "${ACCEPT:-0}" = 1 ]; then
   mkdir -p "$(dirname "$LOCK")"
   SURF=$("$HERE/pack-capability.sh" "$PACK" 2>/dev/null)
   if [ -z "$SURF" ]; then
