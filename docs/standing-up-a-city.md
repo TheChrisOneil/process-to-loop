@@ -157,15 +157,21 @@ its state before running this.
 Later config changes do not need another supervisor reconcile — `gc reload` is city-scoped and
 does not restart the controller.
 
-## 7. Run doctor
+## 7. Run doctor, then the preflight
 
 ```bash
 gc doctor
+make city-preflight CITY=~/cities/my-city     # from the process-to-loop repo
 ```
 
-Run it now and read the failures, not the passes. It will not tell you your pins are stale —
-there is no such check — but it does catch config drift, deprecated formula declarations,
-store bloat and stale orders, and it is thirty seconds.
+Doctor checks the city against Gas City's own rules and will not tell you your pins are stale;
+there is no such check, because the pack spec defines none. The preflight is that check. It
+asserts six properties the spec leaves undefined — see **The drift semantics** below — and the
+one that matters reads the claim command your role prompt mandates and confirms it resolves
+here.
+
+Read doctor's failures, not its passes. It catches config drift, deprecated formula
+declarations, store bloat and stale orders, and it takes thirty seconds.
 
 ## 8. Trust every agent workspace, once
 
@@ -297,3 +303,34 @@ database stays where it was and every command then warns *"refusing to auto-appl
 schema migrations to a shared server database"*. That is bd protecting co-resident clients on
 the old schema, not damage. `bd migrate schema` applies them — but every client touching that
 database must be on the new version first, so back up `.beads/dolt` and do it deliberately.
+
+## The drift semantics
+
+The pack specification is explicit that it has none:
+
+> The specification contains **no normative drift or staleness detection semantics.** It does
+> not define when or how an operator discovers that a resolved pack directory no longer matches
+> its upstream source.
+
+`requires_gc` exists as pack metadata and is **not enforced** — the spec says enforcement "must
+be introduced by an explicit future implementation change." So a city can run packs its binary
+was never tested against, and nothing says so.
+
+`make city-preflight` defines six properties in place of that gap:
+
+| | |
+|---|---|
+| **PINNED** | every import declares a version. A blank one floats, which is worse than stale — it changes between installs and yesterday's behavior cannot be reproduced |
+| **COHERENT** | declared, locked and resolved agree, per import |
+| **UNIFIED** | every import of one pack family resolves to one version. Prompts and commands ship together and must match |
+| **CURRENT** | the declared sha is upstream `main`, or knowingly behind. Builtins are exempt — `gc init` pins those to the binary |
+| **CAPABLE** | `gc hook --claim` answers and `gc.run-operator` resolves |
+| **CONSISTENT** | **the claim command the role prompt mandates exists in this city** |
+
+The last one is the point. A version number tells you which number somebody wrote down. It does
+not tell you whether `gc gc claim` exists. The preflight reads the installed prompt, extracts the
+command it mandates, and checks that command resolves — the same shape as refusing a formula
+whose check script is missing, one layer up.
+
+A city that fails any of these is a city whose capability surface you cannot see, and formulas
+written against it may be written for commands it does not have.

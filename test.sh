@@ -87,6 +87,17 @@ else ok "selftest refuses a script that does not satisfy its fixtures"; fi
 rm -f "$TF"
 
 echo
+echo "THE CITY PREFLIGHT"
+if "$HERE/tooling/city-preflight.sh" --city /nowhere >/dev/null 2>&1
+then no "a directory that is not a city was accepted"
+else ok "a directory with no city.toml is refused"; fi
+for prop in PINNED COHERENT UNIFIED CURRENT CAPABLE CONSISTENT; do
+  grep -q "^#   $prop" "$HERE/tooling/city-preflight.sh" \
+    && ok "$prop is defined in the semantics" \
+    || no "$prop is not documented in city-preflight.sh"
+done
+
+echo
 echo "THE STEP LANE"
 if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/step-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
 then ok "step-authoring passes the formula rules"
