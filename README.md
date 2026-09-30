@@ -194,4 +194,7 @@ Investigative. The shape is settled and the tests pass; the edges are not finish
 - The audit workflow is written and it compiles, but it has not been run against live
   providers. The deterministic halves are tested; the two model lanes are not.
 
+Ideas that may belong upstream rather than here are held in
+`docs/upstream-parking-lot.md`, with the evidence each would need before anyone raises it.
+
 Contributions welcome — see `CONTRIBUTING.md`.
