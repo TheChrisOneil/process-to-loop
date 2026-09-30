@@ -98,6 +98,29 @@ for prop in PINNED COHERENT UNIFIED CURRENT CAPABLE CONSISTENT; do
 done
 
 echo
+echo "PACK COMPATIBILITY"
+PA=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | head -1)
+PB=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | sed -n 2p)
+if [ -n "$PA" ] && [ -d "$PA" ]; then
+  M=$("$HERE/tooling/pack-capability.sh" "$PA" 2>/dev/null)
+  [ -n "$M" ] && ok "a pack yields a capability manifest" || no "the manifest came back empty"
+  M2=$("$HERE/tooling/pack-capability.sh" "$PA" 2>/dev/null)
+  [ "$M" = "$M2" ] && ok "the manifest is deterministic — same pack, same bytes" \
+                   || no "two runs of pack-capability differed"
+  for prop in PROVIDES MANDATES DEMANDS USES NORMS OPAQUE; do
+    grep -q "^#   $prop" "$HERE/tooling/lib/capability.awk" \
+      || grep -q "$prop" "$HERE/tooling/pack-capability.sh" \
+      && ok "$prop is a declared property" || no "$prop is not documented"
+  done
+  "$HERE/tooling/pack-diff.sh" "$PA" "$PA" >/dev/null 2>&1 \
+    && ok "a pack against itself is NONE" || no "a pack against itself was not NONE"
+  if [ -n "$PB" ] && [ -d "$PB" ]; then
+    "$HERE/tooling/pack-diff.sh" "$PA" "$PB" >/dev/null 2>&1; rc=$?
+    [ "$rc" -le 2 ] && ok "two pack versions classify (exit $rc)" || no "pack-diff errored"
+  fi
+else printf "  SKIP  no cached gascity pack to diff\n"; fi
+
+echo
 echo "THE STEP LANE"
 if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/step-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
 then ok "step-authoring passes the formula rules"

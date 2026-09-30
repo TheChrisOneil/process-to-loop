@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Is this city safe to develop formulas against?
 #
-#   city-preflight.sh [--city <dir>] [--offline]
+#   city-preflight.sh [--city <dir>] [--offline] [--accept]
 #
 # The pack spec defines no drift or staleness semantics — "it does not define
 # when or how an operator discovers that a resolved pack directory no longer
@@ -16,17 +16,23 @@
 #               behind — see --offline and the BEHIND marker).
 #   CAPABLE     the capabilities a formula depends on actually resolve here.
 #   CONSISTENT  the claim command the role prompt MANDATES exists in this city.
+#   COMPATIBLE  the capability surface has not moved under you since you
+#               accepted it. packs.lock records which VERSION you resolved;
+#               nothing records what that version COMMITTED TO. capability.lock
+#               does, and this compares the live pack against it.
 #
 # The last one is the point. A version number does not tell you whether a
 # command exists; it tells you which number somebody wrote down. Assert the
 # capability, not the number.
 set -uo pipefail
-CITY=""; OFFLINE=0
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CITY=""; OFFLINE=0; ACCEPT=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --city)    CITY=${2:-}; shift 2 ;;
     --offline) OFFLINE=1; shift ;;
-    *) echo "city-preflight.sh [--city <dir>] [--offline]" >&2; exit 64 ;;
+    --accept)  ACCEPT=1; shift ;;
+    *) echo "city-preflight.sh [--city <dir>] [--offline] [--accept]" >&2; exit 64 ;;
   esac
 done
 [ -n "$CITY" ] || CITY=$PWD
@@ -107,12 +113,15 @@ else
 fi
 
 # ---- CAPABLE ---------------------------------------------------------------
-if gc hook --help 2>&1 | grep -q -- "--claim"; then ok CAPABLE "gc hook --claim is available"
-else no CAPABLE "gc hook has no --claim flag" "the claim protocol is unavailable in this city"; fi
+# capture first: with pipefail, a non-zero exit from gc masks a successful grep
+HOOKHELP=$(gc hook --help 2>&1) || true
+case "$HOOKHELP" in *--claim*) ok CAPABLE "gc hook --claim is available" ;;
+  *) no CAPABLE "gc hook has no --claim flag" "the claim protocol is unavailable in this city" ;; esac
 
-if gc agent list 2>/dev/null | grep -q "gc\.run-operator"; then ok CAPABLE "gc.run-operator resolves as an agent"
-else no CAPABLE "no gc.run-operator agent" \
-     "the rig's roles import is not named gc, or the rig has no roles import"; fi
+AGENTS=$(gc agent list 2>/dev/null) || true
+case "$AGENTS" in *gc.run-operator*) ok CAPABLE "gc.run-operator resolves as an agent" ;;
+  *) no CAPABLE "no gc.run-operator agent" \
+       "the rig's roles import is not named gc, or the rig has no roles import" ;; esac
 
 # ---- CONSISTENT ------------------------------------------------------------
 # Read what the role prompt tells the agent to run, and check it exists here.
@@ -128,12 +137,56 @@ if [ -z "$MAND" ]; then wa CONSISTENT "no claim command found in any installed r
 else
   first=$(printf '%s' "$MAND" | awk '{print $2}')
   if [ "$first" = hook ]; then ok CONSISTENT "the prompt mandates '$MAND', which is a builtin"
-  elif gc "$first" --help 2>&1 | grep -qi "Commands from"; then
+  elif FH=$(gc "$first" --help 2>&1 || true); case "$FH" in *"Commands from"*) true ;; *) false ;; esac; then
     ok CONSISTENT "the prompt mandates '$MAND', and 'gc $first' resolves"
   else
     no CONSISTENT "the prompt mandates '$MAND', and 'gc $first' does not resolve" \
        "name the import '$first' in pack.toml, or pin a version whose prompt matches this city"
   fi
+fi
+
+# ---- COMPATIBLE ------------------------------------------------------------
+LOCK="$CITY/.gc/capability.lock"
+PACK=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | while read -r d; do
+  [ -f "$d/pack.toml" ] && printf '%s\n' "$d"; done | head -1)
+RESOLVED=$(printf '%s\n' "$STATUS" | awk -F'\t' '$1=="pack:gc"{print $6}')
+for d in ~/.gc/cache/repos/*/gascity; do
+  [ -d "$d" ] || continue
+  case "$(basename "$(dirname "$d")")" in "$RESOLVED"*) PACK=$d; break ;; esac
+done
+if [ "${ACCEPT:-0}" = 1 ]; then
+  mkdir -p "$(dirname "$LOCK")"
+  SURF=$("$HERE/pack-capability.sh" "$PACK" 2>/dev/null)
+  if [ -z "$SURF" ]; then
+    no COMPATIBLE "the capability manifest came back empty, so nothing was recorded" \
+       "pack dir was '$PACK' — an empty surface is a failure, not an unchanged one"
+  else
+    mkdir -p "$(dirname "$LOCK")"
+    { echo "# capability surface accepted $(date +%FT%T)"; echo "# pack: $PACK"
+      printf '%s\n' "$SURF"; } > "$LOCK"
+    ok COMPATIBLE "surface accepted: $(printf '%s\n' "$SURF" | grep -c .) commitments recorded"
+  fi
+elif [ ! -f "$LOCK" ]; then
+  wa COMPATIBLE "no capability.lock — run with --accept to record the surface you are building against"
+else
+  PREV=$(mktemp); grep -v '^#' "$LOCK" > "$PREV"
+  NOW=$(mktemp);  "$HERE/pack-capability.sh" "$PACK" > "$NOW" 2>/dev/null
+  if [ ! -s "$NOW" ]; then
+    no COMPATIBLE "the capability manifest came back empty, so nothing was compared" \
+       "pack dir was '$PACK' — an empty surface never counts as unchanged"
+  elif diff -q "$PREV" "$NOW" >/dev/null 2>&1; then
+    ok COMPATIBLE "the capability surface is unchanged since you accepted it"
+  else
+    gone=$(comm -23 <(grep -E "^(PROVIDES|MANDATES|DEMANDS|USES|NORMS)" "$PREV" | sort -u) \
+                    <(grep -E "^(PROVIDES|MANDATES|DEMANDS|USES|NORMS)" "$NOW"  | sort -u) | head -3)
+    if [ -n "$gone" ]; then
+      no COMPATIBLE "commitments you accepted are gone — BREAKING" \
+         "$(printf '%s' "$gone" | tr '\n' '; ')"
+    else
+      wa COMPATIBLE "the surface grew since you accepted it — run pack-diff to see what you could now use"
+    fi
+  fi
+  rm -f "$PREV" "$NOW"
 fi
 
 echo

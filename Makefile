@@ -10,6 +10,7 @@ help:
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
 	@echo "make properties DESIGN=<path> STEP=<id>          what one step's type promises"
 	@echo "make city-preflight CITY=<dir>                   is this city safe to build formulas against?"
+	@echo "make pack-diff A=<pack-dir> B=<pack-dir>         what actually changed between two pack versions"
 	@echo "make rules                                       both rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
@@ -37,6 +38,14 @@ bundle:
 city-preflight:
 	@tooling/city-preflight.sh $(if $(CITY),--city "$(CITY)",) $(if $(OFFLINE),--offline,)
 
+pack-capability:
+	@[ -n "$(PACK)" ] || { echo "make pack-capability PACK=<pack-dir>"; exit 64; }
+	@tooling/pack-capability.sh "$(PACK)"
+
+pack-diff:
+	@[ -n "$(A)" ] && [ -n "$(B)" ] || { echo "make pack-diff A=<pack-dir> B=<pack-dir>"; exit 64; }
+	@tooling/pack-diff.sh "$(A)" "$(B)"
+
 properties:
 	@[ -n "$(DESIGN)" ] && [ -n "$(STEP)" ] || { echo "make properties DESIGN=<path> STEP=<id>"; exit 64; }
 	@tooling/properties.sh "$(DESIGN)" "$(STEP)"
@@ -58,7 +67,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance bundle properties city-preflight rules probe demo test selftest clean
+.PHONY: help design compile conformance bundle properties city-preflight pack-capability pack-diff rules probe demo test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }
