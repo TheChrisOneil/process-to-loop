@@ -125,23 +125,44 @@ case "$AGENTS" in *gc.run-operator*) ok CAPABLE "gc.run-operator resolves as an 
 
 # ---- CONSISTENT ------------------------------------------------------------
 # Read what the role prompt tells the agent to run, and check it exists here.
-PROMPT=$(find ~/.gc/cache/repos -path "*gascity/roles/agents/run-operator/prompt.template.md" 2>/dev/null | head -1)
-FRAG=$(find ~/.gc/cache/repos -path "*gascity/template-fragments/gc-role-worker.template.md" 2>/dev/null | head -1)
-MAND=""
-for f in "$FRAG" "$PROMPT"; do
-  [ -n "$f" ] && [ -f "$f" ] || continue
-  m=$(grep -oE '^\s*gc [a-z][a-z -]*claim[a-z -]*' "$f" 2>/dev/null | head -1 | sed 's/^ *//')
-  [ -n "$m" ] && { MAND=$m; break; }
-done
-if [ -z "$MAND" ]; then wa CONSISTENT "no claim command found in any installed role prompt"
+# The prompt must come from the pack THIS city resolved. The cache is shared
+# between cities, so taking the first match found there is how a city gets a
+# green on a prompt it does not use.
+CRESOLVED=$(printf '%s\n' "$STATUS" | awk -F'\t' '$2 ~ /gascity-packs/ {print $6; exit}')
+CPACK=""
+if [ -n "$CRESOLVED" ] && [ "$CRESOLVED" != "-" ]; then
+  for d in ~/.gc/cache/repos/*/; do
+    h=$(git -C "$d" rev-parse HEAD 2>/dev/null) || continue
+    [ "$h" = "$CRESOLVED" ] || continue
+    for c in "$d"gascity "$d"gascity/roles "$d"; do [ -d "$c" ] && { CPACK=$c; break; }; done
+    [ -n "$CPACK" ] && break
+  done
+fi
+if [ -z "$CPACK" ]; then
+  no CONSISTENT "cannot identify the pack this city resolved (${CRESOLVED:0:10})" \
+     "the shared cache holds every version; reading an arbitrary one is a false pass"
 else
-  first=$(printf '%s' "$MAND" | awk '{print $2}')
-  if [ "$first" = hook ]; then ok CONSISTENT "the prompt mandates '$MAND', which is a builtin"
-  elif FH=$(gc "$first" --help 2>&1 || true); case "$FH" in *"Commands from"*) true ;; *) false ;; esac; then
-    ok CONSISTENT "the prompt mandates '$MAND', and 'gc $first' resolves"
+  MAND=""
+  for f in "$CPACK/template-fragments/gc-role-worker.template.md" \
+           "$CPACK/roles/agents/run-operator/prompt.template.md" \
+           "$CPACK/agents/run-operator/prompt.template.md"; do
+    [ -f "$f" ] || continue
+    # a mandate may be a fenced line or inline in backticks — try both, fenced first
+    m=$(grep -oE '^\s*gc [a-z][a-z -]*claim[a-z -]*' "$f" 2>/dev/null | head -1 | sed 's/^ *//;s/ *$//')
+    [ -n "$m" ] || m=$(tr -d '`' < "$f" 2>/dev/null \
+        | grep -oE 'gc [a-z][a-z -]*claim( --[a-z-]+)*' | head -1 | sed 's/ *$//')
+    [ -n "$m" ] && { MAND=$m; break; }
+  done
+  if [ -z "$MAND" ]; then wa CONSISTENT "no claim command stated in this pack's role prompts"
   else
-    no CONSISTENT "the prompt mandates '$MAND', and 'gc $first' does not resolve" \
-       "name the import '$first' in pack.toml, or pin a version whose prompt matches this city"
+    first=$(printf '%s' "$MAND" | awk '{print $2}')
+    if [ "$first" = hook ]; then ok CONSISTENT "the prompt mandates '$MAND', which is a builtin"
+    else
+      FH=$(gc "$first" --help 2>&1 || true)
+      case "$FH" in *"Commands from"*) ok CONSISTENT "the prompt mandates '$MAND', and 'gc $first' resolves" ;;
+        *) no CONSISTENT "the prompt mandates '$MAND', and 'gc $first' does not resolve" \
+             "name the import '$first', or pin a version whose prompt matches this city" ;; esac
+    fi
   fi
 fi
 
@@ -149,7 +170,11 @@ fi
 LOCK="$CITY/.gc/capability.lock"
 # Identify the pack this city actually resolved, by commit — never by guessing
 # in the cache, whose directory names hash the SOURCE, not the version.
-RESOLVED=$(printf '%s\n' "$STATUS" | awk -F'\t' '$1=="pack:gc"{print $6}')
+# the import may be named anything — find it by source, not by an assumed key
+RESOLVED=$(printf '%s\n' "$STATUS" \
+  | awk -F'\t' '$2 ~ /gascity-packs/ && $2 !~ /\/roles$/ {print $6; exit}')
+[ -n "$RESOLVED" ] && [ "$RESOLVED" != "-" ] || \
+  RESOLVED=$(printf '%s\n' "$STATUS" | awk -F'\t' '$2 ~ /gascity-packs/ {print $6; exit}')
 PACK=""
 if [ -n "$RESOLVED" ] && [ "$RESOLVED" != "-" ]; then
   for d in ~/.gc/cache/repos/*/; do

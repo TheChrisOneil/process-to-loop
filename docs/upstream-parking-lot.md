@@ -71,6 +71,86 @@ way to offer an opinion than a pull request.
 
 ---
 
+## The vocabulary, so it is not reinvented
+
+These terms were coined here over one long session. Written down because the next person to
+reach for them — including us in three months — should not have to derive them again.
+
+### The framing
+
+**Packs are npm-shaped already.** A registry, a lockfile (`packs.lock` — schema, per-source
+version, commit, fetched), a `version` constraint on imports, and an `engines` analogue
+(`requires_gc`). What is missing is not machinery.
+
+**The version field is unusable, not stale.** Every version of the gascity pack on one machine
+declares `0.1.0`, and `0.x.y` **formally means breaking changes are permitted in any release**.
+Even if the publisher began bumping honestly tomorrow, we would be trusting their classification
+of prose edits. **Compute compatibility; do not consume it.**
+
+**Publishing is not an event.** npm works because you cannot publish without bumping a version —
+the discipline is enforced at the boundary. A Gas City pack is a subtree on `main`; every commit
+is a release and none of them bumps anything.
+
+**Prior art, so none of this is invented.** `cargo public-api`, `go apidiff`, `japicmp` and API
+Extractor all exist because semver is a human promise about a surface and humans get it wrong,
+so the tool computes the surface and reports what actually changed. The classification rules are
+borrowed.
+
+### The six properties of a capability manifest
+
+The first four are what a pack **commits to**. The last two are **judgment**, split into the
+half that can be computed and the half that can only be detected.
+
+| Property | What it captures | Why it is separate |
+|---|---|---|
+| **PROVIDES** | commands, agents and formulas the pack ships | removal is unambiguously breaking |
+| **MANDATES** | commands its prompts require an agent to run | the `gc hook --claim` → `gc gc claim` change lives here, and nothing structural moved |
+| **DEMANDS** | output contracts and reserved metadata it requires | **adding** one is breaking — it is a new requirement on callers |
+| **USES** | formula constructs it depends on | `check`, `drain`, `on_complete`, scopes |
+| **NORMS** | every *must*, *never*, *only*, *do not* in the role prompts and fragments | a rule stated in prose is still a rule; changing one changes behaviour with no surface change |
+| **OPAQUE** | a digest per prose file | the part that cannot be computed. When this moves and nothing else does, the answer is **UNCLASSIFIED** |
+
+**Scope NORMS to the judgment surface** — role prompts and template fragments. Task instructions
+elsewhere produce command-prefix churn that drowns the signal; those contribute OPAQUE instead.
+
+### The four verdicts
+
+| | |
+|---|---|
+| **BREAKING** | a commitment was removed or changed. Exit 2 |
+| **ADDITIVE** | a commitment was added, nothing removed. Exit 0 |
+| **UNCLASSIFIED** | prose moved and nothing computable did. Exit 1 |
+| **NONE** | the manifests are byte-identical. Exit 0 |
+
+**UNCLASSIFIED is not NONE, and this is the whole point.** A prompt rewritten to give different
+judgment with the same surface lands in UNCLASSIFIED. Reporting it as NONE would be the
+declared-reported-absent failure this project exists to catch, committed by the tool that catches
+it.
+
+### On embeddings
+
+Vector distance would **rank** UNCLASSIFIED changes by how far the text moved, which beats a
+hash for triage. It cannot be the verdict:
+
+**Embeddings are weak at negation, and judgment prose is made of negations.** *"Never claim
+through `gc bd ready`"* and *"Always claim through `gc bd ready`"* sit close together in vector
+space and are opposites. The highest-risk change is the one distance is worst at seeing. NORMS
+catches exactly that case by extracting the negation literally, which makes the two
+complementary rather than substitutable.
+
+There is also a recursion worth naming: an embedding model is a pinned dependency whose
+behaviour can change under you — the precise class of problem being solved.
+
+### The seven city properties
+
+`PINNED` · `COHERENT` · `UNIFIED` · `CURRENT` · `CAPABLE` · `CONSISTENT` · `COMPATIBLE`.
+Defined in `docs/standing-up-a-city.md`. The two that have earned their keep so far are
+**CONSISTENT** (does the command your role prompt mandates exist here) and **COMPATIBLE**
+(has the surface moved since you accepted it, via `.gc/capability.lock` — because `packs.lock`
+records which version resolved and nothing recorded what that version committed to).
+
+---
+
 ## Where the conversation happens
 
 | | |
