@@ -49,38 +49,63 @@ grep -iE "remote|sync|origin|push" ~/cities/my-city/.beads/config.yaml
 # anything naming a URL              <- stop and remove it
 ```
 
-## 3. Import the roles pack, and name it `gc`
+## 3. Take the current pin, and name the import `gc`
 
-A minimal city has no roles, so a formula targeting `gc.run-operator` fails to cook:
+Two mistakes here, and I made both. They cost more time than everything else in this guide put
+together.
 
+### Take the current sha — do not copy one from another city
+
+```bash
+gh api repos/gastownhall/gascity-packs/commits/main -q .sha
 ```
-unknown formulas v2 target "gc.run-operator"
-```
 
-**The import's key is the target's namespace.** `gc.run-operator` means the import named `gc`,
-agent `run-operator`. `gc rig add --include <url>` registers the import under a name of its
-own choosing — mine became `roles`, giving `roles.run-operator`, and the cook kept failing
-while the config looked correct.
+Use that. Copying a pin out of a city that has been running for months gives you that city's
+history, and **`gc doctor` does not check whether your imports are behind** — 77 checks pass and
+none of them is "your pack is four months old." I copied a pin, then spent hours on a command
+the pinned version did not ship.
+
+The difference is not cosmetic. Older versions of the pack have no `commands/` directory at all,
+so nothing projects; the role prompts in those versions correctly tell the agent to call
+`gc hook --claim --json` directly. Newer versions ship `commands/claim` and their prompts say
+`gc gc claim`. **Each version is internally consistent. Mixing one version's expectations with
+another's is what breaks.**
+
+### The import's key is the namespace — for agents *and* commands
+
+`gc.run-operator` and `gc gc claim` both mean the import named **`gc`**. Name it anything else
+and neither resolves, while every file looks correct.
 
 In `pack.toml`, at city level:
 
 ```toml
-[imports.gascity]
+[imports.gc]               # gc, so its commands project as `gc gc <cmd>`
 source = "https://github.com/gastownhall/gascity-packs/tree/main/gascity"
-version = "sha:3b3b89f2011e06d84459aa7bea1552382f13930a"
+version = "sha:<current>"
 ```
 
-And in `city.toml`, per rig — note the key:
+And in `city.toml`, per rig:
 
 ```toml
 [rigs.imports]
-[rigs.imports.gc]          # gc, not roles, not whatever --include picked
+[rigs.imports.gc]          # gc, so its agents resolve as `gc.run-operator`
 source = "https://github.com/gastownhall/gascity-packs/tree/main/gascity/roles"
-version = "sha:3b3b89f2011e06d84459aa7bea1552382f13930a"
+version = "sha:<current>"
 ```
 
-Then `gc import install`. Run it again after any import change; the rig's own imports are
-installed separately from the city's.
+`gc rig add --include <url>` names the import for you, and it will not pick `gc`. Fix the key
+afterwards, every time.
+
+Then install, and verify both namespaces resolved rather than trusting the file:
+
+```bash
+gc import install
+gc gc --help        # "Commands from the gc import", listing claim
+gc agent list       # work/gc.run-operator among them
+```
+
+If `gc gc --help` prints the top-level CLI help instead, one of the two mistakes above is still
+in place: either the pin has no `commands/`, or the import is not named `gc`.
 
 ## 4. You need a rig, even if you have no code
 
@@ -132,7 +157,17 @@ its state before running this.
 Later config changes do not need another supervisor reconcile — `gc reload` is city-scoped and
 does not restart the controller.
 
-## 7. Trust every agent workspace, once
+## 7. Run doctor
+
+```bash
+gc doctor
+```
+
+Run it now and read the failures, not the passes. It will not tell you your pins are stale —
+there is no such check — but it does catch config drift, deprecated formula declarations,
+store bloat and stale orders, and it is thirty seconds.
+
+## 8. Trust every agent workspace, once
 
 Agent sessions die on startup until Claude Code's folder-trust prompt is answered for their
 workspace, and **each agent has its own workspace**:
@@ -160,7 +195,7 @@ cd ~/cities/my-city/.gc/agents/bd.dog-1 && claude   # each agent workspace too
 with `gc agent suspend` — *"agent bd.dog is defined by a pack — use [[patches]] to override"*.
 Either trust its folder or patch it out; left alone it burns a reconciler wave every tick.
 
-## 8. Sling the workflow — do not just cook it
+## 9. Sling the workflow — do not just cook it
 
 **`gc formula cook` does not route.** It compiles the formula and materializes the beads so you
 can look at them, and then stops. Nothing runs, nothing is assigned, and the supervisor logs
@@ -206,7 +241,7 @@ Check the graph gated correctly:
 gc bd ready          # only the first step, not all of them
 ```
 
-## 9. Watch the agents on the city's own tmux socket
+## 10. Watch the agents on the city's own tmux socket
 
 **Each city gets its own tmux socket, named after the city.** Plain `tmux ls` reads the default
 socket, finds nothing, and tells you no server is running while four agents are working a few
@@ -224,20 +259,32 @@ you can check on a session from a script without stealing the terminal. It also 
 session's running token count, which is how you notice an agent that is meandering rather than
 working.
 
-## Known unresolved
+## When an agent cannot claim
 
-**The role agent's preflight looks for a command that is not there.** With work routed and a
-session live, the run-operator fails its own startup check:
+If a session starts, stays alive and never claims anything, check what it is actually running:
 
+```bash
+tmux -L my-city capture-pane -p -t gc__run-operator-pc-xxxxx | tail -30
 ```
-PREFLIGHT FAIL: gc gc claim not registered
+
+An agent reporting `PREFLIGHT FAIL: gc gc claim not registered` has a correct prompt and a
+misconfigured city — step 3, one or both halves. The claim protocol itself is easy to test by
+hand, and needs no model:
+
+```bash
+cd ~/cities/my-rig && GC_AGENT=work/gc.run-operator gc hook --claim --json
 ```
 
-There is no `gc gc` command group in this city, and none in a working city pinned to the same
-roles sha either — so the roles pack's prompt expects a command projection that this version
-does not ship. The agent stays alive and reasons about the gap, which costs tokens: mine reached
-35k before I suspended the rig. Unresolved, and a question for the Gas City side rather than
-something to work around.
+A healthy answer claims a bead and assigns its continuation group:
+
+```json
+{ "ok": true, "reason": "claimed", "bead_id": "wk-1ku",
+  "assignee": "work--gc__run-operator", "root_bead_id": "wk-wdl",
+  "continuation_assigned": ["wk-5of","wk-cdd","wk-ljf","wk-oen","wk-q12"] }
+```
+
+If that works and the agent still cannot, the problem is the agent's prompt or its pack version,
+not routing.
 
 ## Other things that bit
 
