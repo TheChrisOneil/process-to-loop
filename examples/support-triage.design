@@ -41,6 +41,12 @@ writer_step: 8
 artifact: The message identifiers, the clustering that produced the case, the coverage check, and the routing decision
 integrity: SHA-256 recorded at write time and re-checked before routing
 
+@record
+transitions: memory/ledger.tsv, append-only, one line per transition, written by code only
+units: memory/units.tsv, one row per ticket with its outcome and the deciding step
+retention: 18 months
+acceptance: memory/acceptances.tsv, SHA-256 chained, carrying the design digest and the signer
+
 @kpis
 cost per completed decision | cost | unmeasured
 misrouted cases | quality | 12 percent last quarter

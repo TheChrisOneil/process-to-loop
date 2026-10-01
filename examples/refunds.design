@@ -40,6 +40,12 @@ writer_step: 8
 artifact: The original order, the refund history, the recomputed amount, and the reviewer's decision
 integrity: SHA-256 recorded at write time and re-checked before release
 
+@record
+transitions: memory/ledger.tsv, append-only, one line per transition, written by code only
+units: memory/units.tsv, one row per refund with its outcome and the deciding step
+retention: 3 years, matching the card scheme dispute window
+acceptance: memory/acceptances.tsv, SHA-256 chained, carrying the design digest and the signer
+
 @kpis
 cost per completed decision | cost | unmeasured
 wrong refunds released | quality | 2 in the last quarter

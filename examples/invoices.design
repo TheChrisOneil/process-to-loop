@@ -42,6 +42,12 @@ writer_step: 8
 artifact: The invoice as filed, the purchase order as raised, the arithmetic, the judgment, and the checks that ran
 integrity: SHA-256 recorded at write time and re-checked at delivery; a mismatch blocks delivery
 
+@record
+transitions: memory/ledger.tsv, append-only, one line per transition, written by code only
+units: memory/units.tsv, one row per unit with its outcome and the step that decided it
+retention: 7 years, matching the finance records policy
+acceptance: memory/acceptances.tsv, SHA-256 chained, carrying the design digest and the signer
+
 @kpis
 cost per completed decision | cost | unmeasured
 escaped defect rate | quality | 0 known in the last quarter

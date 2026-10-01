@@ -8,7 +8,7 @@
 /^@/ { sec=substr($1,2); next }
 {
   line=$0; sub(/^[ \t]+/,"",line); sub(/[ \t]+$/,"",line)
-  if (sec=="meta" || sec=="unit" || sec=="evidence") {
+  if (sec=="meta" || sec=="unit" || sec=="evidence" || sec=="record") {
       i=index(line,":"); if (i==0) next
       k=substr(line,1,i-1); v=substr(line,i+1); sub(/^[ \t]+/,"",v); sub(/[ \t]+$/,"",v)
       V[sec"."k]=v; next

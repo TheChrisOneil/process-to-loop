@@ -328,8 +328,16 @@ settle?
 Do not approve on their behalf. Do not summarise the audit into a sentence that
 loses what it found.
 
-Close with `gc.outcome=pass` once they have closed the gate, or
-`gc.outcome=fail` with their reason.
+When they accept, record it: the approver's name, the design's SHA-256, and the
+timestamp, appended to the chained acceptance register. The register refuses a
+signature from anybody other than the approver the design itself names, and it
+refuses a design that does not pass its rules.
+
+Acceptance is of CONTENT, never of a filename. Change one character of the
+design afterwards and the acceptance stops covering what would be built.
+
+Close with `gc.outcome=pass` once they have closed the gate and the register has
+the row, or `gc.outcome=fail` with their reason.
 """
 metadata = { "eb.seat" = "{{approver}}" }
 
@@ -351,7 +359,9 @@ Deterministic work only.
    anything else.
 2. Compile it to a Gas City formula and its check scripts.
 3. Compile it to a standalone bundle and its launchd job.
-4. Report what each refused, if anything. A gate with no check installed is
+4. Record BUNDLE_PATH and DESIGN_PATH in the workflow output, because the
+   records gate reads them.
+5. Report what each refused, if anything. A gate with no check installed is
    expected at this stage and is not a failure — it is the next workflow's work.
 
 Do not edit the design here. A change after acceptance is a new design and
@@ -360,3 +370,35 @@ belongs in a new run.
 Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
 """
 metadata = { "gc.run_target" = "gc.run-operator" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "records"
+title = "Gate: the bundle keeps the records the design promised"
+needs = ["compile"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The design declared an `@record` section — what is logged, where, for how long,
+and where the approval signature lives. This confirms the emitted bundle
+actually keeps those records rather than merely mentioning them.
+
+It does not take the code's word for it. It runs one tick and then checks that
+the ledger and the unit register have rows in them. A bundle that reports a
+ledger it never writes is the same defect as a gate whose check script does not
+exist: declared, reported, absent.
+
+Exit 0 passes. Any other non-zero is "not yet". Exit 75 only when the bundle or
+the design is not there to check.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/bundle-records.sh"
+timeout = "5m"

@@ -41,6 +41,12 @@ writer_step: 8
 artifact: The clause diff, the grouping into units, the coverage crosscheck, and the assessment of each change
 integrity: SHA-256 recorded at write time and re-checked before the pack is sent
 
+@record
+transitions: memory/ledger.tsv, append-only, one line per transition, written by code only
+units: memory/units.tsv, one row per contract with its outcome and the deciding step
+retention: the contract term plus 2 years
+acceptance: memory/acceptances.tsv, SHA-256 chained, carrying the design digest and the signer
+
 @kpis
 cost per completed decision | cost | unmeasured
 material changes missed | quality | 1 in the last 12 months

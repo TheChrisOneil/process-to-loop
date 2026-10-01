@@ -78,6 +78,24 @@ could not run, which is infrastructure and not business.
 **A gate with no installed check refuses.** It does not pass and it does not skip. Every unit
 lands in the register either way, because a unit that vanishes cannot be costed.
 
+## Everything is recorded, and the record is checked
+
+A design declares `@record` — what every transition is written to, where each unit's outcome
+goes, how long it is kept, and where the approval signature lives. **V26 refuses a design that
+declares none**, because a loop that records nothing cannot be audited.
+
+Acceptance is of **content**, not of a filename. `tooling/accept.sh` appends to a SHA-256
+chained register: the approver's name, the design's digest, the timestamp, each row hashing the
+one before it. Change a character afterwards and the acceptance stops covering what would be
+built. And the register refuses a signature from anybody other than **the approver the design
+itself names** — a signature from somebody else is not an acceptance, it is a different
+person's opinion in the same column.
+
+Then the `records` gate confirms the emitted bundle actually keeps what the design promised. It
+does not read the code and believe it: **it runs a tick and checks the ledger has rows in it.**
+A bundle that reports a ledger it never writes is the same defect as a gate whose check script
+does not exist — declared, reported, absent.
+
 ## Three lanes, and the loop closes
 
 A described process becomes a pipeline through three workflows, each the same shape: author,
@@ -164,7 +182,7 @@ script that does not exist, an undeclared `{{var}}`, a formula with no gates at 
 
 | | |
 |---|---|
-| **25 design rules** | is the method sound? One judgment per unit, every gate with a number in it, every refusal naming a next human action, proof written by something that did not make the claim |
+| **26 design rules** | is the method sound? One judgment per unit, every gate with a number in it, every refusal naming a next human action, proof written by something that did not make the claim |
 | **17 formula rules** | is the emitted formula defensible? Every check script exists and is executable, nothing inert is emitted, no step both reasons and writes its own evidence |
 
 `make rules` prints both. `make probe` derives what `gc` itself enforces, by building a

@@ -128,6 +128,14 @@ END {
   else { if (serr!="") rec("ERROR","V21","scope must be batch or unit at step(s)" serr,"leave the field off for unit, or write batch")
          if (order_err!="") rec("ERROR","V21","batch step(s)" order_err " come after a unit step","everything that runs once happens before the units exist") }
 
+  # V26 the design declares its record layer
+  # NOTE: never reuse k, s, g or a here — the shared parser counts with them.
+  rmiss=""
+  split("transitions units retention acceptance", RKEYS, " ")
+  for (rk=1; rk<=4; rk++) if (V["record." RKEYS[rk]]=="") rmiss = rmiss " " RKEYS[rk]
+  if (rmiss=="") ok("V26","the record layer is declared: transitions, units, retention, acceptance")
+  else rec("ERROR","V26","@record is missing:" rmiss,"a loop that does not say what it records cannot be audited, and an RPA with no ledger cannot answer what it did or who allowed it")
+
   # V25 every step typed gate is named by a gate
   orphan=""
   for (i=1;i<=s;i++) if (tolower(STYPE[i])=="gate") {

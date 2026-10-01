@@ -45,6 +45,7 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V23  at least one KPI measures Total Value Realized: tvr-velocity, tvr-throughput, tvr-speed or tvr-margin
 # V24  every KPI kind is one of the eight: cost, quality, throughput, control or a tvr-* kind
 # V25  every step typed gate is named by a gate
+# V26  the design declares its record layer: transitions, units, retention, acceptance
 # END RULES
 
 awk -v mode="$MODE" -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"

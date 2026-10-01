@@ -129,6 +129,39 @@ rm -rf "$DD"
 rm -f "$DT"
 
 echo
+echo "THE RECORD LAYER"
+for d in "$HERE"/examples/*.design; do
+  case "$(basename "$d")" in broken.design) continue ;; esac
+  grep -q "^@record" "$d" || { no "$(basename "$d") declares no @record"; continue; }
+done
+ok "every example declares its record layer"
+RT=$(mktemp)
+python3 - "$HERE/examples/invoices.design" "$RT" <<'PY2'
+import re, sys, pathlib
+t = pathlib.Path(sys.argv[1]).read_text()
+pathlib.Path(sys.argv[2]).write_text(re.sub(r"\n@record\n(?:(?!\n@)[\s\S])*", "\n", t, count=1))
+PY2
+V26OUT=$("$HERE/tooling/validate.sh" "$RT" 2>&1) || true
+case "$V26OUT" in *FAIL*V26*) ok "a design with no @record fails V26" ;;
+  *) no "a design with no @record passed V26" ;; esac
+rm -f "$RT"
+
+BR=$(mktemp -d)
+"$HERE/tooling/emit-bundle.sh" "$HERE/examples/invoices.design" --name r1 --out "$BR" >/dev/null 2>&1
+if BUNDLE_PATH="$BR/r1" DESIGN_PATH="$HERE/examples/invoices.design" "$HERE/checks/bundle-records.sh" >/dev/null 2>&1
+then ok "a bundle that keeps its records passes the records gate"
+else no "a correct bundle was refused by the records gate"; fi
+sed -i.bak 's/^ledger /#ledger /' "$BR/r1/steps/2-match.sh" 2>/dev/null
+if BUNDLE_PATH="$BR/r1" DESIGN_PATH="$HERE/examples/invoices.design" "$HERE/checks/bundle-records.sh" >/dev/null 2>&1
+then no "a step with its ledger call commented out was accepted"
+else ok "a commented-out ledger call is refused — # is not a call"; fi
+rm -rf "$BR"
+
+REGOUT=$(echo "I accept" | "$HERE/tooling/accept.sh" "$HERE/examples/invoices.design" --by "Nobody, Impostor" 2>&1) || true
+case "$REGOUT" in *"somebody else"*) ok "a signature from anyone but the named approver is refused" ;;
+  *) no "the register accepted a signature from the wrong person" ;; esac
+
+echo
 echo "PACK COMPATIBILITY"
 PA=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | head -1)
 PB=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | sed -n 2p)

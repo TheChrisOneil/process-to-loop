@@ -75,6 +75,19 @@ A `unit` step runs once per unit. Every batch step must come before every unit s
 | `artifact` | What the proof contains |
 | `integrity` | How tampering is detected |
 
+### `@record` — keyed, all required
+
+What this loop writes down, so that what it did and who allowed it can be answered later.
+A loop that records nothing cannot be audited, and an RPA with no ledger cannot tell you
+why it refused a unit last Tuesday.
+
+| Key | Meaning |
+|---|---|
+| `transitions` | where every state change is appended. Append-only, written by code only |
+| `units` | where each unit's outcome is recorded, with what decided it |
+| `retention` | how long the records are kept. A period, not "as needed" |
+| `acceptance` | where the approval signature lives, tied to the design's digest |
+
 ### `@kpis` — table, `name | kind | baseline`, at least three
 
 `kind` is one of eight values in two families.
