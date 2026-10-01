@@ -129,6 +129,26 @@ rm -rf "$DD"
 rm -f "$DT"
 
 echo
+echo "THE REVISION LOOP"
+LT=$(mktemp -d); cp "$HERE/examples/invoices.design" "$LT/d.design"
+mkv() { printf '%s' "$1" > "$LT/v.json"; touch "$LT/v.json"; }
+mkv '{"defects":[]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a sound design is done with the model" || no "a sound design did not pass"
+mkv '{"defects":[{"severity":"major","fixable":"by_revision","what":"w","why":"y"}]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a fixable finding re-runs the author" || no "a fixable finding did not re-run authoring"
+mkv '{"defects":[{"severity":"major","fixable":"needs_a_person","what":"w","why":"y"}]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a finding only a person can settle is surfaced, not retried" || no "a human-only finding was retried"
+mkv '{"defects":[{"severity":"major","what":"w","why":"y"}]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "an unclassified finding cannot be routed, so it is refused" || no "an unclassified finding was accepted"
+AUTHOR_MODEL=x AUDIT_MODEL=x "$HERE/tooling/audit-design.sh" "$LT/d.design" "$LT/d.design" /dev/null >/dev/null 2>&1
+[ $? -eq 1 ] && ok "one model cannot audit its own design" || no "the same model was allowed to audit itself"
+rm -rf "$LT"
+
+echo
 echo "FINDINGS"
 FT=$(mktemp -d)
 printf '{"author_model":"a","audit_model":"b","verdict":"defective","confidence":"high","checked":["unit-of-work"],"defects":[{"severity":"minor","what":"m","why":"y"},{"severity":"critical","what":"c","why":"y"},{"severity":"major","what":"j","why":"y"}]}' > "$FT/v.json"

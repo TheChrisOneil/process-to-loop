@@ -8,18 +8,25 @@ real latitude. Everything downstream — the formula, the bundle, the gate check
 the step logic — is generated from the design this produces. A design that gets
 the unit of work wrong produces a correct implementation of the wrong process.
 
+**The authoring step is a loop.** Its check validates the design, audits it on a
+different provider, and classifies every finding as something a revision can fix
+or something only a person can settle. A fixable finding exits non-zero, which
+re-runs the author with the findings in hand — up to three attempts. Only what
+needs a person reaches one. That is what `[steps.check]` is for: the spec rules
+out until-loops and says to use a check for orchestrator-driven re-execution.
+
 **This formula is the pipeline.** Every step that used to be a command somebody
 remembered to run is a step here, in order, with the gates between them:
 
   intake      read the described process and screen it
-  author      write the design
-  validate    25 rules on its form                      — a gate
+  author      write the design, and revise it until only a person can help
+              — a loop: validate, audit on another provider, classify, repeat
   render      draw both views and the brief
   diagrams    the views carry every control             — a gate
-  audit       a different model attacks the decomposition
-  verdict     the audit was real                        — a gate
+  findings    what is left for a person, in a file they can act on
   accept      a named person signs                      — a gate a person closes
   compile     the formula, its checks, and the bundle
+  records     the bundle keeps what the design promised — a gate
 
 Nothing is left to be run beside the flow. A step that is not in the flow is a
 step somebody can skip.
@@ -78,7 +85,7 @@ default = "gemini"
 
 [vars.audit_model]
 description = "Model for the audit lane. MUST differ from author_model; the verdict check refuses when it does not."
-default = "gemini-2.5-pro"
+default = "gemini-3.8-flash"
 
 [vars.prior_findings_path]
 description = "Optional. A FINDINGS.md from an earlier run. When set, this run revises the prior design against those findings rather than writing one from nothing."
@@ -158,38 +165,19 @@ Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
 """
 metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{author_provider}}", "opt_model" = "{{author_model}}" }
 
-# ---------------------------------------------------------------- gate ----
-[[steps]]
-id = "validate"
-title = "Gate: the design passes its rules"
-needs = ["author-design"]
-description = """
-This step exists to run one check. It decides nothing itself.
-
-25 rules on the design's form. Three attempts, because a first design rarely
-passes and repair is the expected path, not a failure. Read what the validator
-says and fix the design — do not argue with it in prose.
-
-Exit 0 passes. Any other non-zero is "not yet" and consumes an attempt. Exit 75
-only when the design or the validator is not there to run.
-
-Close with `gc.outcome=pass` or `gc.outcome=fail`.
-"""
-metadata = { "gc.run_target" = "gc.run-operator" }
-
 [steps.check]
 max_attempts = 3
 
 [steps.check.check]
 mode = "exec"
-path = "checks/design-validate.sh"
-timeout = "2m"
+path = "checks/design-reviewed.sh"
+timeout = "15m"
 
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
 id = "render"
 title = "Draw both views and the brief"
-needs = ["validate"]
+needs = ["author-design"]
 description = """
 Deterministic work only. The diagram is produced **by a rule, never by a model**
 — same design in, same bytes out — so the picture cannot disagree with the
@@ -239,88 +227,11 @@ mode = "exec"
 path = "checks/diagrams-complete.sh"
 timeout = "2m"
 
-# ---------------------------------------------------------------- thinking ----
-[[steps]]
-id = "audit-design"
-title = "Audit the design, adversarially"
-needs = ["diagrams"]
-description = """
-You did not write this design, and it has already passed its rules. That tells
-you it is well formed. It does not tell you it is right, and the difference is
-your entire job.
-
-Read {{design_path}} against the described process at {{use_case_path}}. Cover
-all six of these, by name:
-
-  unit-of-work      is the unit the smallest thing that gets one decision, or
-                    has a batch been called a unit? Everything is costed per
-                    unit, so a wrong unit makes every number downstream wrong.
-  judgment-isolated is the one thing called judgment actually judgment? If two
-                    competent people with the same evidence would always agree,
-                    it is a rule, and paying a model to rediscover it nightly is
-                    the most common waste in this field.
-  gate-coverage     the description names things that have gone wrong. Does
-                    each have a gate? Name any risk in the prose with no gate.
-  refusal-quality   does each refusal name an action a person could take on
-                    Monday morning, or does it say "escalate"?
-  evidence-chain    is the proof written by a step that did not make the claim,
-                    and can a reviewer check it without trusting the system?
-  exit-criterion    is the number it shuts down on measurable from what this
-                    design actually records? A criterion nothing measures is
-                    decoration.
-
-Write your verdict as JSON to {{artifact_root}}/design-audit-verdict.json:
-
-  author_model  "{{author_model}}"
-  audit_model   "{{audit_model}}"
-  verdict       "sound" or "defective"
-  checked       the six names above
-  defects       [] when sound; otherwise one object per defect with
-                severity ("critical", "major" or "minor"), what, and why
-  confidence    "high", "medium" or "low"
-
-Record AUDIT_VERDICT as that path, and AUDIT_DIMENSIONS as
-"unit-of-work,judgment-isolated,gate-coverage,refusal-quality,evidence-chain,exit-criterion".
-
-You cannot approve this design. A deterministic step decides whether your audit
-passed, and it refuses if you and the author were the same model.
-
-Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
-"""
-metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{audit_provider}}", "opt_model" = "{{audit_model}}", "gc.output_json_required" = "true" }
-
-# ---------------------------------------------------------------- gate ----
-[[steps]]
-id = "audit-verdict"
-title = "Gate: the audit is real and came from a different model"
-needs = ["audit-design"]
-description = """
-This step exists to run one check. It decides nothing itself.
-
-It refuses when the verdict is missing or malformed, when the same model
-authored and audited, when a defective verdict names no defect, or when any of
-the six dimensions was skipped.
-
-Exit 0 passes. Any other non-zero is "not yet". Exit 75 only when there is no
-JSON parser on the host.
-
-Close with `gc.outcome=pass` or `gc.outcome=fail`.
-"""
-metadata = { "gc.run_target" = "gc.run-operator" }
-
-[steps.check]
-max_attempts = 2
-
-[steps.check.check]
-mode = "exec"
-path = "checks/audit-verdict.sh"
-timeout = "2m"
-
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
 id = "findings"
 title = "Put the findings in front of a person"
-needs = ["audit-verdict"]
+needs = ["diagrams"]
 description = """
 Deterministic work only.
 
