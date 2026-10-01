@@ -8,7 +8,23 @@ real latitude. Everything downstream — the formula, the bundle, the gate check
 the step logic — is generated from the design this produces. A design that gets
 the unit of work wrong produces a correct implementation of the wrong process.
 
-So the design is judged three times before a person is asked, cheapest first:
+**This formula is the pipeline.** Every step that used to be a command somebody
+remembered to run is a step here, in order, with the gates between them:
+
+  intake      read the described process and screen it
+  author      write the design
+  validate    25 rules on its form                      — a gate
+  render      draw both views and the brief
+  diagrams    the views carry every control             — a gate
+  audit       a different model attacks the decomposition
+  verdict     the audit was real                        — a gate
+  accept      a named person signs                      — a gate a person closes
+  compile     the formula, its checks, and the bundle
+
+Nothing is left to be run beside the flow. A step that is not in the flow is a
+step somebody can skip.
+
+The design is judged three times before a person is asked, cheapest first:
 
   validate      deterministic. 25 rules on the design's FORM: one judgment per
                 unit, every gate carrying a number, every refusal naming a next
@@ -155,11 +171,65 @@ mode = "exec"
 path = "checks/design-validate.sh"
 timeout = "2m"
 
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "render"
+title = "Draw both views and the brief"
+needs = ["validate"]
+description = """
+Deterministic work only. The diagram is produced **by a rule, never by a model**
+— same design in, same bytes out — so the picture cannot disagree with the
+design it depicts.
+
+1. Render the sequence view and the flowchart from {{design_path}}, and write
+   them beside it under `diagrams/` as both `.mmd` and, where the Mermaid CLI is
+   installed, `.svg`.
+2. Write the brief: the use case, the assumptions, the unit of work, the gates
+   with their refusals, and the measures — the page a person reads instead of
+   the design file.
+3. Report the path of each file written, and say plainly if the SVG step was
+   skipped because the renderer is not installed. Do not leave a stale SVG
+   beside a design that has changed.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+# ---------------------------------------------------------------- gate ----
+[[steps]]
+id = "diagrams"
+title = "Gate: the views carry every control"
+needs = ["render"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+It refuses when a view is missing, when a view is older than the design it
+claims to depict, or when it shows fewer gates than the design declares.
+
+That last one is the reason this gate exists. A diagram that drops a gate is
+worse than no diagram: a reviewer reads it, sees a clean flow, and approves a
+design whose control is invisible.
+
+Exit 0 passes. Any other non-zero is "not yet". Exit 75 only when the design or
+the renderer is not there to check.
+
+Close with `gc.outcome=pass` or `gc.outcome=fail`.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/diagrams-complete.sh"
+timeout = "2m"
+
 # ---------------------------------------------------------------- thinking ----
 [[steps]]
 id = "audit-design"
 title = "Audit the design, adversarially"
-needs = ["validate"]
+needs = ["diagrams"]
 description = """
 You did not write this design, and it has already passed its rules. That tells
 you it is well formed. It does not tell you it is right, and the difference is
@@ -243,8 +313,11 @@ Notify {{approver}}.
 
 Put in front of them, on one screen:
 
+  - the brief, which is what they should read first
+  - **both diagrams** — the flowchart for the shape, the sequence view for the
+    gates. A person who has not seen the flow has not seen the design
   - the described process, in the owner's own words
-  - the design, whole, with its assumptions
+  - the design file itself, with its assumptions
   - what the 25 rules said, including any warning
   - the audit verdict, including anything it found and what was done about it
 

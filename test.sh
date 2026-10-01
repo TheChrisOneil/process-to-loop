@@ -115,6 +115,17 @@ DESIGN_PATH=/nowhere "$HERE/checks/design-validate.sh" >/dev/null 2>&1
 if DESIGN_PATH="$HERE/examples/invoices.design" "$HERE/checks/design-validate.sh" >/dev/null 2>&1
 then ok "a real design passes the validate gate"
 else no "a real design was refused by the validate gate"; fi
+
+DD=$(mktemp -d); cp "$HERE/examples/invoices.design" "$DD/d.design"
+DESIGN_PATH="$DD/d.design" "$HERE/checks/diagrams-complete.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "undrawn diagrams are refused" || no "undrawn diagrams were accepted"
+"$HERE/tooling/brief.sh" "$DD/d.design" >/dev/null 2>&1
+DESIGN_PATH="$DD/d.design" "$HERE/checks/diagrams-complete.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "drawn diagrams carrying every gate pass" || no "drawn diagrams were refused"
+touch "$DD/d.design"
+DESIGN_PATH="$DD/d.design" "$HERE/checks/diagrams-complete.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a diagram older than its design is refused as stale" || no "stale diagrams were accepted"
+rm -rf "$DD"
 rm -f "$DT"
 
 echo
