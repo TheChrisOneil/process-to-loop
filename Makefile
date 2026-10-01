@@ -9,6 +9,9 @@ help:
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
 	@echo "make properties DESIGN=<path> STEP=<id>          what one step's type promises"
+	@echo "make diagram DESIGN=<path>                       a sequence diagram, by rule not by model"
+	@echo "make flow DESIGN=<path>                          a flowchart, coloured by step type"
+	@echo "make brief DESIGN=<path>                         BRIEF.md and diagrams/ beside the design"
 	@echo "make city-preflight CITY=<dir>                   is this city safe to build formulas against?"
 	@echo "make pack-diff A=<pack-dir> B=<pack-dir>         what actually changed between two pack versions"
 	@echo "make rules                                       both rule sets"
@@ -37,6 +40,18 @@ bundle:
 
 city-preflight:
 	@tooling/city-preflight.sh $(if $(CITY),--city "$(CITY)",) $(if $(OFFLINE),--offline,)
+
+diagram:
+	@[ -n "$(DESIGN)" ] || { echo "make diagram DESIGN=<path>"; exit 64; }
+	@tooling/render.sh "$(DESIGN)"
+
+flow:
+	@[ -n "$(DESIGN)" ] || { echo "make flow DESIGN=<path>"; exit 64; }
+	@tooling/render.sh --flow "$(DESIGN)"
+
+brief:
+	@[ -n "$(DESIGN)" ] || { echo "make brief DESIGN=<path>"; exit 64; }
+	@tooling/brief.sh "$(DESIGN)"
 
 pack-capability:
 	@[ -n "$(PACK)" ] || { echo "make pack-capability PACK=<pack-dir>"; exit 64; }
@@ -67,7 +82,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance bundle properties city-preflight pack-capability pack-diff rules probe demo test selftest clean
+.PHONY: help design compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }
