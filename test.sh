@@ -98,6 +98,26 @@ for prop in PINNED COHERENT UNIFIED CURRENT CAPABLE CONSISTENT; do
 done
 
 echo
+echo "THE DESIGN LANE"
+if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/design-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
+then ok "design-authoring passes the formula rules"
+else no "design-authoring fails the formula rules"; fi
+[ -f "$HERE/tooling/method/GENERATE.md" ] && ok "the written method the author follows is present" \
+                                          || no "no method/GENERATE.md for the author step"
+DT=$(mktemp)
+printf 'not a process' > "$DT"
+if DESIGN_PATH="$DT" "$HERE/checks/design-validate.sh" >/dev/null 2>&1
+then no "a file that is not a design passed the validate gate"
+else ok "a file that is not a design is refused by the validate gate"; fi
+DESIGN_PATH=/nowhere "$HERE/checks/design-validate.sh" >/dev/null 2>&1
+[ $? -eq 75 ] && ok "a missing design exits 75 — could not run, not a bad design" \
+              || no "a missing design did not exit 75"
+if DESIGN_PATH="$HERE/examples/invoices.design" "$HERE/checks/design-validate.sh" >/dev/null 2>&1
+then ok "a real design passes the validate gate"
+else no "a real design was refused by the validate gate"; fi
+rm -f "$DT"
+
+echo
 echo "PACK COMPATIBILITY"
 PA=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | head -1)
 PB=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | sed -n 2p)
@@ -187,6 +207,9 @@ if command -v gc >/dev/null; then
   if "$HERE/tooling/conformance.sh" "$HERE" step-authoring >/dev/null 2>&1
   then ok "gc compiles the step-authoring workflow"
   else no "gc refused the step-authoring workflow"; fi
+  if "$HERE/tooling/conformance.sh" "$HERE" design-authoring >/dev/null 2>&1
+  then ok "gc compiles the design-authoring workflow"
+  else no "gc refused the design-authoring workflow"; fi
 else
   printf "  SKIP  gc is not installed\n"
 fi

@@ -78,7 +78,28 @@ could not run, which is infrastructure and not business.
 **A gate with no installed check refuses.** It does not pass and it does not skip. Every unit
 lands in the register either way, because a unit that vanishes cannot be costed.
 
-## Two authoring lanes, both adversarial
+## Three lanes, and the loop closes
+
+A described process becomes a pipeline through three workflows, each the same shape: author,
+check deterministically, attack with a **different** model, decide the attack was real, then
+hold for a person.
+
+| | writes | the cheap check | the audit asks |
+|---|---|---|---|
+| **`design-authoring`** | the design | 25 rules on its form | is the **unit of work** right? is the one judgment really judgment? |
+| **`check-authoring`** | a gate's condition | fixtures from the condition | polarity, boundary, source-of-truth, exit-75, refusal text |
+| **`step-authoring`** | a step's logic | properties from the declared type | type discipline, scope, ledger, side-effects, determinism |
+
+`design-authoring` is the front door and the one place a model is given real latitude, because
+everything downstream is generated from what it produces. A design that gets the unit of work
+wrong yields a correct implementation of the wrong process, and no rule can catch that — which
+is why its audit asks about judgment rather than form.
+
+Its last step compiles what was accepted: a Gas City formula, its check scripts, and a
+standalone bundle with a launchd job. Then the other two lanes fill in the gates and the steps
+the compiler left as refusals.
+
+## How the two code lanes work
 
 Generated code is wrong in the same few ways every time, so three things look at it before a
 person does, cheapest first — and the middle one is a **different model**, because two lanes on
