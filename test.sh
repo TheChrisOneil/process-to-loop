@@ -129,6 +129,29 @@ rm -rf "$DD"
 rm -f "$DT"
 
 echo
+echo "FINDINGS"
+FT=$(mktemp -d)
+printf '{"author_model":"a","audit_model":"b","verdict":"defective","confidence":"high","checked":["unit-of-work"],"defects":[{"severity":"minor","what":"m","why":"y"},{"severity":"critical","what":"c","why":"y"},{"severity":"major","what":"j","why":"y"}]}' > "$FT/v.json"
+cp "$HERE/examples/invoices.design" "$FT/d.design"
+if "$HERE/tooling/findings.sh" "$FT/v.json" "$FT/d.design" >/dev/null 2>&1
+then ok "a verdict renders to FINDINGS.md"; else no "findings.sh did not render"; fi
+FIRST=$(grep -m1 "^## [0-9]" "$FT/FINDINGS.md" 2>/dev/null)
+case "$FIRST" in *CRITICAL*) ok "the worst finding is listed first" ;;
+  *) no "findings are not ordered by severity: $FIRST" ;; esac
+grep -q "accepted as it stands, because" "$FT/FINDINGS.md" 2>/dev/null \
+  && ok "each finding demands a decision with a reason" || no "no decision boxes rendered"
+printf '{"author_model":"a","audit_model":"b","verdict":"sound","checked":["unit-of-work"],"defects":[]}' > "$FT/v.json"
+"$HERE/tooling/findings.sh" "$FT/v.json" "$FT/d.design" >/dev/null 2>&1
+grep -q "It found nothing" "$FT/FINDINGS.md" 2>/dev/null \
+  && ok "a clean audit still writes the file — absence is a result" || no "a clean audit wrote nothing"
+AV=$(mktemp)
+printf '{"author_model":"a","audit_model":"b","verdict":"defective","checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"],"defects":[{"severity":"major","what":"w","why":"y"}]}' > "$AV"
+if AUDIT_VERDICT="$AV" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then ok "a defective verdict passes the gate — soundness is a person's call"
+else no "the gate still refuses a defective verdict"; fi
+rm -rf "$FT" "$AV"
+
+echo
 echo "THE RECORD LAYER"
 for d in "$HERE"/examples/*.design; do
   case "$(basename "$d")" in broken.design) continue ;; esac

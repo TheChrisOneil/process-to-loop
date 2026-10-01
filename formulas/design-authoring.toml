@@ -73,12 +73,20 @@ description = "Model for the lane that writes the design."
 default = "claude-opus-5"
 
 [vars.audit_provider]
-description = "Provider for the lane that audits it."
-default = "claude"
+description = "Provider for the lane that audits it. A different provider from the author's, where one is configured — two models from one lab share training and tooling, and two providers do not."
+default = "gemini"
 
 [vars.audit_model]
-description = "Model for the audit lane. MUST differ from author_model."
-default = "claude-sonnet-5"
+description = "Model for the audit lane. MUST differ from author_model; the verdict check refuses when it does not."
+default = "gemini-2.5-pro"
+
+[vars.prior_findings_path]
+description = "Optional. A FINDINGS.md from an earlier run. When set, this run revises the prior design against those findings rather than writing one from nothing."
+default = ""
+
+[vars.prior_design_path]
+description = "Optional. The design those findings were written about. Required when prior_findings_path is set."
+default = ""
 
 [vars.approver]
 description = "Who signs for this design. A named person or role, never a team."
@@ -136,6 +144,12 @@ The decisions that matter, in the order they matter:
                      action.
   the evidence       written by a mechanical step, never by the step that made
                      the claim.
+
+**If {{prior_findings_path}} is set, this is a revision, not a new design.** Read
+it and {{prior_design_path}}. Address each finding: change the design, or keep
+it as it stands and say why in an assumption. Preserve everything the findings
+did not touch — a revision that rewrites what nobody questioned destroys the
+reviewer's prior reading and makes the next audit start over.
 
 Declare every assumption, including anything in the description that addressed
 you rather than describing the process.
@@ -302,17 +316,47 @@ mode = "exec"
 path = "checks/audit-verdict.sh"
 timeout = "2m"
 
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "findings"
+title = "Put the findings in front of a person"
+needs = ["audit-verdict"]
+description = """
+Deterministic work only.
+
+The audit gate decided the audit was real. It did not decide the design is
+sound, and it is not allowed to — that is a person's call. This step is how the
+person finds out.
+
+1. Render the verdict to `FINDINGS.md` beside the design: one section per
+   finding, worst severity first, each with what it is, why it matters, and two
+   boxes — fixed, or accepted with a reason.
+2. Append a pointer to the brief, which is the page a person actually reads.
+3. Mail {{approver}} that the design is waiting and how many findings it
+   carries. Do not summarise the findings into the mail; a summary is where
+   detail goes to die.
+4. Report the count by severity.
+
+A clean audit still writes the file, saying what was checked and that nothing
+was found. Absence of findings is a result, and it should be visible.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
 # ---------------------------------------------------------------- thinking ----
 [[steps]]
 id = "accept-design"
 title = "A person accepts the design"
-needs = ["audit-verdict"]
+needs = ["findings"]
 description = """
 A person does this. The gate below holds the method here until they close it.
 Notify {{approver}}.
 
 Put in front of them, on one screen:
 
+  - **`FINDINGS.md`** — every finding, with its decision boxes. Nothing is
+    signed until each one is either fixed or accepted with a reason written down
   - the brief, which is what they should read first
   - **both diagrams** — the flowchart for the shape, the sequence view for the
     gates. A person who has not seen the flow has not seen the design

@@ -62,6 +62,10 @@ if missing:
 
 defects = d.get("defects") or []
 if verdict == "defective":
+    # A defective verdict is NOT a reason to refuse. This gate asks whether the
+    # audit was real — a different model, every dimension covered, each defect
+    # described. What to DO about the findings is a person's decision, and the
+    # findings step puts them in front of one.
     if not defects:
         bad("the verdict is defective but names no defect.",
             "re-run the audit; a defective verdict must say what is wrong.")
@@ -71,11 +75,10 @@ if verdict == "defective":
                 bad(f"defect {i} has no {key}.",
                     "re-run the audit; every defect states its severity, what it is, and why it matters.")
     crit = [x for x in defects if x.get("severity") == "critical"]
-    print(f"REFUSED: the audit found {len(defects)} defect(s), {len(crit)} critical.", file=sys.stderr)
-    for x in defects[:5]:
-        print(f"           [{x['severity']}] {x['what']}", file=sys.stderr)
-    print("         Next human action: fix the check script and run this workflow again.", file=sys.stderr)
-    sys.exit(1)
+    print(f"audit passed: {am} authored, {um} audited. "
+          f"{len(defects)} defect(s) found, {len(crit)} critical — "
+          f"the findings step takes these to a person.")
+    sys.exit(0)
 
 print(f"audit passed: {am} authored, {um} audited, {len(checked)} dimensions covered.")
 PY
