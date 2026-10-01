@@ -190,6 +190,12 @@ The supervisor cannot answer an interactive prompt, so it retries forever — mi
 dead sessions before I suspended the rig. Nothing is spent, because the session dies before
 reaching a model, but nothing progresses either.
 
+**The grant holds for the life of the city directory, and deleting the city destroys it.** A
+rebuild creates paths that have never been trusted, so every agent workspace must be answered
+again. Do not mistake that for a Gas City defect — and before answering it, check that the
+prompt is actually what is failing, since a stale supervisor produces an identical-looking
+respawn loop.
+
 Answer it by hand, once per workspace:
 
 ```bash
@@ -265,6 +271,42 @@ you can check on a session from a script without stealing the terminal. It also 
 session's running token count, which is how you notice an agent that is meandering rather than
 working.
 
+## When the city stops making sense, suspect the supervisor
+
+The supervisor is **machine-wide and long-lived**. It survives a city being deleted and
+recreated, a `brew upgrade` of `gc`, a pack version change and every rig suspend. Ours ran
+**2 days 5 hours** across all four, and by the end it was reporting a world that no longer
+existed.
+
+What that looked like, and every symptom was it:
+
+| symptom | what was actually true |
+|---|---|
+| the dashboard showed runs as `active` | those beads had been purged with the old city — `gc bd show` said "deleted/purged record" |
+| a maintenance agent respawned forever, one durable bead per attempt | the supervisor asserted `poolDesired = 1` for an agent whose work was hours away |
+| 27,798 beads and 4.1 GB of store growth | the above, compounding |
+| `0/N agents running` | a status probe timing out, while `tmux -L <city> ls` showed them alive |
+
+**Rebuilding the city does not fix this.** The city's store resets; the supervisor's view does
+not, because it is a different process with its own index.
+
+```bash
+gc supervisor status                                   # PID and whether it is up
+ps -o pid,etime -p <pid>                               # how long it has been up
+launchctl kickstart -k gui/$(id -u)/com.gascity.supervisor
+```
+
+The kickstart gives a fresh PID. Afterwards the runs index reflects reality, overdue orders
+start firing again, and pools scale to what the work actually needs.
+
+**It reconciles every registered city on the machine**, so know the state of the others first.
+A city whose store is broken will fail loudly on the way back up — that is the restart
+reporting a pre-existing fault, not causing one.
+
+**Do not debug the agents first.** Every symptom above looks like an agent problem and none of
+them is. Check the supervisor's uptime before you touch a pack, a prompt or a trust grant —
+all three of which I changed, uselessly, before checking.
+
 ## When an agent cannot claim
 
 If a session starts, stays alive and never claims anything, check what it is actually running:
@@ -273,8 +315,9 @@ If a session starts, stays alive and never claims anything, check what it is act
 tmux -L my-city capture-pane -p -t gc__run-operator-pc-xxxxx | tail -30
 ```
 
-An agent reporting `PREFLIGHT FAIL: gc gc claim not registered` has a correct prompt and a
-misconfigured city — step 3, one or both halves. The claim protocol itself is easy to test by
+First rule out a stale supervisor, above. Then: an agent reporting
+`PREFLIGHT FAIL: gc gc claim not registered` has a correct prompt and a misconfigured city —
+step 3, one or both halves. The claim protocol itself is easy to test by
 hand, and needs no model:
 
 ```bash
