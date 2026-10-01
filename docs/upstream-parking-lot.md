@@ -71,6 +71,65 @@ way to offer an opinion than a pull request.
 
 ---
 
+## PARKED-3 · `gc rig add --include` writes an import that cannot work
+
+**The idea.** This is a defect report, not a proposal, and it is the strongest of the three.
+Two sibling commands write different things for the same URL.
+
+**Reproduction**, four commands in a throwaway city:
+
+```bash
+gc init --template minimal --providers claude --default-provider claude \
+        --skip-provider-readiness --no-start --name t /tmp/c
+mkdir -p /tmp/r && git -C /tmp/r init
+cd /tmp/c
+gc rig add /tmp/r --name work --prefix wk --start-suspended \
+   --include "https://github.com/gastownhall/gascity-packs/tree/main/gascity/roles"
+gc import add "https://github.com/gastownhall/gascity-packs/tree/main/gascity" --name gc
+```
+
+What each wrote:
+
+```toml
+# gc rig add --include  — no version, name derived from the URL
+[rigs.imports.roles]
+source = "https://github.com/gastownhall/gascity-packs/tree/main/gascity/roles"
+
+# gc import add --name  — version resolved and recorded, name as asked
+[imports.gc]
+source = "https://github.com/gastownhall/gascity-packs/tree/main/gascity"
+version = "^0.4"
+```
+
+**Two defects.**
+
+1. **No version, so the import floats.** It resolves to whatever the resolver picks that day. In
+   one city this produced two versions of one pack family — the rig on `f69ec02b`, the city-level
+   import on `2e7ec4c5` — while `gc import check` reported **"Import state OK"**, because the
+   lock was self-consistent. A floating pin is worse than a stale one: stale is wrong and
+   reproducible; floating changes between installs and yesterday's behaviour cannot be recovered.
+
+2. **The import name is derived from the URL and cannot be set.** `--include` names it `roles`,
+   giving the target `roles.run-operator`, while every formula and pack prompt says
+   `gc.run-operator`, which requires the import be named `gc`. `--name` on `gc rig add` sets the
+   *rig* name. There is no flag for the import name, so the only fix is hand-editing `city.toml`
+   afterwards — the step nobody knows to take, and the one that cost this project most of a day.
+
+The help calls `--include` "compatibility sugar: `gc rig add` writes canonical rig imports." The
+imports it writes are not equivalent to what `gc import add` writes.
+
+**An aside worth keeping.** `gc import add` chose `version = "^0.4"`. Caret on a `0.x` version
+admits `>=0.4.0 <0.5.0`, and `0.x.y` permits breaking changes in any release — so even the
+command that pins correctly pins to a range that guarantees nothing. Same root cause as PARKED-1.
+
+**Searched upstream, three ways, nothing found.** Distinct from #4071, which is about the
+*bundled* pin; this is about *user-declared* imports.
+
+**Status:** parked, pending a second reproduction on a different machine. One machine's evidence
+has been wrong enough times in this project to want two.
+
+---
+
 ## The vocabulary, so it is not reinvented
 
 These terms were coined here over one long session. Written down because the next person to
