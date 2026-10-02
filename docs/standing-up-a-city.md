@@ -296,6 +296,34 @@ no prompt at all. And the `--var` lines in it are a second copy of the formula's
 which is exactly the kind of duplicate that drifts; `test.sh` asserts every var it names exists
 and every required var is set.
 
+## 11b. Checks live in the RIG, not the city
+
+A formula's `[steps.check] path = "checks/design-reviewed.sh"` is **relative to the rig's working
+directory**. Put the checks in the city and the dispatcher finds nothing:
+
+```
+control dispatch: quarantined bead=wk-da3 reason=wk-da3: running check: wk-da3:
+  resolving check path: resolving gate condition path:
+  lstat /Users/you/cities/my-rig/checks: no such file or directory
+```
+
+Two things make this hard to see. The quarantine line is the only place it is reported — the bead
+itself says the check was `control_quarantined` and not why. And **a quarantined check does not stop
+the step**: on 2026-10-02 three checks were quarantined, two of the gated steps closed anyway, and
+the workflow ran on to the findings step before anything refused. A gate whose check cannot be found
+is a gate that is declared, reported, and absent.
+
+So:
+
+```bash
+make install-rig RIG=~/cities/my-rig      # checks, tooling, lib  — where checks resolve
+make install-city CITY=~/cities/my-city   # formulas              — where formulas resolve
+```
+
+`test.sh` asserts every check path named by a formula exists in the repo, which catches the half of
+this that is a typo. It cannot catch a correct path installed in the wrong place; that is what
+`install-rig` is for.
+
 ## 12. Give the audit lane a credential
 
 The audit runs on a different provider from the author's, which means a second CLI with its own

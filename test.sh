@@ -310,6 +310,25 @@ fi
 
 
 echo
+echo "CHECK PATHS"
+# A formula's check path is resolved relative to the RIG working directory. A
+# path that names nothing is the dropped-gate bug with a declaration in front of
+# it: on 2026-10-02 three checks were quarantined with "no such file or
+# directory" and two steps closed anyway.
+MISSING=""
+for f in "$HERE"/formulas/*.toml; do
+  for cp in $(grep -o 'path = "[^"]*"' "$f" | sed 's/path = "//; s/"//'); do
+    case "$cp" in /*) continue ;; esac
+    [ -e "$HERE/$cp" ] || MISSING="$MISSING $(basename "$f"):$cp"
+  done
+done
+if [ -z "$MISSING" ]; then
+  ok "every check a formula names exists in this repo"
+else
+  no "formulas name checks that are not here:$MISSING"
+fi
+
+echo
 echo "MAYOR PROMPT"
 MP="$HERE/agents/mayor/prompt.template.md"
 if [ -f "$MP" ]; then
