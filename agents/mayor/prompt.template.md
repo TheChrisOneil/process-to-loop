@@ -129,7 +129,7 @@ ready queue looking healthy:
     gc sling work/gc.run-operator design-authoring --formula \
       --var use_case_path=$HOME/cities/ptl-rig/processes/<name>/use-case.txt \
       --var design_path=$HOME/cities/ptl-rig/processes/<name>/<name>.design \
-      --var method_path=$HOME/software/process-to-loop/schema/DESIGN-FORMAT.md \
+      --var method_path=$HOME/software/process-to-loop/tooling/method/GENERATE.md \
       --var artifact_root=$HOME/cities/ptl-rig/processes/<name> \
       --var approver="<the named person>"
 

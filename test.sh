@@ -351,10 +351,18 @@ else
   no "the prompt omits required vars:$UNSET"
 fi
 
-if [ -f "$HERE/schema/DESIGN-FORMAT.md" ]; then
-  ok "the method the prompt points method_path at exists"
+# Existence is not enough: this assertion passed while the prompt pointed
+# method_path at the FORMAT SPEC, and a live run was slung with it. The method
+# is the document that tells the author what to do, and it says so in its title.
+MPATH=$(grep -o -- '--var method_path=[^ ]*' "$MP" | head -1 | sed 's|.*--var method_path=||; s|\$HOME|'"$HOME"'|')
+if [ -z "$MPATH" ]; then
+  no "the prompt sets no method_path"
+elif [ ! -f "$MPATH" ]; then
+  no "the prompt points method_path at a file that is not there: $MPATH"
+elif head -1 "$MPATH" | grep -qi '^# Method'; then
+  ok "method_path names a method, not a format spec"
 else
-  no "the prompt points method_path at a file that is not there"
+  no "method_path names $MPATH, whose title is not a method: $(head -1 "$MPATH")"
 fi
 echo
 

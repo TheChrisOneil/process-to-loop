@@ -68,7 +68,7 @@ description = "Absolute path where the finished design lands."
 required = true
 
 [vars.method_path]
-description = "Absolute path to the written method the authoring step follows."
+description = "Absolute path to the written method the authoring step follows — tooling/method/GENERATE.md in this repo. NOT schema/DESIGN-FORMAT.md, which describes the file format rather than the method, and which a run on 2026-10-02 was pointed at by mistake."
 required = true
 
 [vars.author_provider]
