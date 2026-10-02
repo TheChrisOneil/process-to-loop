@@ -9,6 +9,8 @@
 # Exit 75  the design or the renderer is not there to check
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# Formula [vars] live on the workflow root, not in an exec check's environment.
+. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 D=${DESIGN_PATH:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set — the render step did not record where it wrote." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D." >&2; exit 75; }

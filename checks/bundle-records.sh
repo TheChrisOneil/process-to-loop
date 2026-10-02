@@ -10,6 +10,8 @@
 # Exit 75  the bundle or the design is not there to check
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# Formula [vars] live on the workflow root, not in an exec check's environment.
+. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 B=${BUNDLE_PATH:-}; D=${DESIGN_PATH:-}
 [ -n "$B" ] && [ -n "$D" ] || { echo "BUNDLE_PATH and DESIGN_PATH are not set — the compile step did not record where it wrote." >&2; exit 75; }
 [ -d "$B" ] || { echo "no bundle at $B." >&2; exit 75; }

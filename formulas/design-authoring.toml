@@ -22,6 +22,8 @@ remembered to run is a step here, in order, with the gates between them:
   intake      read the described process and screen it
   author      write the design, and revise it until only a person can help
               — a loop: validate, audit on another provider, classify, repeat
+  validate    the design passes its rules                   — a gate
+  audited     the audit happened, on another model, on THIS design — a gate
   render      draw both views and the brief
   diagrams    the views carry every control             — a gate
   findings    what is left for a person, in a file they can act on
@@ -253,11 +255,87 @@ mode = "exec"
 path = "checks/design-reviewed.sh"
 timeout = "15m"
 
+# ---------------------------------------------------------------------- gate ----
+[[steps]]
+id = "validate"
+title = "Gate: the design passes its rules"
+needs = ["author-design"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+The authoring loop already validates on every attempt. This is not that. The
+loop's check is how the author is made to try again; this is the BEAD that says
+the design in front of you passed its rules, and it is the only durable record
+that it did.
+
+Those are different jobs. A check that exhausts its attempts, or that cannot
+run, lets its step close — on 2026-10-02 three checks were quarantined and the
+gated steps closed anyway. A gate that is its own step leaves a bead whose
+outcome a person can read afterwards, and leaves the graph unsatisfied when it
+refuses.
+
+Run `checks/design-validate.sh` and close with its result. Do not interpret it,
+do not re-run it until it agrees with you, and do not close pass on a non-zero
+exit.
+
+Close with `gc.outcome=pass` when the check exits 0, `gc.outcome=fail` with its
+message otherwise. An exit of 75 means the check could not run: close
+`gc.outcome=fail` and say what was missing, because a gate that could not run
+has not passed.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = "checks/design-validate.sh"
+timeout = "3m"
+
+# ---------------------------------------------------------------------- gate ----
+[[steps]]
+id = "audit-verdict"
+title = "Gate: the audit is real and came from a different model"
+needs = ["validate"]
+description = """
+This step exists to run one check. It decides nothing itself.
+
+It asks whether the audit HAPPENED: that a verdict exists, that it is well
+formed, that it came from a model other than the author's, that it covers all
+six dimensions, and that it is about THIS design and not an earlier one.
+
+It does not ask whether the design is sound. A well-formed verdict that calls
+the design defective passes this gate, because soundness is the approver's call
+and the auditor does not grade itself.
+
+This gate was folded into the authoring loop and that was a mistake. Without it
+the authoring step closed `pass` three times on 2026-10-02 having written no
+verdict at all, and nothing downstream could tell: there was no bead whose job
+was to notice. A control that leaves no bead leaves no evidence.
+
+Run `checks/design-audited.sh` and close with its result.
+
+Close with `gc.outcome=pass` when the check exits 0, `gc.outcome=fail` with its
+message otherwise. An exit of 75 means the check could not run: close
+`gc.outcome=fail` and say what was missing. A gate that could not run has not
+passed, and this is the gate whose absence let an unaudited design through.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 1
+
+[steps.check.check]
+mode = "exec"
+path = "checks/design-audited.sh"
+timeout = "3m"
+
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
 id = "render"
 title = "Draw both views and the brief"
-needs = ["author-design"]
+needs = ["audit-verdict"]
 description = """
 Deterministic work only. The diagram is produced **by a rule, never by a model**
 — same design in, same bytes out — so the picture cannot disagree with the

@@ -417,6 +417,35 @@ grep -q 'needs = \["archive-prior"\]' "$HERE/formulas/design-authoring.toml" \
   && ok "intake waits for the archive" || no "intake does not depend on the archive step"
 
 echo
+echo "THE DESIGN GATES"
+# These were folded into the authoring loop, and the authoring step then closed
+# pass three times having written no audit verdict at all. A check makes the
+# author try again; a gate leaves a bead saying it passed. Different jobs.
+for g in validate audit-verdict; do
+  grep -q "id = \"$g\"" "$HERE/formulas/design-authoring.toml" \
+    && ok "$g is its own step again" || no "$g is not a step in the formula"
+done
+grep -q 'needs = \["audit-verdict"\]' "$HERE/formulas/design-authoring.toml" \
+  && ok "nothing renders until the audit gate has passed" \
+  || no "render does not depend on the audit gate"
+
+# Every check must resolve its own inputs, or it passes by hand and fails under
+# the controller — which is how three gates failed on wk-nh5 in silence.
+CMISS=""
+for c in design-validate diagrams-complete bundle-records design-reviewed prior-archived design-audited; do
+  grep -q 'step-vars.sh' "$HERE/checks/$c.sh" 2>/dev/null || CMISS="$CMISS $c"
+done
+[ -z "$CMISS" ] && ok "every check recovers its inputs from the workflow" \
+                || no "checks still read only their environment:$CMISS"
+
+# The design gate must refuse a design with no audit at all — the wk-nh5 case.
+GT=$(mktemp -d); printf '@meta\nuse_case: x\n' > "$GT/x.design"
+DESIGN_PATH="$GT/x.design" "$HERE/checks/design-audited.sh" >/dev/null 2>&1
+[ $? -eq 75 ] && ok "the audit gate cannot pass a design with no verdict" \
+              || no "the audit gate did not refuse a design that was never audited"
+rm -rf "$GT"
+
+echo
 echo "STEP VARS"
 # The controller stores a formula's [vars] on the workflow root as gc.var.<name>
 # and does not export them to an exec check. A check that reads only its
