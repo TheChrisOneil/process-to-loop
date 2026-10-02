@@ -296,6 +296,31 @@ no prompt at all. And the `--var` lines in it are a second copy of the formula's
 which is exactly the kind of duplicate that drifts; `test.sh` asserts every var it names exists
 and every required var is set.
 
+## `gc session new <named-agent>` is not how you start a named agent
+
+`gc session new mayor --no-attach` looks like the headless way to start the mayor. It is not. It
+creates an **ad-hoc** session from the mayor *template* — the session list shows
+`mayor-adhoc-<hash>` — and that ad-hoc session takes the name `mayor` for itself. The configured
+named agent can then no longer start, and says so only when you nudge it:
+
+```
+gc session nudge: resolving configured named session "mayor":
+  session name already exists: "mayor" conflicts with existing identifier on pc-wisp-bzw73o
+```
+
+Meanwhile the ad-hoc session sits in `start-pending` with reason `create,config` forever. The
+supervisor log never mentions it, which makes it look like a supervisor fault. It is not.
+
+Recover by closing the ad-hoc session, then using the right command:
+
+```bash
+gc session close <ad-hoc-id>
+gc session attach mayor          # creates, resumes AND attaches the configured agent
+```
+
+`attach` is the whole lifecycle for a named agent. There is no headless variant: a named chat
+agent starts when a person attaches to it.
+
 ## When the city stops making sense, suspect the supervisor
 
 The supervisor is **machine-wide and long-lived**. It survives a city being deleted and
