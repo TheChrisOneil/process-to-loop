@@ -310,6 +310,27 @@ fi
 
 
 echo
+echo "THE AUTHORING CONTRACT"
+CT="$HERE/tooling/method/CONTRACT.md"
+[ -f "$CT" ] && ok "the contract the author is handed exists" \
+             || no "tooling/method/CONTRACT.md is missing"
+# It tells the author to run things. I named emit-formula.sh here first, which is
+# an awk library and not a command — the same class of bug this file documents.
+CMISS=""
+for c in $(grep -oE 'tooling/[a-z-]+\.sh' "$CT" 2>/dev/null | sort -u); do
+  [ -x "$HERE/$c" ] || CMISS="$CMISS $c"
+done
+[ -z "$CMISS" ] && ok "every command the contract names exists and is executable" \
+                || no "the contract tells the author to run things that are not there:$CMISS"
+# Its whole purpose is that the author need not read the libraries.
+grep -q 'lib/\*.awk' "$CT" && ok "the contract says which files not to read" \
+                            || no "the contract does not tell the author to skip the libraries"
+# And the formula has to actually hand it over, or none of this reaches anyone.
+grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
+  && ok "the authoring step points at the contract" \
+  || no "the formula never mentions the contract it depends on"
+
+echo
 echo "FORMULA PREFLIGHT"
 PT=$(mktemp -d); mkdir -p "$PT/rig"
 # A rig with no checks is exactly the 2026-10-02 failure. It must be caught
@@ -324,7 +345,8 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
 # The real rig has them, so the same call must pass.
 "$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
   use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
-  method_path="$HERE/tooling/method/GENERATE.md" artifact_root="$HERE" approver=a >/dev/null 2>&1
+  method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
+  artifact_root="$HERE" approver=a >/dev/null 2>&1
 [ $? -eq 0 ] && ok "preflight passes when everything resolves" \
              || no "preflight refused a setup where every path exists"
 # A required var with no value must be named, not silently defaulted.

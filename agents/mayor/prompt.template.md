@@ -130,6 +130,7 @@ ready queue looking healthy:
       --var use_case_path=$HOME/cities/ptl-rig/processes/<name>/use-case.txt \
       --var design_path=$HOME/cities/ptl-rig/processes/<name>/<name>.design \
       --var method_path=$HOME/software/process-to-loop/tooling/method/GENERATE.md \
+      --var tooling_root=$HOME/software/process-to-loop/tooling \
       --var artifact_root=$HOME/cities/ptl-rig/processes/<name> \
       --var approver="<the named person>"
 

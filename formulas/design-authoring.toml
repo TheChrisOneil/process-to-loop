@@ -71,6 +71,10 @@ required = true
 description = "Absolute path to the written method the authoring step follows — tooling/method/GENERATE.md in this repo. NOT schema/DESIGN-FORMAT.md, which describes the file format rather than the method, and which a run on 2026-10-02 was pointed at by mistake."
 required = true
 
+[vars.tooling_root]
+description = "Absolute path to the tooling directory — the one holding method/, lib/, validate.sh, brief.sh and compile.sh. The authoring step is given this so it does not have to find them: a run on 2026-10-02 opened eight awk libraries to work out what the downstream tooling required of a design."
+required = true
+
 [vars.author_provider]
 description = "Provider for the lane that writes the design."
 default = "claude"
@@ -135,6 +139,27 @@ description = """
 Read the method at {{method_path}} and follow it. Read the described process at
 {{use_case_path}}. Write the design to {{design_path}} and nothing else — the
 first character is `@` and there is no commentary around it.
+
+**What the tooling will do with your bytes is written down.** Read
+{{tooling_root}}/method/CONTRACT.md: how the parser splits your file, the field
+order of each table section, why a gate must name a real step, why a double
+quote in a refusal breaks the generated check, and why a condition describes
+what REFUSES rather than what passes.
+
+**Do not read {{tooling_root}}/lib/*.awk.** CONTRACT.md is their summary and is
+kept with them. Reading the implementations is how the 2026-10-02 run spent
+twenty-six minutes and half a million output tokens arriving at what that file
+already says.
+
+Check your draft yourself, in your scratchpad, before you close. These four are
+the whole of what happens downstream:
+
+    {{tooling_root}}/validate.sh <design>             the 26 rules
+    {{tooling_root}}/validate.sh --rules              what they are
+    {{tooling_root}}/brief.sh <design>                both diagrams and the brief
+    {{tooling_root}}/compile.sh <design> --name <n>   the formula and its checks
+
+If those pass, the libraries you have not read will not surprise you.
 
 The decisions that matter, in the order they matter:
 
