@@ -310,6 +310,49 @@ fi
 
 
 echo
+echo "ARCHIVING A RUN"
+AT=$(mktemp -d)
+printf 'd\n' > "$AT/x.design"; printf 'b\n' > "$AT/BRIEF.md"
+printf '{"subject_sha256":"old"}\n' > "$AT/design-audit-verdict.json"
+printf 'f\n' > "$AT/FINDINGS.md"; printf 'u\n' > "$AT/use-case.txt"
+mkdir -p "$AT/diagrams"; printf 'g\n' > "$AT/diagrams/flow.mmd"
+"$HERE/tooling/archive-run.sh" "$AT" run-1 >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a run with artifacts archives cleanly" || no "archive-run failed on a populated directory"
+[ -f "$AT/prior/run-1/FINDINGS.md" ] && [ -f "$AT/prior/run-1/design-audit-verdict.json" ] \
+  && ok "the conclusions are copied into the archive" \
+  || no "the archive does not hold the verdict and findings"
+[ ! -e "$AT/design-audit-verdict.json" ] && [ ! -e "$AT/FINDINGS.md" ] \
+  && ok "the conclusions are gone from where a later step would read them" \
+  || no "a stale verdict or findings file survived the archive"
+[ -f "$AT/use-case.txt" ] && ok "the inputs are left alone" || no "the archive deleted an input"
+[ -f "$AT/prior/run-1/MANIFEST.txt" ] && grep -q 'design_sha256' "$AT/prior/run-1/MANIFEST.txt" \
+  && ok "the archive records which design it holds" \
+  || no "the archive has no manifest naming the design"
+
+# The gate is about the invariant, not about whether a copy happened.
+ARTIFACT_ROOT="$AT" "$HERE/checks/prior-archived.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "the gate passes once nothing derived is left" || no "the gate refused a clean directory"
+printf 'stale\n' > "$AT/FINDINGS.md"
+ARTIFACT_ROOT="$AT" "$HERE/checks/prior-archived.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "the gate refuses when a previous findings file is still readable" \
+             || no "the gate let a stale findings file through"
+rm -f "$AT/FINDINGS.md"
+
+# A first run has nothing to archive and must not be an error.
+AE=$(mktemp -d)
+"$HERE/tooling/archive-run.sh" "$AE" first >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a first run with nothing to archive is not an error" || no "archive-run failed on an empty directory"
+ARTIFACT_ROOT="$AE" "$HERE/checks/prior-archived.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "the gate passes a first run with no archive" || no "the gate refused a legitimate first run"
+rm -rf "$AT" "$AE"
+
+# And the formula has to run it, first, or none of the above happens.
+grep -q 'id = "archive-prior"' "$HERE/formulas/design-authoring.toml" \
+  && ok "the formula has the archive step" || no "the archive step is not in the formula"
+grep -q 'needs = \["archive-prior"\]' "$HERE/formulas/design-authoring.toml" \
+  && ok "intake waits for the archive" || no "intake does not depend on the archive step"
+
+echo
 echo "STEP VARS"
 # The controller stores a formula's [vars] on the workflow root as gc.var.<name>
 # and does not export them to an exec check. A check that reads only its

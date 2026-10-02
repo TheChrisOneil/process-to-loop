@@ -18,6 +18,7 @@ out until-loops and says to use a check for orchestrator-driven re-execution.
 **This formula is the pipeline.** Every step that used to be a command somebody
 remembered to run is a step here, in order, with the gates between them:
 
+  archive     the previous run's conclusions, out of reach   — a gate
   intake      read the described process and screen it
   author      write the design, and revise it until only a person can help
               — a loop: validate, audit on another provider, classify, repeat
@@ -109,8 +110,49 @@ required = true
 
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
+id = "archive-prior"
+title = "Put the previous run's conclusions beyond reach"
+description = """
+Deterministic work only. This runs before anything is read or written.
+
+Every run writes the design, the brief, the diagrams, the verdict and the
+findings into {{artifact_root}}, so each run overwrites the one before it. That
+alone loses history. The worse half is that it does not overwrite all of it: a
+verdict and a findings file left behind are read BY NAME by later steps, which
+cannot tell which design they describe. On 2026-10-02 a run put an audit of a
+design that no longer existed in front of a person, and only the findings step
+noticing the dates stopped it.
+
+Run exactly this:
+
+    {{tooling_root}}/archive-run.sh {{artifact_root}}
+
+It copies everything into {{artifact_root}}/prior/<timestamp>/ with a manifest
+naming the archived design's SHA-256, and only then removes the two artifacts
+that must never survive into a new run: the audit verdict and the findings. It
+removes nothing it has not already copied, and it leaves the inputs alone.
+
+A first run has nothing to archive. That is reported, not refused.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and the reason the archive
+could not be written. Do not continue past a failed archive: the run that
+follows would destroy the only copy.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/prior-archived.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
 id = "intake"
 title = "Read the described process and screen it"
+needs = ["archive-prior"]
 description = """
 Deterministic work only. Do not infer, do not fill gaps, and do not decide
 anything this step was not told to decide.
