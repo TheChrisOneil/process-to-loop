@@ -296,6 +296,35 @@ no prompt at all. And the `--var` lines in it are a second copy of the formula's
 which is exactly the kind of duplicate that drifts; `test.sh` asserts every var it names exists
 and every required var is set.
 
+## 12. Give the audit lane a credential
+
+The audit runs on a different provider from the author's, which means a second CLI with its own
+credential. The tooling reads `GEMINI_API_KEY` from the environment when it is set, and otherwise
+from the macOS login Keychain. Store it once:
+
+```bash
+security add-generic-password -a "$USER" -s process-to-loop-gemini -w
+```
+
+The key is typed into the prompt that command opens. It is never on the command line, where `ps`
+would show it to every process on the machine, and never in a file in this repo.
+
+Keychain rather than an exported variable for one reason: an agent is started by launchd, which
+starts a supervisor, which starts a tmux server, which starts the session. A variable exported in
+your shell reaches none of them. The Keychain is readable from any of them.
+
+Two things will bite once:
+
+- **The first headless read prompts for access.** Answer *Always Allow*, or every run afterwards
+  blocks on a dialog nobody is watching.
+- **A locked login keychain reads exactly like a missing key.** `tooling/credential.sh`
+  distinguishes the two and tells you which you have; `security unlock-keychain` fixes the former.
+
+A missing credential is reported as exit **75** — the check could not run — and never as a failing
+design. On 2026-10-02 the old code returned 1 instead, so an absent API key was fed back to the
+author as "your design needs revision," and three attempts were spent revising a design that was
+never the problem.
+
 ## `gc session new <named-agent>` is not how you start a named agent
 
 `gc session new mayor --no-attach` looks like the headless way to start the mayor. It is not. It

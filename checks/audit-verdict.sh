@@ -9,12 +9,50 @@
 #
 # Exit 0   the verdict is well formed, the lanes were genuinely different,
 #          and either it found no defect or every defect is described
-# Exit 1   the verdict is missing, malformed, self-graded, or empty of content
-# Exit 75  no JSON parser on this host, so the verdict could not be read
+# Exit 1   the verdict is malformed, self-graded, empty of content, or is
+#          about an artifact other than the one being gated
+# Exit 75  the check could not run: no JSON parser, or AUDIT_SUBJECT unset
+#          so freshness cannot be established
 set -uo pipefail
 V=${AUDIT_VERDICT:-}
 [ -n "$V" ] || { echo "AUDIT_VERDICT is not set — the audit step recorded nothing." >&2; exit 75; }
 [ -f "$V" ] || { echo "no verdict at $V — the audit step produced no output." >&2; exit 75; }
+
+# FRESHNESS. A verdict is about one artifact. This gate used to check only that
+# the audit was well formed and cross-model — both of which a verdict about a
+# DIFFERENT design satisfies. On 2026-10-02 a run reached this gate with
+# yesterday's verdict on disk and the gate had nothing to say about it.
+S=${AUDIT_SUBJECT:-}
+if [ -z "$S" ]; then
+  echo "AUDIT_SUBJECT is not set, so this gate cannot tell whether the verdict at" >&2
+  echo "$V describes the artifact being gated or some earlier one." >&2
+  echo "This check cannot run. It is not a business failure." >&2
+  echo "Next human action: set AUDIT_SUBJECT to the path of the audited file." >&2
+  exit 75
+fi
+[ -f "$S" ] || { echo "AUDIT_SUBJECT points at $S, which is not there." >&2; exit 75; }
+if ! command -v shasum >/dev/null 2>&1; then
+  echo "no shasum on this host, so freshness cannot be verified." >&2; exit 75
+fi
+WANT=$(shasum -a 256 "$S" | awk '{print $1}')
+GOT=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("subject_sha256") or "")' "$V" 2>/dev/null)
+if [ -z "$GOT" ]; then
+  echo "REFUSED: the verdict at $V names no subject_sha256, so there is no way to" >&2
+  echo "         tell what it audited. Treating it as not an audit of $S." >&2
+  echo "         Next human action: re-run the audit against the current design." >&2
+  exit 1
+fi
+if [ "$GOT" != "$WANT" ]; then
+  echo "REFUSED: the verdict is about a different artifact than the one being gated." >&2
+  echo "           gated:  $S" >&2
+  echo "                   $WANT" >&2
+  echo "           verdict describes:" >&2
+  echo "                   $GOT" >&2
+  echo "         A stale verdict passes every other test in this file: it is well" >&2
+  echo "         formed, cross-model, and complete. It is simply about something else." >&2
+  echo "         Next human action: re-run the audit against the current design." >&2
+  exit 1
+fi
 
 if   command -v python3 >/dev/null 2>&1; then P=python3
 elif command -v jq      >/dev/null 2>&1; then P=jq

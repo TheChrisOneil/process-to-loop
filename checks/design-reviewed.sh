@@ -27,10 +27,22 @@ if ! "$HERE/tooling/validate.sh" "$D" >/tmp/dr-val.$$ 2>&1; then
 fi
 rm -f /tmp/dr-val.$$
 
-# 2. audit THIS revision. A verdict older than the design describes a revision
+# 2. audit THIS revision. A verdict about any other revision describes a design
 #    that no longer exists, so it is re-run rather than reused.
 [ -n "$V" ] || V="$(cd "$(dirname "$D")" && pwd)/design-audit-verdict.json"
-if [ ! -f "$V" ] || [ "$V" -ot "$D" ]; then
+# Staleness is decided by CONTENT, not by mtime. A timestamp says when a file was
+# touched, not what it describes: a verdict can be newer than the design and
+# still be about an earlier revision, and any copy, checkout or restore rewrites
+# mtime without changing a byte. The verdict records the sha of what it audited.
+NEEDS_AUDIT=0
+if [ ! -f "$V" ]; then
+  NEEDS_AUDIT=1
+else
+  WANT_SHA=$(shasum -a 256 "$D" | awk '{print $1}')
+  GOT_SHA=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("subject_sha256") or "")' "$V" 2>/dev/null)
+  [ "$GOT_SHA" = "$WANT_SHA" ] || NEEDS_AUDIT=1
+fi
+if [ "$NEEDS_AUDIT" -eq 1 ]; then
   U=${USE_CASE_PATH:-}
   [ -n "$U" ] && [ -f "$U" ] || { echo "USE_CASE_PATH is not set, so the audit has nothing to judge the design against." >&2; exit 75; }
   "$HERE/tooling/audit-design.sh" "$D" "$U" "$V" || exit $?

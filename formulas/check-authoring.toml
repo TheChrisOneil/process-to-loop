@@ -197,7 +197,10 @@ Write your verdict as JSON to {{artifact_root}}/audit-verdict.json:
                 severity ("critical", "major" or "minor"), what, and why
   confidence    "high", "medium" or "low"
 
-Record AUDIT_VERDICT as that path in your output, because the next step reads it.
+Record AUDIT_SUBJECT as the absolute path of the file you audited, and put
+its SHA-256 in the verdict as "subject_sha256". The gate refuses a verdict
+that names no subject, because a verdict that cannot be tied to one file is
+a verdict about nothing. Record AUDIT_VERDICT as that path in your output, because the next step reads it.
 
 You cannot approve this check. A deterministic step decides whether your audit
 passed, and it refuses if you and the author were the same model.

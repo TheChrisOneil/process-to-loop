@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# Resolve a provider credential into the environment. SOURCE this, do not run it.
+#
+#   . tooling/credential.sh
+#   load_credential GEMINI_API_KEY process-to-loop-gemini || exit 75
+#
+# The environment wins when it is already set, so CI and a one-off override both
+# work. Otherwise the value comes from the macOS login Keychain.
+#
+# The value is never printed, never written to a file, and never passed as a
+# command-line argument — an argument is visible in `ps` to every process on the
+# machine. It goes into the environment of this shell and nowhere else.
+
+# load_credential <env-var-name> <keychain-service>
+# 0 the variable is set and non-empty. 1 it is not, and why is on stderr.
+load_credential() {
+  local var=${1:?env var name} svc=${2:?keychain service} val=""
+
+  # Already in the environment: use it and say nothing.
+  val=$(eval "printf '%s' \"\${$var-}\"")
+  [ -n "$val" ] && return 0
+
+  if ! command -v security >/dev/null 2>&1; then
+    echo "REFUSED: $var is not set and this is not macOS, so there is no Keychain to read." >&2
+    echo "         Set $var in the environment before running this." >&2
+    return 1
+  fi
+
+  local err
+  err=$(mktemp)
+  if val=$(security find-generic-password -a "$USER" -s "$svc" -w 2>"$err"); then
+    if [ -n "$val" ]; then
+      export "$var=$val"
+      rm -f "$err"
+      return 0
+    fi
+    echo "REFUSED: Keychain item \"$svc\" exists but holds an empty value." >&2
+    rm -f "$err"
+    return 1
+  fi
+
+  # Distinguish "no such item" from "the keychain would not answer", because the
+  # fixes are different and a locked keychain looks like a missing key.
+  if grep -q 'could not be found' "$err" 2>/dev/null; then
+    echo "REFUSED: no credential. $var is unset and Keychain has no item \"$svc\"." >&2
+    echo "         Store one — the key is typed into the prompt, not the command line:" >&2
+    echo "             security add-generic-password -a \"\$USER\" -s $svc -w" >&2
+  else
+    echo "REFUSED: Keychain refused to answer for \"$svc\":" >&2
+    sed 's/^/         /' "$err" >&2
+    echo "         A locked login keychain reads as a missing key. Unlock it with:" >&2
+    echo "             security unlock-keychain" >&2
+    echo "         The first headless read also needs \"Always Allow\" once." >&2
+  fi
+  rm -f "$err"
+  return 1
+}

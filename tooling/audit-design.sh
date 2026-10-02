@@ -15,6 +15,15 @@ AP=${AUDIT_PROVIDER:-gemini}; AM=${AUDIT_MODEL:-gemini-3.8-flash}; AUM=${AUTHOR_
   echo "         Two lanes on one model produce correlated blind spots." >&2; exit 1; }
 command -v "$AP" >/dev/null || { echo "REFUSED: the $AP CLI is not installed." >&2; exit 75; }
 
+# The credential, before the model call, so a missing key is reported as a
+# missing key rather than as an empty answer from the provider.
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+. "$HERE/credential.sh"
+case "$AP" in
+  gemini) load_credential GEMINI_API_KEY    process-to-loop-gemini || exit 75 ;;
+  claude) : ;;   # the claude CLI carries its own session auth
+esac
+
 P=$(mktemp)
 cat > "$P" <<EOF
 You did not write this design, and it has already passed its rules. That tells
@@ -49,17 +58,60 @@ Output ONLY JSON, no fences:
  "confidence":"high"|"medium"|"low"}
 EOF
 
+ERR=$(mktemp)
 case "$AP" in
-  gemini) RAW=$(cd "$(dirname "$D")" && gemini -m "$AM" -p "$(cat "$P")" 2>/dev/null) ;;
-  claude) RAW=$(claude -p --model "$AM" --output-format json < "$P" 2>/dev/null \
-                | python3 -c 'import json,sys;print(json.load(sys.stdin).get("result",""))' 2>/dev/null) ;;
-  *) echo "REFUSED: no invocation known for provider $AP." >&2; rm -f "$P"; exit 75 ;;
+  gemini) RAW=$(cd "$(dirname "$D")" && gemini -m "$AM" -p "$(cat "$P")" 2>"$ERR") ;;
+  claude) RAW=$(claude -p --model "$AM" --output-format json < "$P" 2>"$ERR" \
+                | python3 -c 'import json,sys;print(json.load(sys.stdin).get("result",""))' 2>>"$ERR") ;;
+  *) echo "REFUSED: no invocation known for provider $AP." >&2; rm -f "$P" "$ERR"; exit 75 ;;
 esac
+RC=$?
 rm -f "$P"
-printf '%s' "$RAW" | sed '/^```/d' > "$OUT"
-python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$OUT" 2>/dev/null || {
-  echo "REFUSED: $AP did not return valid JSON; the verdict was not written." >&2
-  echo "         Next human action: read $OUT and re-run the audit." >&2; exit 1; }
+
+# A provider that failed or said nothing is an audit that did not happen. That is
+# infrastructure (75), not a defective design, and it must not cost an attempt.
+# Report what the provider actually said: this gate used to close silently.
+if [ "$RC" -ne 0 ] || [ -z "${RAW//[[:space:]]/}" ]; then
+  echo "REFUSED: the audit did not run. $AP exited $RC and returned ${#RAW} bytes." >&2
+  if [ -s "$ERR" ]; then
+    echo "         $AP said:" >&2
+    head -20 "$ERR" | sed 's/^/           /' >&2
+  else
+    echo "         $AP said nothing on stderr either." >&2
+  fi
+  echo "         The verdict was NOT written. $OUT is unchanged." >&2
+  echo "         Next human action: run \`$AP -m $AM -p hello\` by hand and read the error." >&2
+  rm -f "$ERR"
+  exit 75
+fi
+rm -f "$ERR"
+# Validate BEFORE replacing the verdict on disk. Writing first and checking
+# second leaves a malformed verdict where a stale-but-wellformed one was, and
+# makes the refusal below a lie. A later step reads this file and trusts it.
+TMPV=$(mktemp)
+printf '%s' "$RAW" | sed '/^```/d' > "$TMPV"
+if ! python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$TMPV" 2>/dev/null; then
+  echo "REFUSED: $AP returned $(wc -c <"$TMPV" | tr -d ' ') bytes that are not JSON." >&2
+  echo "         The audit ran; its answer is unusable. $OUT is UNCHANGED." >&2
+  echo "         What it returned, first 20 lines:" >&2
+  head -20 "$TMPV" | sed 's/^/           /' >&2
+  rm -f "$TMPV"
+  exit 1
+fi
+# Stamp what was audited. A verdict that cannot be tied to a specific design is
+# a verdict about nothing: today a run found a well-formed verdict on disk that
+# described a DIFFERENT design, and only the findings step noticed.
+SUBJ_SHA=$(shasum -a 256 "$D" | awk '{print $1}')
+python3 - "$TMPV" "$SUBJ_SHA" "$D" <<'PY3'
+import json, sys, datetime
+f, sha, path = sys.argv[1], sys.argv[2], sys.argv[3]
+d = json.load(open(f))
+d["subject_sha256"] = sha
+d["subject_path"]   = path
+d["audited_at"]     = datetime.datetime.now(datetime.timezone.utc).isoformat()
+json.dump(d, open(f, "w"), indent=1)
+PY3
+mv "$TMPV" "$OUT"
 python3 - "$OUT" <<'PY2'
 import json, sys
 d = json.load(open(sys.argv[1]))

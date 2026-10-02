@@ -18,6 +18,7 @@ help:
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
 	@echo "make install-mayor CITY=<dir>                    put the front-door prompt in a city"
+	@echo "make install-city CITY=<dir>                     sync formulas, checks and tooling into a city"
 	@echo "make test                                        everything, end to end"
 	@echo "make clean                                       remove $(OUT)/"
 
@@ -79,6 +80,17 @@ demo:
 	@$(MAKE) --no-print-directory compile DESIGN=examples/invoices.design NAME=invoice-reconciliation
 	@$(MAKE) --no-print-directory conformance NAME=invoice-reconciliation
 
+install-city:
+	@[ -n "$(CITY)" ] || { echo "make install-city CITY=<city-dir>"; exit 64; }
+	@[ -f "$(CITY)/city.toml" ] || { echo "not a city: $(CITY)/city.toml is not there"; exit 65; }
+	@for d in formulas checks tooling lib; do \
+	   [ -d "$$d" ] || continue; \
+	   mkdir -p "$(CITY)/$$d"; \
+	   cp -p "$$d"/* "$(CITY)/$$d/" 2>/dev/null || true; \
+	   echo "  synced $$d/"; \
+	 done
+	@echo "A running workflow keeps the formula it was cooked with."
+
 install-mayor:
 	@[ -n "$(CITY)" ] || { echo "make install-mayor CITY=<city-dir>"; exit 64; }
 	@[ -d "$(CITY)/agents" ] || { echo "not a city: $(CITY)/agents is not there"; exit 65; }
@@ -91,7 +103,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-mayor test selftest clean
+.PHONY: help design compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-mayor test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

@@ -131,7 +131,13 @@ rm -f "$DT"
 echo
 echo "THE REVISION LOOP"
 LT=$(mktemp -d); cp "$HERE/examples/invoices.design" "$LT/d.design"
-mkv() { printf '%s' "$1" > "$LT/v.json"; touch "$LT/v.json"; }
+mkv() { python3 - "$LT/v.json" "$1" "$(shasum -a 256 "$LT/d.design" | awk '{print $1}')" <<'PY_MKV'
+import json, sys
+out, body, sha = sys.argv[1], sys.argv[2], sys.argv[3]
+d = json.loads(body); d["subject_sha256"] = sha
+json.dump(d, open(out, "w"))
+PY_MKV
+}
 mkv '{"defects":[]}'
 DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "a sound design is done with the model" || no "a sound design did not pass"
@@ -164,9 +170,10 @@ printf '{"author_model":"a","audit_model":"b","verdict":"sound","checked":["unit
 "$HERE/tooling/findings.sh" "$FT/v.json" "$FT/d.design" >/dev/null 2>&1
 grep -q "It found nothing" "$FT/FINDINGS.md" 2>/dev/null \
   && ok "a clean audit still writes the file — absence is a result" || no "a clean audit wrote nothing"
-AV=$(mktemp)
-printf '{"author_model":"a","audit_model":"b","verdict":"defective","checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"],"defects":[{"severity":"major","what":"w","why":"y"}]}' > "$AV"
-if AUDIT_VERDICT="$AV" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+AV=$(mktemp); AVS=$(mktemp); printf 'the audited artifact\n' > "$AVS"
+printf '{"author_model":"a","audit_model":"b","verdict":"defective","checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"],"defects":[{"severity":"major","what":"w","why":"y"}],"subject_sha256":"%s"}' \
+  "$(shasum -a 256 "$AVS" | awk '{print $1}')" > "$AV"
+if AUDIT_VERDICT="$AV" AUDIT_SUBJECT="$AVS" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
 then ok "a defective verdict passes the gate — soundness is a person's call"
 else no "the gate still refuses a defective verdict"; fi
 rm -rf "$FT" "$AV"
@@ -350,5 +357,89 @@ else
   no "the prompt points method_path at a file that is not there"
 fi
 echo
+
+echo
+echo "CREDENTIAL"
+# The environment wins, and nothing is printed.
+( . "$HERE/tooling/credential.sh"
+  PTL_FAKE_KEY=already-set
+  out=$(load_credential PTL_FAKE_KEY ptl-nonexistent-service 2>&1)
+  [ -z "$out" ] ) \
+  && ok "a credential already in the environment is used silently" \
+  || no "load_credential was not quiet when the variable was already set"
+
+# Absent everywhere: refuse, and say exactly how to fix it. Never invent a key.
+CRED_OUT=$( . "$HERE/tooling/credential.sh"
+            unset PTL_ABSENT_KEY
+            load_credential PTL_ABSENT_KEY ptl-nonexistent-service-$$ 2>&1 )
+CRED_RC=$?
+if [ "$CRED_RC" -ne 0 ]; then
+  ok "a missing credential is refused, not guessed"
+else
+  no "load_credential returned success with no credential anywhere"
+fi
+case "$CRED_OUT" in
+  *add-generic-password*) ok "the refusal names the command that stores the key" ;;
+  *) no "the refusal does not say how to store a key: $CRED_OUT" ;;
+esac
+case "$CRED_OUT" in
+  *-w*) ok "the store command reads the key from a prompt, not from argv" ;;
+  *) no "the store command would put the key on the command line" ;;
+esac
+
+echo
+echo "AUDIT FRESHNESS"
+FX=$(mktemp -d)
+printf '@meta\nuse_case: x\n' > "$FX/subject.txt"
+SUBJ_SHA=$(shasum -a 256 "$FX/subject.txt" | awk '{print $1}')
+DIMS="unit-of-work,judgment-isolated,gate-coverage,refusal-quality,evidence-chain,exit-criterion"
+mkverdict() {  # $1 out, $2 sha-or-empty
+  python3 - "$1" "$2" <<'PY3'
+import json, sys
+v = {"author_model":"model-a","audit_model":"model-b","verdict":"sound",
+     "checked":["unit-of-work","judgment-isolated","gate-coverage",
+                "refusal-quality","evidence-chain","exit-criterion"],
+     "defects":[],"confidence":"high"}
+if sys.argv[2]: v["subject_sha256"] = sys.argv[2]
+json.dump(v, open(sys.argv[1],"w"))
+PY3
+}
+
+mkverdict "$FX/fresh.json" "$SUBJ_SHA"
+mkverdict "$FX/nosha.json" ""
+mkverdict "$FX/wrong.json" "$(printf '0%.0s' $(seq 1 64))"
+
+AUDIT_DIMENSIONS=$DIMS AUDIT_VERDICT=$FX/fresh.json ./checks/audit-verdict.sh >/dev/null 2>&1
+[ $? -eq 75 ] && ok "the gate cannot run without AUDIT_SUBJECT and says so (75)" \
+              || no "the gate ran without knowing what it was gating"
+
+AUDIT_DIMENSIONS=$DIMS AUDIT_VERDICT=$FX/fresh.json AUDIT_SUBJECT=$FX/subject.txt \
+  ./checks/audit-verdict.sh >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a verdict about the gated file passes" \
+             || no "the gate refused a verdict that matches its subject"
+
+AUDIT_DIMENSIONS=$DIMS AUDIT_VERDICT=$FX/nosha.json AUDIT_SUBJECT=$FX/subject.txt \
+  ./checks/audit-verdict.sh >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a verdict naming no subject is refused" \
+             || no "a verdict that cannot be tied to any file was accepted"
+
+AUDIT_DIMENSIONS=$DIMS AUDIT_VERDICT=$FX/wrong.json AUDIT_SUBJECT=$FX/subject.txt \
+  ./checks/audit-verdict.sh >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a verdict about a DIFFERENT file is refused" \
+             || no "a stale verdict passed the gate — the 2026-10-02 failure"
+
+# A provider that cannot run is infrastructure (75), never a defective design,
+# and it must not touch the verdict already on disk.
+cp "$FX/fresh.json" "$FX/keep.json"
+AUDIT_PROVIDER=ptl-no-such-cli AUDIT_MODEL=m1 AUTHOR_MODEL=m2 \
+  ./tooling/audit-design.sh "$FX/subject.txt" "$FX/subject.txt" "$FX/keep.json" >/dev/null 2>&1
+RC=$?
+[ "$RC" -eq 75 ] && ok "an audit that cannot run exits 75, not 1" \
+                 || no "a provider that is not installed exited $RC, which reads as a bad design"
+cmp -s "$FX/fresh.json" "$FX/keep.json" \
+  && ok "a failed audit leaves the existing verdict untouched" \
+  || no "a failed audit overwrote the verdict on disk"
+rm -rf "$FX"
+
 printf "  %d passed, %d failed\n" "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
