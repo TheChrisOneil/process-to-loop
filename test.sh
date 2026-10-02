@@ -346,6 +346,37 @@ ARTIFACT_ROOT="$AE" "$HERE/checks/prior-archived.sh" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "the gate passes a first run with no archive" || no "the gate refused a legitimate first run"
 rm -rf "$AT" "$AE"
 
+# A cross-run revision is HANDED the previous findings by path. Archiving must
+# not delete the input the run was started to act on.
+AR=$(mktemp -d)
+printf 'd\n' > "$AR/x.design"; printf 'f\n' > "$AR/FINDINGS.md"
+printf '{"s":1}\n' > "$AR/design-audit-verdict.json"
+PRIOR_FINDINGS_PATH="$AR/FINDINGS.md" "$HERE/tooling/archive-run.sh" "$AR" r1 >/dev/null 2>&1
+[ $? -eq 1 ] && ok "archiving refuses when a revision cites the working copy" \
+             || no "archiving accepted a revision whose input it was about to delete"
+[ -f "$AR/FINDINGS.md" ] \
+  && ok "the refused archive destroyed nothing" \
+  || no "a refused archive still deleted the findings"
+
+# With no prior vars it proceeds, and leaves a stable name for the archive.
+"$HERE/tooling/archive-run.sh" "$AR" r1 >/dev/null 2>&1
+[ "$(readlink "$AR/prior/latest")" = "r1" ] \
+  && ok "prior/latest names the newest archive" || no "prior/latest does not point at the new archive"
+
+# But latest is a moving pointer, so it is not a legal input either.
+printf 'f2\n' > "$AR/FINDINGS.md"
+PRIOR_FINDINGS_PATH="$AR/prior/latest/FINDINGS.md" "$HERE/tooling/archive-run.sh" "$AR" r2 >/dev/null 2>&1
+[ $? -eq 1 ] && ok "archiving refuses a revision that reaches through prior/latest" \
+             || no "a run was allowed to revise through a pointer this step moves"
+
+# A fixed archive path is the one legal form.
+PRIOR_FINDINGS_PATH="$AR/prior/r1/FINDINGS.md" "$HERE/tooling/archive-run.sh" "$AR" r2 >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a revision citing a fixed archive proceeds" || no "a legitimate revision was refused"
+[ "$(cat "$AR/prior/r1/FINDINGS.md")" = "f" ] \
+  && ok "the revision's input is still exactly what it was" \
+  || no "the archived input the revision cited was altered"
+rm -rf "$AR"
+
 # And the formula has to run it, first, or none of the above happens.
 grep -q 'id = "archive-prior"' "$HERE/formulas/design-authoring.toml" \
   && ok "the formula has the archive step" || no "the archive step is not in the formula"

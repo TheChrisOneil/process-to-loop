@@ -211,8 +211,23 @@ is not an edit:
     gc sling work/gc.run-operator design-authoring --formula \
       --var use_case_path=... --var design_path=... --var method_path=... \
       --var artifact_root=... --var approver="..." \
-      --var prior_design_path=$HOME/.../<name>.design \
-      --var prior_findings_path=$HOME/.../FINDINGS.md
+      --var prior_design_path=$HOME/.../prior/<label>/<name>.design \
+      --var prior_findings_path=$HOME/.../prior/<label>/FINDINGS.md
+
+**Point these at an ARCHIVE, never at the working directory.** The run's first
+step archives the previous run and deletes the findings and the verdict from the
+working directory, precisely so no step can mistake them for this run's. A
+revision that cites the live `FINDINGS.md` is citing a file that will not exist
+by the time the author reads it. The archive step refuses rather than destroying
+it, so this fails loudly — but it fails.
+
+Get the label, and pass the **resolved** path, not the pointer:
+
+    readlink $HOME/cities/ptl-rig/processes/<name>/prior/latest
+
+`prior/latest` is a convenience for looking, not an input. The next run repoints
+it, so a run that cited it would be revising one design at the start and a
+different one by the second step. The archive step refuses that too.
 
 Both, or neither — the findings are about a particular design, and findings
 without the design they were written about are findings about nothing.

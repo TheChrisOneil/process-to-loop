@@ -34,7 +34,7 @@ fi
 # An archive is only evidence if it holds something. A first run legitimately has
 # none, so its absence is reported and not refused.
 if [ -d "$R/prior" ] && [ -n "$(ls -A "$R/prior" 2>/dev/null)" ]; then
-  N=$(ls -1 "$R/prior" | wc -l | tr -d ' ')
+  N=$(ls -1 "$R/prior" | grep -v '^latest$' | wc -l | tr -d ' ')
   echo "clear: nothing derived is left in the working directory; $N archived run(s) kept."
 else
   echo "clear: nothing derived is left in the working directory; no earlier run to keep."

@@ -93,11 +93,11 @@ description = "Model for the audit lane. MUST differ from author_model; the verd
 default = "gemini-3.8-flash"
 
 [vars.prior_findings_path]
-description = "Optional. A FINDINGS.md from an earlier run. When set, this run revises the prior design against those findings rather than writing one from nothing."
+description = "Optional. A FINDINGS.md from an earlier run, inside artifact_root/prior/<label>/. Never the one in the working directory: the archive step deletes that before the author reads it, and refuses rather than destroying a run's own input. Never through prior/latest either, which this run repoints."
 default = ""
 
 [vars.prior_design_path]
-description = "Optional. The design those findings were written about. Required when prior_findings_path is set."
+description = "Optional. The design those findings were written about, from the same archive directory. Required when prior_findings_path is set."
 default = ""
 
 [vars.approver]
@@ -133,6 +133,16 @@ that must never survive into a new run: the audit verdict and the findings. It
 removes nothing it has not already copied, and it leaves the inputs alone.
 
 A first run has nothing to archive. That is reported, not refused.
+
+This does not touch the revision loop inside this run. That loop runs later and
+entirely on this run's own verdict, which is rewritten on every attempt; the
+findings reach the author on the check's output, not through a file. What is
+removed here belongs to a PREVIOUS run.
+
+If this is a cross-run revision, {{prior_findings_path}} and
+{{prior_design_path}} must already name copies under {{artifact_root}}/prior/.
+The script refuses, and deletes nothing, when either names a file in the working
+directory or reaches through prior/latest.
 
 Close with `gc.outcome=pass`, or `gc.outcome=fail` and the reason the archive
 could not be written. Do not continue past a failed archive: the run that

@@ -63,7 +63,10 @@ for cp in sorted(set(re.findall(r'path\s*=\s*"([^"]+)"', resolved))):
 # Any absolute path the substituted text now names. An input that is not there is
 # the run's first surprise; an output whose directory is missing is its last.
 raw = set(re.findall(r'(/(?:[\w.\-]+/)+[\w.\-]+)', resolved))
-for p in sorted({x.rstrip('.,;:') for x in raw}):
+# Prose puts a path at the end of a sentence, so strip sentence punctuation —
+# and the trailing slash a directory is written with, or ".../prior/." becomes
+# ".../prior/" and never matches anything on disk.
+for p in sorted({x.rstrip('.,;:').rstrip('/') for x in raw if x.rstrip('.,;:').rstrip('/')}):
     if p.startswith(("/bin", "/usr", "/dev", "/tmp", "/etc", "/var")): continue
     if os.path.exists(p):
         notes.append(f"path ok: {p}")
