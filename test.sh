@@ -301,6 +301,54 @@ else
   printf "  SKIP  gc is not installed\n"
 fi
 
+
+echo
+echo "MAYOR PROMPT"
+MP="$HERE/agents/mayor/prompt.template.md"
+if [ -f "$MP" ]; then
+  ok "the mayor prompt is in the repo, not only in a city"
+else
+  no "the mayor prompt is missing"
+fi
+
+# The agent prompt is rendered by Go templating. A {{formula_var}} in it is not
+# substituted — it is a parse error, and the mayor then has no prompt at all.
+STRAY=$(grep -o '{{[^}]*}}' "$MP" 2>/dev/null \
+        | grep -vE 'define|^\{\{-? ?end|templateFirst' || true)
+if [ -z "$STRAY" ]; then
+  ok "the prompt carries no formula-var braces the renderer would reject"
+else
+  no "the prompt has Go-template braces that are not Go template: $STRAY"
+fi
+
+# Every --var the prompt tells the mayor to pass must be a var the formula has.
+MISSING=""
+for v in $(grep -o -- '--var [a-z_]*=' "$MP" | awk '{print $2}' | tr -d '=' | sort -u); do
+  grep -q "^\[vars\.$v\]" "$HERE/formulas/design-authoring.toml" || MISSING="$MISSING $v"
+done
+if [ -z "$MISSING" ]; then
+  ok "every --var the prompt names exists in design-authoring"
+else
+  no "the prompt passes vars the formula does not define:$MISSING"
+fi
+
+# Every required var must appear in the prompt's start-a-run command.
+UNSET=""
+for v in $(awk '/^\[vars\./{n=$0} /^required = true/{gsub(/\[vars\.|\]/,"",n); print n}' \
+           "$HERE/formulas/design-authoring.toml"); do
+  grep -q -- "--var $v=" "$MP" || UNSET="$UNSET $v"
+done
+if [ -z "$UNSET" ]; then
+  ok "the prompt sets every var the formula requires"
+else
+  no "the prompt omits required vars:$UNSET"
+fi
+
+if [ -f "$HERE/schema/DESIGN-FORMAT.md" ]; then
+  ok "the method the prompt points method_path at exists"
+else
+  no "the prompt points method_path at a file that is not there"
+fi
 echo
 printf "  %d passed, %d failed\n" "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1

@@ -271,6 +271,31 @@ you can check on a session from a script without stealing the terminal. It also 
 session's running token count, which is how you notice an agent that is meandering rather than
 working.
 
+## 11. Install the mayor's prompt
+
+A city gets a default mayor prompt that describes Gas City in general. It says nothing about what
+*this* city is for, so a mayor started on it will invent a plan rather than run the workflow.
+
+The prompt lives in this repo and is copied in:
+
+```bash
+make install-mayor CITY=~/cities/my-city
+```
+
+It lands at `<city>/agents/mayor/prompt.template.md`. A city is **not a git repo** — nothing under
+it is versioned — so a prompt written only there is lost the next time the city is rebuilt. The
+repo is the source; the city gets a copy.
+
+The mayor is `on_demand`, so there is nothing to restart: the next `gc session attach mayor`
+renders the new prompt. If a mayor session is already running it keeps the old one until
+`gc session reset mayor`.
+
+Two things to know before editing that file. It is rendered as a **Go template**, so a
+`{{formula_var}}` in it is not substituted — it is a parse error, and the mayor then starts with
+no prompt at all. And the `--var` lines in it are a second copy of the formula's variable list,
+which is exactly the kind of duplicate that drifts; `test.sh` asserts every var it names exists
+and every required var is set.
+
 ## When the city stops making sense, suspect the supervisor
 
 The supervisor is **machine-wide and long-lived**. It survives a city being deleted and
