@@ -436,12 +436,26 @@ VAL=$( . "$HERE/tooling/step-vars.sh"
   && ok "a value already in the environment is not overwritten" \
   || no "the resolver clobbered a value the caller had set: $VAL"
 
-# An unresolvable bead must not wedge the check.
-( . "$HERE/tooling/step-vars.sh"
+# An unresolvable bead must SAY SO. The first version swallowed gc's error with
+# 2>/dev/null and returned 0, so three gates failed under the controller while
+# passing by hand and nothing anywhere said why.
+SVERR=$( . "$HERE/tooling/step-vars.sh"
+         GC_BEAD_ID=definitely-not-a-bead
+         load_workflow_vars 2>&1 >/dev/null )
+SVRC=$?
+[ "$SVRC" -ne 0 ] && ok "an unresolvable bead is reported, not swallowed" \
+                  || no "load_workflow_vars returned success without resolving anything"
+case "$SVERR" in
+  *WARNING*cwd=*) ok "the warning names the cwd and gc it actually used" ;;
+  *) no "the failure gave nothing to diagnose with: $SVERR" ;;
+esac
+# But the caller must stay runnable — checks source it with || true.
+( . "$HERE/tooling/step-vars.sh" 2>/dev/null
   GC_BEAD_ID=definitely-not-a-bead
-  load_workflow_vars ) >/dev/null 2>&1 \
-  && ok "an unresolvable bead leaves the check runnable" \
-  || no "an unresolvable bead made the resolver fail"
+  load_workflow_vars 2>/dev/null || true
+  exit 0 ) \
+  && ok "a check that cannot resolve its workflow still runs" \
+  || no "an unresolvable bead wedged the calling check"
 
 grep -q 'step-vars.sh' "$HERE/checks/design-reviewed.sh" \
   && ok "the authoring check recovers its inputs from the workflow" \

@@ -21,8 +21,17 @@ load_workflow_vars() {
   [ -n "$bead" ] || return 0
   command -v gc >/dev/null 2>&1 || return 0
 
+  # gc needs to be inside a city or rig tree to resolve a bead. The controller
+  # starts an exec check with a cwd that is not, and the first version of this
+  # swallowed that with 2>/dev/null and returned 0 — the same silent failure this
+  # repo spent the morning removing, reintroduced by me. Run gc where it works,
+  # and when it still fails, say so.
+  local base err rc
+  base=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+  err=$(mktemp)
+
   local root
-  root=$(gc bd show "$bead" --json 2>/dev/null | python3 -c '
+  root=$(cd "$base" 2>/dev/null && gc bd show "$bead" --json 2>"$err" | python3 -c '
 import json,sys
 try: b=json.load(sys.stdin)
 except Exception: sys.exit(0)
@@ -31,10 +40,18 @@ if not isinstance(b,dict): sys.exit(0)
 md=b.get("metadata") or {}
 print(md.get("gc.root_bead_id") or b.get("id") or "")
 ' 2>/dev/null)
-  [ -n "$root" ] || return 0
+  if [ -z "$root" ]; then
+    echo "WARNING: could not resolve the workflow for bead $bead, so this check" >&2
+    echo "         is running on whatever the environment happened to carry." >&2
+    [ -s "$err" ] && sed 's/^/           gc: /' "$err" >&2
+    echo "           cwd=$PWD  base=$base  gc=$(command -v gc || echo none)" >&2
+    rm -f "$err"
+    return 1
+  fi
+  rm -f "$err"
 
   local assignments
-  assignments=$(gc bd show "$root" --json 2>/dev/null | python3 -c '
+  assignments=$(cd "$base" 2>/dev/null && gc bd show "$root" --json 2>/dev/null | python3 -c '
 import json,sys,shlex
 try: b=json.load(sys.stdin)
 except Exception: sys.exit(0)
