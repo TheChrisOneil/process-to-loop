@@ -12,6 +12,9 @@
 # Exit 75  the design, the verdict or a tool is not there to judge.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# The controller does not export a formula's [vars] to an exec check. Recover
+# them from the workflow root before reading anything from the environment.
+. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 D=${DESIGN_PATH:-}; V=${AUDIT_VERDICT:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set — the authoring step did not record where it wrote." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D — nothing was authored." >&2; exit 75; }

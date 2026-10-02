@@ -310,6 +310,37 @@ fi
 
 
 echo
+echo "STEP VARS"
+# The controller stores a formula's [vars] on the workflow root as gc.var.<name>
+# and does not export them to an exec check. A check that reads only its
+# environment exits 75 forever while the work it cannot see is done correctly.
+( . "$HERE/tooling/step-vars.sh"
+  unset GC_BEAD_ID GC_BEAD
+  load_workflow_vars ) >/dev/null 2>&1 \
+  && ok "with no bead in the environment the resolver is a no-op" \
+  || no "load_workflow_vars failed when there was no bead to resolve"
+
+# The environment wins, so a check stays runnable by hand.
+VAL=$( . "$HERE/tooling/step-vars.sh"
+       GC_BEAD_ID=no-such-bead DESIGN_PATH=/mine/own
+       load_workflow_vars 2>/dev/null
+       printf '%s' "$DESIGN_PATH" )
+[ "$VAL" = "/mine/own" ] \
+  && ok "a value already in the environment is not overwritten" \
+  || no "the resolver clobbered a value the caller had set: $VAL"
+
+# An unresolvable bead must not wedge the check.
+( . "$HERE/tooling/step-vars.sh"
+  GC_BEAD_ID=definitely-not-a-bead
+  load_workflow_vars ) >/dev/null 2>&1 \
+  && ok "an unresolvable bead leaves the check runnable" \
+  || no "an unresolvable bead made the resolver fail"
+
+grep -q 'step-vars.sh' "$HERE/checks/design-reviewed.sh" \
+  && ok "the authoring check recovers its inputs from the workflow" \
+  || no "design-reviewed.sh still reads its inputs from the environment alone"
+
+echo
 echo "THE AUTHORING CONTRACT"
 CT="$HERE/tooling/method/CONTRACT.md"
 [ -f "$CT" ] && ok "the contract the author is handed exists" \
