@@ -310,6 +310,58 @@ fi
 
 
 echo
+echo "FORMULA PREFLIGHT"
+PT=$(mktemp -d); mkdir -p "$PT/rig"
+# A rig with no checks is exactly the 2026-10-02 failure. It must be caught
+# before a sling, not twenty-five minutes into one.
+"$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$PT/rig" \
+  use_case_path=/x design_path=/x method_path=/x artifact_root=/x approver=a >"$PT/out" 2>&1
+[ $? -eq 1 ] && ok "preflight refuses a rig with no checks" \
+             || no "preflight passed a rig that has none of the checks"
+grep -q 'checks/design-reviewed.sh' "$PT/out" \
+  && ok "preflight names the check that would not resolve" \
+  || no "preflight did not say which check was missing"
+# The real rig has them, so the same call must pass.
+"$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
+  use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
+  method_path="$HERE/tooling/method/GENERATE.md" artifact_root="$HERE" approver=a >/dev/null 2>&1
+[ $? -eq 0 ] && ok "preflight passes when everything resolves" \
+             || no "preflight refused a setup where every path exists"
+# A required var with no value must be named, not silently defaulted.
+"$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
+  approver=a >"$PT/out2" 2>&1
+grep -q 'required var not supplied' "$PT/out2" \
+  && ok "preflight names required vars that were not supplied" \
+  || no "preflight accepted a formula with required vars missing"
+rm -rf "$PT"
+
+echo
+echo "RUN REPORT"
+RT=$(mktemp -d)
+python3 - "$RT/t.jsonl" <<'PY_RT'
+import json, sys
+rows = [
+ {"type":"assistant","timestamp":"2026-10-02T10:00:00Z","thinkingDurationMs":1000,
+  "message":{"model":"m","usage":{"output_tokens":10},"content":[
+    {"type":"tool_use","name":"Bash","input":{"command":"cat /tmp/a/thing.awk"}}]}},
+ {"type":"assistant","timestamp":"2026-10-02T10:05:00Z",
+  "message":{"model":"m","usage":{"output_tokens":10},"content":[
+    {"type":"tool_use","name":"Bash","input":{"command":"sed -n 1,5p /tmp/a/thing.awk"}}]}},
+]
+open(sys.argv[1],"w").write("\n".join(json.dumps(r) for r in rows))
+PY_RT
+OUT=$("$HERE/tooling/run-report.sh" "$RT/t.jsonl" 2>&1)
+case "$OUT" in
+  *"2x  /tmp/a/thing.awk"*) ok "the report counts files opened through bash, not only Read" ;;
+  *) no "a file catted twice was not reported as opened twice" ;;
+esac
+case "$OUT" in *"0:05:00"*) ok "the report gives wall-clock span" ;;
+               *) no "the report did not compute elapsed time" ;; esac
+case "$OUT" in *"1 re-read"*) ok "the report totals the avoidable re-reads" ;;
+               *) no "the report did not total re-reads" ;; esac
+rm -rf "$RT"
+
+echo
 echo "CHECK PATHS"
 # A formula's check path is resolved relative to the RIG working directory. A
 # path that names nothing is the dropped-gate bug with a declaration in front of

@@ -14,6 +14,8 @@ help:
 	@echo "make brief DESIGN=<path>                         BRIEF.md and diagrams/ beside the design"
 	@echo "make city-preflight CITY=<dir>                   is this city safe to build formulas against?"
 	@echo "make pack-diff A=<pack-dir> B=<pack-dir>         what actually changed between two pack versions"
+	@echo "make formula-preflight F=<formula> RIG=<dir> V='k=v ...'   does everything it names resolve?"
+	@echo "make run-report T=<transcript.jsonl>              where a run spent its time and tokens"
 	@echo "make rules                                       both rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
@@ -67,6 +69,14 @@ pack-diff:
 properties:
 	@[ -n "$(DESIGN)" ] && [ -n "$(STEP)" ] || { echo "make properties DESIGN=<path> STEP=<id>"; exit 64; }
 	@tooling/properties.sh "$(DESIGN)" "$(STEP)"
+
+formula-preflight:
+	@[ -n "$(F)" ] && [ -n "$(RIG)" ] || { echo "make formula-preflight F=<formula.toml> RIG=<rig-dir> V='k=v ...'"; exit 64; }
+	@tooling/formula-preflight.sh "$(F)" "$(RIG)" $(V)
+
+run-report:
+	@[ -n "$(T)" ] || { echo "make run-report T=<transcript.jsonl>   (or T=--latest D=<dir>)"; exit 64; }
+	@tooling/run-report.sh "$(T)" $(D)
 
 rules:
 	@echo "THE DESIGN RULES — is the method sound?"

@@ -296,6 +296,51 @@ no prompt at all. And the `--var` lines in it are a second copy of the formula's
 which is exactly the kind of duplicate that drifts; `test.sh` asserts every var it names exists
 and every required var is set.
 
+## 9b. Preflight the formula before you sling it
+
+**Compile the formula with the vars you intend to pass, and check that everything it names
+resolves.** It takes under a second and it is the cheapest step in this guide:
+
+```bash
+make formula-preflight F=formulas/design-authoring.toml RIG=~/cities/my-rig \
+  V='use_case_path=/abs/use-case.txt design_path=/abs/x.design \
+     method_path=/abs/tooling/method/GENERATE.md artifact_root=/abs/run approver="A. Rivera"'
+```
+
+It reports every check path resolved against the rig, every absolute path the substituted step
+text names, every `{{var}}` with no value and no default, and every required var not supplied.
+
+Do this because **a formula that names something missing does not fail fast.** On 2026-10-02 three
+checks resolved to a directory that did not exist. The checks were quarantined, the gated steps
+closed anyway, and the author spent **26 minutes and 528k output tokens** reading the city to work
+out what it should have been handed. Preflight named all three in under a second.
+
+`gc formula show` does not do this. It prints the formula's definition and its variable list, not
+the substituted result, so it cannot tell you what a path resolves to.
+
+## 9c. Read the first runs of a new formula
+
+A formula is cheap to write and expensive to run badly. For the first few runs of a new one, watch
+what the agent actually does, then measure it:
+
+```bash
+make run-report T=--latest D=~/.claude/projects/-Users-you-cities-my-rig
+```
+
+Agent sessions are Claude Code sessions, so each one already writes a complete JSONL transcript —
+every tool call, timestamp and token. Nothing needs to be turned on to capture it. `gc session logs`
+reads the same files if you want the conversation rather than the measurements.
+
+The report gives wall clock, thinking time, tokens, tool calls by kind, **files opened more than
+once**, commands run more than once, and a total of avoidable re-reads. Count the files through
+`cat`, `sed` and `grep` as well as the `Read` tool, or a run that opened one file nine times reports
+that nothing was read twice.
+
+Repetition is the signal. A file opened once is a run reading its inputs. A file opened nine times
+is a run **looking for something**, and the usual cause is that the formula did not hand it a path
+it needed. The 26-minute run above shows 34 re-reads, with `lib/parse.awk` opened 9 times and
+`lib/gates.awk` 5 — each one a path the formula could have named.
+
 ## 11b. Checks live in the RIG, not the city
 
 A formula's `[steps.check] path = "checks/design-reviewed.sh"` is **relative to the rig's working
