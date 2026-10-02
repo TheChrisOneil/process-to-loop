@@ -22,6 +22,34 @@ R=${1:?artifact_root}
 LABEL=${2:-}
 [ -n "$LABEL" ] || LABEL=$(date -u +%Y%m%dT%H%M%SZ)
 
+# Which run is doing the archiving. A step can be invoked more than once — an
+# iteration and its parent both ran this on 2026-10-02 and made two archives —
+# and "archive the PREVIOUS run" is a thing that happens once per run, not once
+# per invocation. The run's own id is what makes the second call a no-op.
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+RUN=${RUN_ID:-}
+if [ -z "$RUN" ] && [ -n "${GC_BEAD_ID:-}${GC_BEAD:-}" ] && command -v gc >/dev/null 2>&1; then
+  RUN=$(gc bd show "${GC_BEAD_ID:-$GC_BEAD}" --json 2>/dev/null | python3 -c '
+import json,sys
+try: b=json.load(sys.stdin)
+except Exception: sys.exit(0)
+b=b[0] if isinstance(b,list) and b else b
+if isinstance(b,dict):
+    print((b.get("metadata") or {}).get("gc.root_bead_id") or b.get("id") or "")
+' 2>/dev/null)
+fi
+
+# Already archived for this run: say so and change nothing.
+if [ -n "$RUN" ] && [ -d "$R/prior" ]; then
+  for m in "$R"/prior/*/MANIFEST.txt; do
+    [ -f "$m" ] || continue
+    if grep -q "^archived_by_run: $RUN\$" "$m" 2>/dev/null; then
+      echo "already archived for run $RUN to $(dirname "$m") — nothing to do."
+      exit 0
+    fi
+  done
+fi
+
 # Only ever reused by a later step, so only ever dangerous to leave behind.
 DERIVED="design-audit-verdict.json FINDINGS.md"
 # Worth keeping a copy of, but harmless if left.
@@ -62,6 +90,19 @@ if [ -z "${HAVE// /}" ]; then
   exit 0
 fi
 
+if [ -z "$RUN" ] && [ -L "$R/prior/latest" ]; then
+  PREV="$R/prior/$(readlink "$R/prior/latest")"
+  SAME=1
+  for f in $HAVE; do
+    [ -e "$PREV/$f" ] || { SAME=0; break; }
+    diff -r -q "$R/$f" "$PREV/$f" >/dev/null 2>&1 || { SAME=0; break; }
+  done
+  if [ "$SAME" -eq 1 ]; then
+    echo "everything here is already byte-identical to $PREV — nothing to do."
+    exit 0
+  fi
+fi
+
 DEST="$R/prior/$LABEL"
 mkdir -p "$DEST" || { echo "could not create $DEST" >&2; exit 1; }
 
@@ -73,6 +114,7 @@ done
 {
   echo "archived_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "label: $LABEL"
+  [ -n "$RUN" ] && echo "archived_by_run: $RUN"
   echo "from: $R"
   for d in "$DEST"/*.design; do
     [ -e "$d" ] && echo "design_sha256: $(shasum -a 256 "$d" | awk '{print $1}')"

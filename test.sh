@@ -346,6 +346,39 @@ ARTIFACT_ROOT="$AE" "$HERE/checks/prior-archived.sh" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "the gate passes a first run with no archive" || no "the gate refused a legitimate first run"
 rm -rf "$AT" "$AE"
 
+# "Archive the previous run" happens once per RUN, not once per invocation. A
+# step and its iteration both ran this on 2026-10-02 and made two archives.
+AI=$(mktemp -d)
+printf 'd\n' > "$AI/x.design"; printf 'b\n' > "$AI/BRIEF.md"
+printf 'f\n' > "$AI/FINDINGS.md"; printf '{"s":1}\n' > "$AI/design-audit-verdict.json"
+RUN_ID=wk-aaa "$HERE/tooling/archive-run.sh" "$AI" a1 >/dev/null 2>&1
+RUN_ID=wk-aaa "$HERE/tooling/archive-run.sh" "$AI" a2 >/dev/null 2>&1
+N=$(ls -1 "$AI/prior" | grep -v '^latest$' | wc -l | tr -d ' ')
+[ "$N" = "1" ] && ok "a second archive in the same run is a no-op" \
+               || no "one run produced $N archives"
+# A later run with new content must still archive.
+printf 'd2\n' > "$AI/x.design"
+RUN_ID=wk-bbb "$HERE/tooling/archive-run.sh" "$AI" a3 >/dev/null 2>&1
+N=$(ls -1 "$AI/prior" | grep -v '^latest$' | wc -l | tr -d ' ')
+[ "$N" = "2" ] && ok "a different run still archives" || no "a new run did not archive; got $N"
+rm -rf "$AI"
+
+# Run by hand there is no run id, so identity falls back to content — which is
+# what actually catches the observed double archive, since the second call sees
+# the same bytes it just copied.
+AJ=$(mktemp -d)
+printf 'd\n' > "$AJ/x.design"; printf 'f\n' > "$AJ/FINDINGS.md"
+"$HERE/tooling/archive-run.sh" "$AJ" b1 >/dev/null 2>&1
+"$HERE/tooling/archive-run.sh" "$AJ" b2 >/dev/null 2>&1
+N=$(ls -1 "$AJ/prior" | grep -v '^latest$' | wc -l | tr -d ' ')
+[ "$N" = "1" ] && ok "with no run id, identical content archives once" \
+               || no "unchanged content was archived $N times"
+printf 'changed\n' > "$AJ/x.design"
+"$HERE/tooling/archive-run.sh" "$AJ" b3 >/dev/null 2>&1
+N=$(ls -1 "$AJ/prior" | grep -v '^latest$' | wc -l | tr -d ' ')
+[ "$N" = "2" ] && ok "changed content is archived" || no "a real change was not archived; got $N"
+rm -rf "$AJ"
+
 # A cross-run revision is HANDED the previous findings by path. Archiving must
 # not delete the input the run was started to act on.
 AR=$(mktemp -d)

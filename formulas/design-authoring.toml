@@ -132,7 +132,10 @@ naming the archived design's SHA-256, and only then removes the two artifacts
 that must never survive into a new run: the audit verdict and the findings. It
 removes nothing it has not already copied, and it leaves the inputs alone.
 
-A first run has nothing to archive. That is reported, not refused.
+A first run has nothing to archive. That is reported, not refused. Running it
+twice in one run is also a no-op — archiving the previous run happens once per
+run, not once per invocation — so a retry of this step costs nothing and makes
+no second archive.
 
 This does not touch the revision loop inside this run. That loop runs later and
 entirely on this run's own verdict, which is rewritten on every attempt; the
