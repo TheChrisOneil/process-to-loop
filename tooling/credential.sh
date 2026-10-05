@@ -26,9 +26,21 @@ load_credential() {
     return 1
   fi
 
+  # The account name. The controller's environment has no USER — it is set by
+  # login shells, not by launchd — and this runs under set -u, so "$USER" was a
+  # fatal unbound-variable error before the Keychain was ever consulted. It
+  # failed in 399ms and reported a locked keychain, which was not the problem.
+  local acct
+  acct=${USER:-${LOGNAME:-$(id -un 2>/dev/null)}}
+  if [ -z "$acct" ]; then
+    echo "REFUSED: cannot determine the account name for a Keychain lookup." >&2
+    echo "         USER, LOGNAME and id -un are all empty." >&2
+    return 1
+  fi
+
   local err
   err=$(mktemp)
-  if val=$(security find-generic-password -a "$USER" -s "$svc" -w 2>"$err"); then
+  if val=$(security find-generic-password -a "$acct" -s "$svc" -w 2>"$err"); then
     if [ -n "$val" ]; then
       export "$var=$val"
       rm -f "$err"
@@ -44,7 +56,7 @@ load_credential() {
   if grep -q 'could not be found' "$err" 2>/dev/null; then
     echo "REFUSED: no credential. $var is unset and Keychain has no item \"$svc\"." >&2
     echo "         Store one — the key is typed into the prompt, not the command line:" >&2
-    echo "             security add-generic-password -a \"\$USER\" -s $svc -w" >&2
+    echo "             security add-generic-password -a \"$acct\" -s $svc -w" >&2
   else
     echo "REFUSED: Keychain refused to answer for \"$svc\":" >&2
     sed 's/^/         /' "$err" >&2

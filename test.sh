@@ -669,6 +669,27 @@ case "$CRED_OUT" in
   *) no "the store command would put the key on the command line" ;;
 esac
 
+# The controller's environment has no USER — it is set by login shells, not by
+# launchd. Under set -u a bare "$USER" is fatal, and the audit died in 399ms
+# reporting a locked keychain it had never reached.
+NOUSER=$( env -u USER -u LOGNAME bash -c '
+  set -u
+  . "'"$HERE"'/tooling/credential.sh"
+  load_credential PTL_NOUSER_KEY ptl-nonexistent-service-'"$$"' ' 2>&1 )
+case "$NOUSER" in
+  *"unbound variable"*) no "credential.sh dies on an unset USER, as under the controller" ;;
+  *) ok "credential.sh survives an environment with no USER" ;;
+esac
+# And no script may reference a bare $USER, which is the same trap elsewhere.
+# Strip comments first: a mention in a comment is not a dependency, and the same
+# blunt grep once passed a commented-out #ledger call as a real one.
+BAREUSER=""
+for f in "$HERE"/tooling/*.sh "$HERE"/checks/*.sh; do
+  sed 's/#.*//' "$f" 2>/dev/null | grep -q '"\$USER"' && BAREUSER="$BAREUSER $(basename "$f")"
+done
+[ -z "$BAREUSER" ] && ok "no script depends on \$USER being set" \
+                   || no "these still use a bare \$USER: $BAREUSER"
+
 echo
 echo "AUDIT FRESHNESS"
 FX=$(mktemp -d)
