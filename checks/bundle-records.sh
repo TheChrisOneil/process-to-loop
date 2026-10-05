@@ -14,7 +14,7 @@ HERE=$(cd "$(dirname "$0")/.." && pwd)
 . "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 B=${BUNDLE_PATH:-}; D=${DESIGN_PATH:-}
 [ -n "$B" ] && [ -n "$D" ] || { echo "BUNDLE_PATH and DESIGN_PATH are not set — the compile step did not record where it wrote." >&2; exit 75; }
-[ -d "$B" ] || { echo "no bundle at $B." >&2; exit 75; }
+[ -d "$B" ] || { echo "no bundle at $B — the compile step emits to ARTIFACT_ROOT/bundle, bound at the start of the run." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D." >&2; exit 75; }
 
 fail=0

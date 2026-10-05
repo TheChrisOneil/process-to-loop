@@ -143,7 +143,8 @@ So bind them here, once, while every value is already known:
       AUTHOR_MODEL={{author_model}} \
       AUDIT_MODEL={{audit_model}} \
       TOOLING_ROOT={{tooling_root}} \
-      CATALOG={{catalog_path}}
+      CATALOG={{catalog_path}} \
+      BUNDLE_PATH={{artifact_root}}/bundle
 
 It writes one wrapper per check into {{artifact_root}}/checks/. Each exports its
 values literally and execs the real check in {{checks_root}}. Every later step in
@@ -530,7 +531,10 @@ Deterministic work only.
    anything else.
 2. Compile it to a Gas City formula and its check scripts.
 3. Compile it to a standalone bundle and its launchd job.
-4. Record BUNDLE_PATH and DESIGN_PATH in the workflow output, because the
+4. Emit the bundle to **{{artifact_root}}/bundle** and nowhere else. That path
+   is bound into the records gate at the start of the run, so a bundle written
+   anywhere else is a bundle no gate can find.
+5. Record BUNDLE_PATH and DESIGN_PATH in the workflow output, because the
    records gate reads them.
 5. Report what each refused, if anything. A gate with no check installed is
    expected at this stage and is not a failure — it is the next workflow's work.

@@ -504,6 +504,13 @@ printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"
   DESIGN_PATH="$BT/run/x.design" ARTIFACT_ROOT="$BT/run" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "a run binds its checks" || no "bind-checks failed on a valid run"
 
+# BUNDLE_PATH is produced by compile, not declared as a var, so it could not be
+# bound and the records gate exited 75 with "BUNDLE_PATH is not set" on the first
+# run that ever reached it. The path is deterministic; bind it.
+grep -q 'BUNDLE_PATH={{artifact_root}}/bundle' "$HERE/formulas/design-authoring.toml" \
+  && ok "the formula binds a deterministic bundle path" \
+  || no "BUNDLE_PATH is not bound, so the records gate cannot find the bundle"
+
 # The property the whole change exists for: no gc, no env, no cwd.
 OUT=$(cd / && env -i PATH=/usr/bin:/bin bash "$BT/run/checks/design-validate.sh" 2>&1)
 case "$OUT" in
