@@ -15,6 +15,7 @@ help:
 	@echo "make city-preflight CITY=<dir>                   is this city safe to build formulas against?"
 	@echo "make pack-diff A=<pack-dir> B=<pack-dir>         what actually changed between two pack versions"
 	@echo "make formula-preflight F=<formula> RIG=<dir> V='k=v ...'   does everything it names resolve?"
+	@echo "make run-status Q=<artifact_root> [F=--follow]    where is this run right now?"
 	@echo "make run-report T=<transcript.jsonl>              where a run spent its time and tokens"
 	@echo "make rules                                       both rule sets"
 	@echo "make probe                                       what gc itself enforces"
@@ -73,6 +74,10 @@ properties:
 formula-preflight:
 	@[ -n "$(F)" ] && [ -n "$(RIG)" ] || { echo "make formula-preflight F=<formula.toml> RIG=<rig-dir> V='k=v ...'"; exit 64; }
 	@tooling/formula-preflight.sh "$(F)" "$(RIG)" $(V)
+
+run-status:
+	@[ -n "$(Q)" ] || { echo "make run-status Q=<artifact_root> [F=--follow]"; exit 64; }
+	@cd "$(Q)" >/dev/null 2>&1 || true; tooling/run-status.sh "$(Q)" $(F)
 
 run-report:
 	@[ -n "$(T)" ] || { echo "make run-report T=<transcript.jsonl>   (or T=--latest D=<dir>)"; exit 64; }
