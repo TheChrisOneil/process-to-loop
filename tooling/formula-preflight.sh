@@ -76,8 +76,12 @@ raw = set(re.findall(r'(/(?:[\w.\-]+/)+[\w.\-]+)', resolved))
 # Prose puts a path at the end of a sentence, so strip sentence punctuation —
 # and the trailing slash a directory is written with, or ".../prior/." becomes
 # ".../prior/" and never matches anything on disk.
+bound_dir = os.path.join(art, "checks") + os.sep if art else None
 for p in sorted({x.rstrip('.,;:').rstrip('/') for x in raw if x.rstrip('.,;:').rstrip('/')}):
     if p.startswith(("/bin", "/usr", "/dev", "/tmp", "/etc", "/var")): continue
+    # Written by the bind step at the start of the run; the check-path section
+    # above already verified that what will be bound exists.
+    if bound_dir and p.startswith(bound_dir): continue
     if os.path.exists(p):
         notes.append(f"path ok: {p}")
     elif os.path.isdir(os.path.dirname(p)):
