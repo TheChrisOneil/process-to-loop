@@ -318,12 +318,20 @@ echo "THE VALIDATOR TERMINATES"
 # malformed input it exists to reject, until the controller's 15m timeout.
 VT=$(mktemp -d)
 printf '@meta\nuse_case: x\napprover: A. Person\n' > "$VT/nokpis.design"
+# Job control, so the child gets its own process group and the kill below
+# reaches the awk it spawns. `kill -9 $PID` on a subshell leaves the grandchild
+# orphaned and still allocating: on 2026-10-05 that leaked three awk processes
+# holding 40-46 GB each, because the loop this test guards auto-vivifies an
+# array element per iteration.
+set -m
 ( "$HERE/tooling/validate.sh" "$VT/nokpis.design" >/dev/null 2>&1; echo $? > "$VT/rc" ) &
 VP=$!
+set +m
 VN=0
 while kill -0 $VP 2>/dev/null && [ $VN -lt 15 ]; do sleep 1; VN=$((VN+1)); done
 if kill -0 $VP 2>/dev/null; then
-  kill -9 $VP 2>/dev/null
+  kill -9 -$VP 2>/dev/null || kill -9 $VP 2>/dev/null
+  pkill -9 -f 'lib/validate.awk' 2>/dev/null
   no "the validator hangs on a design with no @kpis section"
 else
   ok "the validator terminates on a design with no @kpis section"

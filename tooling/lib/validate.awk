@@ -165,7 +165,7 @@ END {
   else rec("ERROR","V18","no integrity check on the evidence","say how tampering is detected")
 
   # V19 / V20 kpis
-  for (i=1;i<=k;i++) { kk=tolower(KKIND[i]); KIND[kk]++
+  for (i=1;i<=k+0;i++) { kk=tolower(KKIND[i]); KIND[kk]++
                        if (tolower(KBASE[i])=="unmeasured") unmeas++ }
   if (k>=3 && KIND["cost"]>0 && KIND["quality"]>0) ok("V19",k " KPIs, including cost and quality")
   else rec("ERROR","V19","need at least 3 KPIs including one cost and one quality; have " k,"cost funds it, quality stops it")
@@ -179,7 +179,7 @@ END {
 
   # V24 every kind is one of the eight
   badkind=""
-  for (i=1;i<=k;i++) { kk=tolower(KKIND[i])
+  for (i=1;i<=k+0;i++) { kk=tolower(KKIND[i])
     if (kk !~ /^(cost|quality|throughput|control|tvr-velocity|tvr-throughput|tvr-speed|tvr-margin)$/)
       badkind=badkind " \"" KKIND[i] "\"" }
   if (badkind=="") { if (k>0) ok("V24","every KPI kind is a known kind") }
