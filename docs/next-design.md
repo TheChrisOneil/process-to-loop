@@ -93,6 +93,43 @@ interview is the **interface**.
 This extends the classification that already exists on findings — `by_revision` vs
 `needs_a_person` — rather than inventing a parallel one.
 
+### Three answer types
+
+A question must accept more than an answer, or the run stalls on the first thing nobody knows.
+
+```
+stated     by Buzz, process owner, 2026-10-05: accrual basis
+unanswered owner Finance, asked 2026-10-05
+delegated  by Buzz, process owner, 2026-10-05 — assumed: accrual basis
+```
+
+**Delegation is not what happens today.** Today the model assumes silently and declares it among
+43 other assumptions nobody reads. Delegation produces the same value with different provenance:
+the owner was asked and chose to let the system decide. That is defensible in an audit. "The
+system decided and mentioned it afterwards" is not.
+
+**A delegated structural choice becomes an automatic finding.** Delegate the SLA days and that is
+the end of it. Delegate the unit of work — the highest-leverage decision in the system — and the
+choice lands in `FINDINGS.md` as `needs_a_person`, so the owner sees what was chosen before
+signing.
+
+Delegation therefore **defers** a decision to the acceptance gate rather than removing it, which
+makes "you pick it" always safe to say: the chance to disagree moves to the point where there is
+a whole design to look at, instead of a question answered cold.
+
+**Mark them distinctly at signing.** The acceptance step already puts assumptions in front of the
+approver. A delegated assumption must be visually distinct from an inferred one — *"you asked me
+to choose this"* is a different claim from *"I inferred this"*.
+
+**Count them.** The failure mode is that delegation becomes the fast path and the design arrives
+with 44 assumptions and extra ceremony. The ratio of stated to delegated answers is measurable
+per use case, and a use case with more delegated than stated answers says the interview is not
+working or the person was not really available. Worth reporting at the acceptance gate, and
+possibly worth a KPI.
+
+The audit should treat delegated assumptions as higher risk. They are the ones where nobody with
+domain knowledge confirmed anything.
+
 ### Consequence: the pipeline reorders
 
 ```
@@ -129,8 +166,9 @@ Conversation produces `use-case.txt`. Four rules:
 1. **The mayor transcribes; it does not author.** If it can fill in an answer it did not get, the
    result is indistinguishable from today's model-authored assumptions. Same principle as
    evidence written by something that did not make the claim.
-2. **"I don't know" is a legal answer**, recorded as `unanswered, owner: Finance, asked
-   2026-10-05`. Strictly better than an assumption: it names who owes the answer.
+2. **"I don't know" and "you pick it" are both legal answers** — see *Three answer types* above.
+   An unanswered question names who owes the answer; a delegated one records that the owner chose
+   to let the system decide, and surfaces a structural choice as a finding before signing.
 3. **Provenance without transcripts.** A session id and timestamp in the header. A transcript
    invites someone to treat it as authoritative over the file.
 4. **A change is a new version.** `intake.use_case_sha256` already exists, so a changed use case
