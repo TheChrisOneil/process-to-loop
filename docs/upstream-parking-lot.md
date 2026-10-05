@@ -237,3 +237,32 @@ Look at this file when any of these happens, and at least monthly:
 
 For each parked item ask three questions. **Is it still true?** **Has upstream solved it?** **Do
 we have more than one city's worth of evidence?** Two yeses and a no is still parked.
+
+## PARKED-4 — no supported way to set a step's thinking effort
+
+gc starts every claude session with `--effort max`. For a formula whose steps
+are mostly "run this script and report the exit code", that is the wrong
+default, and for the one step with latitude it is a choice the formula should be
+able to make. Observed 2026-10-02: an authoring step for a one-page business
+process took 26:19, of which **1210s was thinking**.
+
+Three routes tried on gc 1.4.2, none of which changed the session command:
+
+- **`opt_effort` in step metadata.** The key exists in the binary, beside
+  `opt_model` which the same metadata line sets successfully. Setting
+  `opt_effort = "low"` on nine steps and `"high"` on one landed correctly on
+  every bead and left `--effort max` on the session that claimed them.
+- **`env` on `[providers.claude]` in city.toml.** Accepted by the config
+  (`gc status` still reads the city), no effect. `--effort max` is passed as an
+  explicit flag, which would override `CLAUDE_CODE_EFFORT_LEVEL` anyway.
+- **Restarting the pool worker** so a fresh session picks up either of the
+  above. The replacement session also started at max.
+
+`CLAUDE_CODE_EFFORT_LEVEL` appears in the binary, so the plumbing exists
+somewhere; what is missing is a documented, per-agent or per-step way to reach
+it. A machine-wide env var is not an answer here: the supervisor is shared
+across cities, so setting it would reach a production city too.
+
+**What would help:** `opt_effort` honored at session creation the way `opt_model`
+is, or an `effort` key on an agent definition.
+
