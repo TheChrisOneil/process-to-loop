@@ -797,6 +797,17 @@ done
 [ -z "$BAREUSER" ] && ok "no script depends on \$USER being set" \
                    || no "these still use a bare \$USER: $BAREUSER"
 
+# The agent runs with HOME set to the city directory. A keychain path built from
+# $HOME therefore pointed at .../cities/ptl-city/Library/Keychains and found
+# nothing, while the key sat in the real home the whole time. Three runs died on
+# this, each reporting "no such item".
+WRONGHOME=$( env -u GEMINI_API_KEY HOME=/tmp bash -c '
+  . "'"$HERE"'/tooling/credential.sh"
+  load_credential GEMINI_API_KEY ptl-nonexistent-service-'"$$"' 2>&1 | grep -o "/tmp/Library" ' )
+[ -z "$WRONGHOME" ] \
+  && ok "the keychain path does not come from \$HOME" \
+  || no "credential.sh builds its keychain path from HOME, which the agent overrides"
+
 echo
 echo "AUDIT FRESHNESS"
 FX=$(mktemp -d)

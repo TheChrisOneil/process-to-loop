@@ -42,9 +42,16 @@ load_credential() {
   # search list: the controller-run check reported "no such item" for a key this
   # shell finds immediately. Name the login keychain explicitly as a fallback
   # rather than trusting the search list to be inherited.
-  local err kc
+  # NOT $HOME. The agent runs with HOME set to the city directory, so the
+  # keychain path resolved under .../cities/ptl-city/Library/Keychains and the
+  # search list — which is derived from HOME — found nothing. Resolve the
+  # account's real home instead.
+  local err kc home
   err=$(mktemp)
-  kc="$HOME/Library/Keychains/login.keychain-db"
+  home=$(eval echo "~$acct" 2>/dev/null)
+  case "$home" in ~*|"") home=$(dscl . -read "/Users/$acct" NFSHomeDirectory 2>/dev/null | awk '{print $2}') ;; esac
+  [ -n "$home" ] || home=$HOME
+  kc="$home/Library/Keychains/login.keychain-db"
   if val=$(security find-generic-password -a "$acct" -s "$svc" -w 2>"$err") \
      || { [ -f "$kc" ] && val=$(security find-generic-password -a "$acct" -s "$svc" -w "$kc" 2>"$err"); }; then
     if [ -n "$val" ]; then
