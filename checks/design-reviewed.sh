@@ -53,7 +53,7 @@ fi
 
 # 3. classify what the audit found
 python3 - "$V" <<'PY'
-import json, sys
+import json, os, sys
 d = json.load(open(sys.argv[1]))
 defects = d.get("defects") or []
 if not defects:
@@ -70,6 +70,31 @@ if unknown:
 
 fixable = [x for x in defects if x["fixable"] == "by_revision"]
 human   = [x for x in defects if x["fixable"] == "needs_a_person"]
+
+# Stop retrying when a revision is not reducing the fixable count. On
+# appointment-chase the loop went 9 findings to 7 and then spent its last
+# attempt on one fixable item, and the whole run died holding six findings a
+# person needed to see. A revision that does not make progress should surface
+# what it has, not consume another attempt and then fail.
+prev_path = os.environ.get("AUDIT_VERDICT", "") + ".fixable"
+prev = None
+try:
+    with open(prev_path) as fh: prev = int(fh.read().strip())
+except Exception:
+    pass
+try:
+    with open(prev_path, "w") as fh: fh.write(str(len(fixable)))
+except Exception:
+    pass
+
+if fixable and prev is not None and len(fixable) >= prev:
+    print(f"no progress: {len(fixable)} finding(s) the author could fix, "
+          f"and the last revision left {prev}. Surfacing instead of revising again.",
+          file=sys.stderr)
+    for x in fixable[:6]:
+        print(f"           [{x.get('severity','?')}] {x.get('what','')[:150]}", file=sys.stderr)
+    print(f"         {len(human)} finding(s) need a person regardless.", file=sys.stderr)
+    sys.exit(0)
 
 if fixable:
     print(f"NOT YET: {len(fixable)} finding(s) the author can fix, {len(human)} for a person.",

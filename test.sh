@@ -144,6 +144,19 @@ DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-revie
 mkv '{"defects":[{"severity":"major","fixable":"by_revision","what":"w","why":"y"}]}'
 DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
 [ $? -eq 1 ] && ok "a fixable finding re-runs the author" || no "a fixable finding did not re-run authoring"
+# A revision that does not reduce the fixable count should surface what it has,
+# not spend another attempt. appointment-chase went 9 findings to 7, then died
+# on its last attempt holding one fixable item and six a person needed to see.
+rm -f "$LT/v.json.fixable"
+mkv '{"defects":[{"severity":"major","fixable":"by_revision","what":"w","why":"y"},{"severity":"major","fixable":"needs_a_person","what":"w","why":"y"}]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a first fixable finding sends it back to the author" || no "the first fixable finding did not re-run authoring"
+mkv '{"defects":[{"severity":"major","fixable":"by_revision","what":"w","why":"y"},{"severity":"major","fixable":"needs_a_person","what":"w","why":"y"}]}'
+DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a revision that reduced nothing surfaces instead of retrying" \
+             || no "the loop kept retrying while making no progress"
+rm -f "$LT/v.json.fixable"
+
 mkv '{"defects":[{"severity":"major","fixable":"needs_a_person","what":"w","why":"y"}]}'
 DESIGN_PATH="$LT/d.design" AUDIT_VERDICT="$LT/v.json" "$HERE/checks/design-reviewed.sh" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "a finding only a person can settle is surfaced, not retried" || no "a human-only finding was retried"

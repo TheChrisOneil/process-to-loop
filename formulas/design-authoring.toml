@@ -307,7 +307,7 @@ Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason.
 metadata = { "gc.run_target" = "gc.run-operator", "gc.provider" = "{{author_provider}}", "opt_model" = "{{author_model}}" }
 
 [steps.check]
-max_attempts = 3
+max_attempts = 5
 
 [steps.check.check]
 mode = "exec"
