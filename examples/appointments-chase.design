@@ -1,0 +1,60 @@
+# A design that names its sources and tools. Synthetic: the clinicians, patients
+# and volumes are invented, and the tools it names are local stand-ins.
+
+@meta
+use_case: For each of about 40 appointments a day, decide whether the patient needs a pre-visit chase and draft the wording for a clinician to approve
+author: process-to-loop, as a worked example
+date: 2026-10-05
+approver: A. Clinician, attending
+exit_criterion: Shut down if 1 or more flagged submissions are closed without a clinician reading them, or if the drafted wording is found to contain 1 or more patient identifiers, in 2 consecutive weeks
+
+@assumptions
+- Synthetic. No real clinician, patient or appointment in this design is from a real practice.
+- The intake submission carries a flag the triage rule needs; nothing else from the form is required to decide.
+- A clinician approves every drafted note before it reaches a patient, so the model never sends anything.
+
+@unit
+definition: one appointment on the day's list
+kind: rule
+fanout: 40
+fanout_reason: about 40 appointments a day on one clinician's list
+thinking_justification: two, and they are different jobs. Step 4 drafts wording from redacted fields and decides nothing. Step 6 is the judgment: a clinician decides whether this patient is chased at all, which no rule in this process settles.
+
+@steps
+1 | pull appointments | mechanical | code | read the day's appointments from the appointment service | batch
+2 | pull submissions | mechanical | code | read today's intake submissions | batch
+3 | redact | mechanical | code | keep the flag and the form name, drop patient_ref and every other identifier | unit
+4 | draft chase wording | thinking | model | from the redacted fields alone, draft what the chase note should say | unit
+5 | scan the draft | test | code | check the drafted wording against the identifier list | unit
+6 | clinician approves | thinking | human | the clinician approves the wording, edits it, or declines the chase | unit
+7 | record the decision | test | code | confirm an approval row exists for this appointment before anything is sent | unit
+
+@gates
+4 | the submission is flagged and 0 clinicians have read it | send it to the on-call clinician before any wording is drafted
+5 | the drafted wording contains 1 or more patient identifiers | return it to step 3 and redact again
+7 | more than 0 chases are sent without an approval recorded | stop the run and tell the attending
+
+@sources
+appointments | eb-appointment-service | appointment_id, patient_ref, status | -
+intake-forms | eb-form-builder-service | submission_id, flagged | never reaches a model
+
+@tools
+eb-appointment-service | 1 | read the day's appointments
+eb-form-builder-service | 2 | read today's intake submissions
+
+@evidence
+writer_step: 3
+integrity: sha256 over the redacted payload and the drafted wording
+proof: the redacted payload that was handed to step 4, beside what came back
+
+@record
+transitions: every step change for every appointment, appended
+units: one row per appointment with its outcome and the approving clinician
+retention: 7 years
+acceptance: the clinician who approved the wording, with a timestamp
+
+@kpis
+cost per appointment | cost | unmeasured
+clinician edits per draft | quality | unmeasured
+appointments handled per day | throughput | 40
+clinician minutes returned | tvr-speed | unmeasured

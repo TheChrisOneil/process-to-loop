@@ -46,6 +46,30 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V24  every KPI kind is one of the eight: cost, quality, throughput, control or a tvr-* kind
 # V25  every step typed gate is named by a gate
 # V26  the design declares its record layer: transitions, units, retention, acceptance
+# V27  every source and tool it names is in the catalog
+# V28  it takes only fields the catalogued tool actually provides — narrow, never invent
+# V29  every tool is used by a step that exists
+# V30  every source constraint is structural (never/only) or evaluable
+# V31  no tool carrying PHI is used by a step whose actor is a model
 # END RULES
 
-awk -v mode="$MODE" -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"
+# The catalog, flattened so validate.awk can read it without a second parser.
+# A design that names sources and cannot be checked against a catalog is a design
+# whose data contract nobody verified, so this is passed deliberately or the
+# source rules refuse.
+HERE=$(cd "$(dirname "$0")" && pwd)
+CATALOG=${CATALOG:-$HERE/../catalog/eb-tools.catalog}
+CATFILE=""
+if [ -f "$CATALOG" ]; then
+  CATFILE=$(mktemp)
+  # A quoted heredoc, not printf: printf turns the \n into a real newline
+  # inside the awk string literal and the query file stops parsing.
+  cat > "$CATFILE.q" <<'CATQ'
+END{ for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".data_class"], T[TID[i] ".provides"] }
+CATQ
+  awk -f "$HERE/lib/catalog.awk" -f "$CATFILE.q" "$CATALOG" > "$CATFILE" 2>/dev/null
+  rm -f "$CATFILE.q"
+fi
+trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"' EXIT
+
+awk -v mode="$MODE" -v CATFILE="$CATFILE" -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"

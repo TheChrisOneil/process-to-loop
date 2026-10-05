@@ -3,6 +3,9 @@
 #
 # Populates: V["section.key"] · ASSUM[1..a] · SID/SNAME/STYPE/SACT/SDESC[1..s]
 #            GAFT/GCOND/GREF[1..g] · KNAME/KKIND/KBASE[1..k]
+#            SRCID/SRCFROM/SRCPROV/SRCCON[1..n_src] · TLID/TLBY/TLPURP[1..n_tool]
+# Counter names are spelled out — n_src, n_tool — because a short one collides.
+# k was reused once for a keyed-section key and hung the validator forever.
 /^[[:space:]]*#/ { next }
 /^[[:space:]]*$/ { next }
 /^@/ { sec=substr($1,2); next }
@@ -19,6 +22,12 @@
       V[sec"."ky]=v; next
   }
   if (sec=="assumptions") { if (substr(line,1,1)=="-") { a++; ASSUM[a]=substr(line,3) } next }
+  if (sec=="sources" || sec=="tools") {
+      cnt=split(line,F," *\\| *")
+      if (sec=="sources") { n_src++; SRCID[n_src]=F[1]; SRCFROM[n_src]=F[2]; SRCPROV[n_src]=F[3]; SRCCON[n_src]=F[4]; SRCF[n_src]=cnt }
+      if (sec=="tools")   { n_tool++; TLID[n_tool]=F[1]; TLBY[n_tool]=F[2]; TLPURP[n_tool]=F[3]; TLF[n_tool]=cnt }
+      next
+  }
   if (sec=="steps" || sec=="gates" || sec=="kpis") {
       cnt=split(line,F," *\\| *")
       if (sec=="steps") { s++; SID[s]=F[1]; SNAME[s]=F[2]; STYPE[s]=F[3]; SACT[s]=F[4]; SDESC[s]=F[5]; SSCOPE[s]=(cnt>=6 && F[6]!="" ? tolower(F[6]) : "unit"); SF[s]=cnt }

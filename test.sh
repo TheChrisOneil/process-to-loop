@@ -358,6 +358,56 @@ grep -q 'iteration' "$HERE/tooling/run-status.sh" \
   || no "run-status would show a step as both done and failed"
 
 echo
+echo "THE DATA CONTRACT (V27-V31)"
+DC=$(mktemp -d); DESIGN_OK="$HERE/examples/appointments-chase.design"
+dcheck() { # dcheck <rule> <design> <want FAIL|PASS>
+  r=$("$HERE/tooling/validate.sh" "$2" 2>&1 | grep -E "  $1  " | head -1)
+  case "$r" in
+    *FAIL*) got=FAIL ;; *PASS*) got=PASS ;; *) got=ABSENT ;;
+  esac
+  [ "$got" = "$3" ] && ok "$1 $4" || no "$1 $4 — got $got, wanted $3"
+}
+dcheck V27 "$DESIGN_OK" PASS "accepts sources and tools that are catalogued"
+dcheck V28 "$DESIGN_OK" PASS "accepts fields the tool provides"
+dcheck V29 "$DESIGN_OK" PASS "accepts tools used by real steps"
+dcheck V30 "$DESIGN_OK" PASS "accepts a structural constraint"
+dcheck V31 "$DESIGN_OK" PASS "accepts PHI that never reaches a model"
+
+python3 - "$DESIGN_OK" "$DC" <<'PY_DC'
+import sys
+g, d = sys.argv[1], sys.argv[2]
+s = open(g).read()
+open(d+"/uncat.design","w").write(s.replace("eb-appointment-service | 1 |","eb-shadow-service | 1 |"))
+open(d+"/invent.design","w").write(s.replace("appointment_id, patient_ref, status","appointment_id, insurance_plan"))
+open(d+"/nostep.design","w").write(s.replace("eb-form-builder-service | 2 |","eb-form-builder-service | 99 |"))
+open(d+"/vague.design","w").write(s.replace("| never reaches a model","| should be handled carefully"))
+# Point the PHI tool at whichever step has a model actor, by rule rather than by
+# a literal string that goes stale the moment the example is reworded.
+import re
+model_step = re.search(r"^(\d+) \| [^|]*\| *thinking *\| *model", s, re.M).group(1)
+leak = re.sub(r"^(eb-form-builder-service \| )[0-9 ]+(\|)", r"\g<1>" + model_step + r" \2", s, flags=re.M)
+assert leak != s, "leak mutation did not apply"
+open(d+"/leak.design","w").write(leak)
+PY_DC
+
+dcheck V27 "$DC/uncat.design"  FAIL "refuses a tool nobody catalogued"
+dcheck V28 "$DC/invent.design" FAIL "refuses a field the tool does not provide"
+dcheck V29 "$DC/nostep.design" FAIL "refuses a tool used by a step that does not exist"
+dcheck V30 "$DC/vague.design"  FAIL "refuses a constraint that is neither structural nor evaluable"
+dcheck V31 "$DC/leak.design"   FAIL "refuses PHI reaching a model step"
+
+# And the rule that cannot be skipped by omission: no catalog, no verification.
+# Capture first, then match. validate.sh exits non-zero on a failing design and
+# pipefail then masks a grep that succeeded — the trap documented in this repo,
+# walked into again here.
+NOCAT=$(CATALOG=/nonexistent "$HERE/tooling/validate.sh" "$DESIGN_OK" 2>&1 || true)
+case "$NOCAT" in
+  *"no catalog was readable"*) ok "a design naming sources without a readable catalog is refused" ;;
+  *) no "sources went unverified when no catalog was present" ;;
+esac
+rm -rf "$DC"
+
+echo
 echo "THE TOOL CATALOG"
 CT="$HERE/catalog/eb-tools.catalog"
 [ -f "$CT" ] && ok "a tool catalog exists" || no "no catalog at catalog/eb-tools.catalog"

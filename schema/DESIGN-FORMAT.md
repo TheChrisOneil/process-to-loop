@@ -67,6 +67,39 @@ A `unit` step runs once per unit. Every batch step must come before every unit s
 - `refusal` — the message, naming the **next human action**. 25 characters minimum, and it may
   not be a placeholder like "needs review", "escalate" or "cannot proceed"
 
+### `@sources` — table, `id | from | provides | constraint`
+
+Where a unit's fields come from. Without it, every `$VALUE` a gate compares is unexplained.
+
+- **id** — what this process calls it
+- **from** — the id of a tool in the **catalog**. A design does not invent tools.
+- **provides** — the fields this process takes. Must be a subset of what the catalog says the
+  tool provides, and what the tool itself reports from `schema`. A design may **narrow**, never
+  invent.
+- **constraint** — a predicate that must hold, or `-`
+
+A constraint is one of two kinds, and the difference decides what it compiles to:
+
+- **checkable** — verifiable at run time, so it becomes a gate. *"statement format is ofx or csv"*
+- **structural** — a property of the step graph, so it becomes a rule the validator enforces on
+  the design. *"never reaches a model"*
+
+Write a structural constraint beginning `never` or `only`. Anything else is read as checkable,
+and a checkable constraint that cannot be evaluated is a constraint in name only.
+
+### `@tools` — table, `id | used_by | purpose`
+
+Which tools this process uses, and in which steps.
+
+- **id** — a catalogued tool id
+- **used_by** — step ids, space separated
+- **purpose** — one line
+
+A design **inherits** the catalog's permissions and may only narrow them. It cannot grant a tool
+a data class the catalog withheld. The rule that matters: a tool carrying `data_class: phi`
+cannot be `used_by` a step whose actor is `model`, because the catalog says that data may not
+leave the local boundary and a model call does.
+
 ### `@evidence` — keyed
 
 | Key | Meaning |

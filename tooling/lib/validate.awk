@@ -9,6 +9,20 @@ function checkable(c,   s) { s=tolower(c)
           s ~ /more than|less than|over |under |outside|not in/ ||
           s ~ /differs|mismatch|does not match|is missing|is absent|is empty|is not |fails|failed/) }
 
+BEGIN {
+  # The catalog, as toolid -> data_class and provides. Read once; every source
+  # rule below leans on it, and a design naming a tool nobody catalogued is a
+  # design pointing at something the organization has not sanctioned.
+  CATN = 0
+  if (CATFILE != "") {
+    while ((getline cl < CATFILE) > 0) {
+      n = split(cl, cf, "\t")
+      if (n >= 1 && cf[1] != "") { CATN++; CTOOL[cf[1]] = 1; CCLASS[cf[1]] = cf[2]; CPROV[cf[1]] = cf[3] }
+    }
+    close(CATFILE)
+  }
+}
+
 END {
   # V1 sections
   missing=""
@@ -184,6 +198,82 @@ END {
       badkind=badkind " \"" KKIND[i] "\"" }
   if (badkind=="") { if (k>0) ok("V24","every KPI kind is a known kind") }
   else rec("ERROR","V24","unknown KPI kind(s):" badkind,"use cost, quality, throughput, control, tvr-velocity, tvr-throughput, tvr-speed or tvr-margin")
+
+  # ---- V27..V31 the data contract ------------------------------------------
+  # A design that names a tool nobody catalogued points at something the
+  # organization has not sanctioned. A design that cannot be checked against a
+  # catalog has a data contract nobody verified.
+  if (n_src > 0 || n_tool > 0) {
+    if (CATN == 0)
+      rec("ERROR","V27","the design names sources or tools and no catalog was readable","pass CATALOG=<file>; an unverified data contract is not a data contract")
+    else {
+      bad=""
+      for (i=1;i<=n_src;i++) if (!(SRCFROM[i] in CTOOL)) bad = bad " " SRCID[i] "->" SRCFROM[i]
+      for (i=1;i<=n_tool;i++) if (!(TLID[i] in CTOOL)) bad = bad " " TLID[i]
+      if (bad=="") ok("V27", n_src " source(s) and " n_tool " tool(s), all catalogued")
+      else rec("ERROR","V27","not in the catalog:" bad,"add it to the catalog with a rationale, or use a tool that is there")
+
+      # V28 narrowing only. A design may take fewer fields than a tool provides,
+      # never more: a field the tool does not return will not exist at run time.
+      inv=""
+      for (i=1;i<=n_src;i++) {
+        if (!(SRCFROM[i] in CTOOL)) continue
+        np=split(SRCPROV[i], PF, / *, */)
+        for (j=1;j<=np;j++) {
+          f=PF[j]; gsub(/^ +| +$/,"",f)
+          if (f=="" || f=="-") continue
+          if (index("," CPROV[SRCFROM[i]] ",", f)==0 && CPROV[SRCFROM[i]] !~ ("(^|, )" f "(,|$)"))
+            inv = inv " " SRCID[i] "." f
+        }
+      }
+      if (inv=="") { if (n_src>0) ok("V28","every field taken is one the tool provides") }
+      else rec("ERROR","V28","fields the tool does not provide:" inv,"a design may narrow what a tool returns, never invent it")
+
+      # V29 a tool is used by steps that exist.
+      nos=""
+      for (i=1;i<=n_tool;i++) {
+        ns=split(TLBY[i], SB, / +/)
+        for (j=1;j<=ns;j++) {
+          sid=SB[j]; gsub(/^ +| +$/,"",sid)
+          if (sid=="" || sid=="-") continue
+          found=0
+          for (m=1;m<=s;m++) if (SID[m]==sid) { found=1; break }
+          if (!found) nos = nos " " TLID[i] "@" sid
+        }
+      }
+      if (nos=="") { if (n_tool>0) ok("V29","every tool is used by a step that exists") }
+      else rec("ERROR","V29","tools used by steps that do not exist:" nos,"name a real step id in used_by")
+
+      # V30 a constraint is checkable or structural, and says which by its shape.
+      # A checkable constraint nothing can evaluate is a constraint in name only.
+      vague=""
+      for (i=1;i<=n_src;i++) {
+        c=tolower(SRCCON[i]); gsub(/^ +| +$/,"",c)
+        if (c=="" || c=="-") continue
+        if (c ~ /^(never|only)[ \t]/) continue   # BSD awk has no \b
+        if (c ~ /[0-9]/ || c ~ /(^| )(is|in|equals|matches|one|at|over|under|above|below)( |$)/) continue
+        vague = vague " " SRCID[i]
+      }
+      if (vague=="") { if (n_src>0) ok("V30","every source constraint is structural or evaluable") }
+      else rec("ERROR","V30","constraints that cannot be evaluated or recognised as structural:" vague,"begin a structural constraint with never or only; give a checkable one a comparison")
+
+      # V31 the permission the catalog withheld cannot be granted here. A tool
+      # carrying PHI may not be used by a step whose actor is a model: the
+      # catalog says that data does not leave the boundary, and a model call is
+      # the boundary.
+      leak=""
+      for (i=1;i<=n_tool;i++) {
+        if (CCLASS[TLID[i]] != "phi") continue
+        ns=split(TLBY[i], SB, / +/)
+        for (j=1;j<=ns;j++) {
+          sid=SB[j]; gsub(/^ +| +$/,"",sid)
+          for (m=1;m<=s;m++) if (SID[m]==sid && tolower(SACT[m])=="model") leak = leak " " TLID[i] "@step" sid
+        }
+      }
+      if (leak=="") { if (n_tool>0) ok("V31","no PHI tool is used by a model step") }
+      else rec("ERROR","V31","PHI reaches a model:" leak,"the catalog says this data does not leave the local boundary; redact in a mechanical step and give the model only that output")
+    }
+  }
 
   # ---- output ----
   if (mode=="tsv") {
