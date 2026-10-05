@@ -12,8 +12,35 @@ INT=${3:-30}
 snapshot() {
   printf '\n%s\n' "$(date '+%H:%M:%S')"
   echo "  ── steps ─────────────────────────────────────────"
-  gc bd list --status closed 2>/dev/null | grep '✓' | grep -vE 'Step spec|^Status:|^Priority:' \
-    | sed 's/^.*task /    done   /' | sort -u
+  # A closed bead is not a passed bead. Printing every closed step as "done"
+  # showed two gates that had REFUSED as though they had passed, on 2026-10-05,
+  # which is the failure this whole project exists to catch — in the tool
+  # written to watch for it. Read gc.outcome.
+  gc bd list --status closed --json 2>/dev/null | python3 -c '
+import sys, json
+try: beads = json.load(sys.stdin)
+except Exception: sys.exit(0)
+seen = set()
+for b in beads:
+    t = b.get("title") or ""
+    if t.startswith("Step spec") or not t: continue
+    md = b.get("metadata") or {}
+    # Each step has iteration beads and one logical bead. An iteration may fail
+    # and a later one pass, which is the loop working; the logical bead carries
+    # the outcome that stands. Show only that one, or a step reads as both done
+    # and FAILED at once.
+    ref = md.get("gc.step_ref") or ""
+    if ".iteration." in ref: continue
+    out = md.get("gc.outcome") or ""
+    if   out == "pass": label = "done   "
+    elif out == "fail": label = "FAILED "
+    elif out == "":     label = "closed "
+    else:               label = (out[:6] + " ").ljust(7)
+    key = (label, t)
+    if key in seen: continue
+    seen.add(key)
+    print("    %s%s" % (label, t))
+' 
   gc bd list 2>/dev/null | grep '◐' | grep -vE 'design-authoring|^Status:|^Priority:' \
     | sed 's/^.*P2 /    NOW    /'
   gc bd ready 2>/dev/null | grep '○' | grep -vE 'Step spec|^Status:|^Priority:' \

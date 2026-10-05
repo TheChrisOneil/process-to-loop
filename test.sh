@@ -342,6 +342,22 @@ fi
 rm -rf "$VT"
 
 echo
+echo "STATUS REPORTS OUTCOMES"
+# run-status printed every closed bead as "done". On 2026-10-05 that showed two
+# gates which had REFUSED as though they had passed, and the run read as healthy
+# while it had failed. A status tool that cannot distinguish pass from fail is
+# the defect this repo exists to catch, in the tool written to watch for it.
+grep -q 'gc.outcome' "$HERE/tooling/run-status.sh" \
+  && ok "the status tool reads gc.outcome" \
+  || no "run-status still reports closed beads without their outcome"
+grep -q 'FAILED' "$HERE/tooling/run-status.sh" \
+  && ok "it has a distinct label for a failed step" \
+  || no "run-status has no way to render a failure"
+grep -q 'iteration' "$HERE/tooling/run-status.sh" \
+  && ok "it reports the logical bead, not every iteration" \
+  || no "run-status would show a step as both done and failed"
+
+echo
 echo "COMPILE-TIME BINDING"
 BT=$(mktemp -d); mkdir -p "$BT/run"
 printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"
