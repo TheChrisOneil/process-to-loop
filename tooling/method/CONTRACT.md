@@ -77,6 +77,16 @@ and `0.01` steps by `0.01`. Write the number the way you mean it to be compared.
 Rule V15 exists to serve this: every condition must carry a number, a comparison, or the word
 `never`, so there is always a boundary to generate.
 
+## Sources and tools
+
+`@sources` is `id | from | provides | constraint`; `@tools` is `id | used_by | purpose`. Both are
+parsed exactly like `@steps` — split on ` | `, one record per line.
+
+`from` and `id` must name catalog entries. The emitter resolves each tool to an absolute path at
+build time and writes it into the step, so the bundle calls the real thing and needs no catalog at
+run time. Each read appends a ledger line naming the source, the tool and the data class; the
+records gate runs a tick and refuses if a declared source left no such line.
+
 ## Check your work without reading the implementations
 
 Run these against your draft in a scratchpad. This is what the tooling does to you downstream,

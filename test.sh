@@ -753,7 +753,8 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
 "$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
   use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
   method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
-  checks_root="$HERE/checks" artifact_root="$HERE" approver=a >/dev/null 2>&1
+  checks_root="$HERE/checks" catalog_path="$HERE/catalog/eb-tools.catalog" \
+  artifact_root="$HERE" approver=a >/dev/null 2>&1
 [ $? -eq 0 ] && ok "preflight passes when everything resolves" \
              || no "preflight refused a setup where every path exists"
 # Paths resolving is not readiness. Every path resolved on wk-6c4, preflight
@@ -769,6 +770,19 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
 grep -q 'NOT ready to sling' "$PT/cap" \
   && ok "preflight says plainly whether the run is ready" \
   || no "preflight gave no ready/not-ready verdict"
+
+# A catalogued tool that does not answer is a source the run will discover is
+# unreachable on attempt one, having already spent an attempt.
+PFC=$(mktemp -d)
+sed 's|via: tools/eb-appointment-service|via: tools/eb-not-installed|' "$HERE/catalog/eb-tools.catalog" > "$PFC/broken.catalog"
+"$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
+  use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
+  method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
+  checks_root="$HERE/checks" catalog_path="$PFC/broken.catalog" \
+  artifact_root="$HERE" approver=a >/dev/null 2>&1
+[ $? -eq 1 ] && ok "preflight refuses a catalogued tool that does not answer" \
+             || no "preflight passed a run whose catalogued tool is not installed"
+rm -rf "$PFC"
 
 # A required var with no value must be named, not silently defaulted.
 "$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \

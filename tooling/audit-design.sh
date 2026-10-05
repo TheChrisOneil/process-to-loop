@@ -36,8 +36,16 @@ $(cat "$U")
 THE DESIGN:
 $(cat "$D")
 
-Cover all six by name: unit-of-work, judgment-isolated, gate-coverage,
-refusal-quality, evidence-chain, exit-criterion.
+Cover all seven by name: unit-of-work, judgment-isolated, gate-coverage,
+refusal-quality, evidence-chain, exit-criterion, source-integrity.
+
+On source-integrity, the rules already check that every source is catalogued and
+that no PHI tool is used by a model step. They cannot check these, so you must:
+does every value a gate compares actually come from a declared source, or does
+the design compare something it never obtained? Is any stated constraint
+unverifiable as written — a sentence that reads like a control and could never
+be evaluated? Does a redaction step actually stand between a PHI source and any
+model step, or is the model merely trusted not to look?
 
 For EVERY defect decide whether a revision of the design can fix it:
   "by_revision"     the author can fix this from what the description already
@@ -53,7 +61,7 @@ at the business, it needs a person.
 
 Output ONLY JSON, no fences:
 {"author_model":"$AUM","audit_model":"$AM","verdict":"sound"|"defective",
- "checked":["unit-of-work","judgment-isolated","gate-coverage","refusal-quality","evidence-chain","exit-criterion"],
+ "checked":["unit-of-work","judgment-isolated","gate-coverage","refusal-quality","evidence-chain","exit-criterion","source-integrity"],
  "defects":[{"severity":"critical"|"major"|"minor","fixable":"by_revision"|"needs_a_person","what":"...","why":"..."}],
  "confidence":"high"|"medium"|"low"}
 EOF

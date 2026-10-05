@@ -74,6 +74,10 @@ required = true
 description = "Absolute path to the written method the authoring step follows — tooling/method/GENERATE.md in this repo. NOT schema/DESIGN-FORMAT.md, which describes the file format rather than the method, and which a run on 2026-10-02 was pointed at by mistake."
 required = true
 
+[vars.catalog_path]
+description = "Absolute path to the tool catalog. A design that names sources and cannot be checked against a catalog has a data contract nobody verified, so the rules refuse rather than pass."
+required = true
+
 [vars.checks_root]
 description = "Absolute path to the directory holding the real check scripts — the rig's checks/. The run binds its own wrappers against these. Explicit because a step computing it from the working directory is the kind of implicit dependency that made every check pass by hand and fail under the controller."
 required = true
@@ -138,7 +142,8 @@ So bind them here, once, while every value is already known:
       ARTIFACT_ROOT={{artifact_root}} \
       AUTHOR_MODEL={{author_model}} \
       AUDIT_MODEL={{audit_model}} \
-      TOOLING_ROOT={{tooling_root}}
+      TOOLING_ROOT={{tooling_root}} \
+      CATALOG={{catalog_path}}
 
 It writes one wrapper per check into {{artifact_root}}/checks/. Each exports its
 values literally and execs the real check in {{checks_root}}. Every later step in

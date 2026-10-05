@@ -25,7 +25,7 @@ D=${DESIGN_PATH:-}
 # must name. Freshness is the whole point of this gate.
 export AUDIT_SUBJECT="$D"
 export AUDIT_VERDICT="${AUDIT_VERDICT:-$(cd "$(dirname "$D")" && pwd)/design-audit-verdict.json}"
-export AUDIT_DIMENSIONS="unit-of-work,judgment-isolated,gate-coverage,refusal-quality,evidence-chain,exit-criterion"
+export AUDIT_DIMENSIONS="unit-of-work,judgment-isolated,gate-coverage,refusal-quality,evidence-chain,exit-criterion,source-integrity"
 
 [ -x "$HERE/checks/audit-verdict.sh" ] || { echo "audit-verdict.sh is not at $HERE/checks/." >&2; exit 75; }
 exec "$HERE/checks/audit-verdict.sh"

@@ -76,6 +76,37 @@ cannot be trusted. A proposed number, marked as proposed, is both discussable an
 
 Baselines you were not given are written as `unmeasured`. That is accepted, and warned about.
 
+## 3b. Where the data comes from
+
+Every value a gate compares has to come from somewhere, and the design has to say where. A gate
+comparing `$VALUE` with nothing declaring where `$VALUE` originates is a rule about data the
+process never obtained.
+
+**You do not invent tools.** Read the catalog — its path is in `CATALOG`, and
+`tooling/catalog.sh <catalog> list` prints it. Every `@sources.from` and every `@tools.id` must be
+an entry that is already there. If the process needs something the catalog does not have, do not
+assume a tool: record it as an assumption saying the organization has no sanctioned tool for this
+need, and let a person decide.
+
+**Ask the tool what it provides.** `tooling/catalog.sh <catalog> schema <id>` prints the fields it
+actually returns. Take a subset. A field you name that the tool does not report will not exist at
+run time, and V28 refuses it.
+
+**Two kinds of constraint, and the difference decides what it becomes:**
+
+- A **checkable** constraint is evaluated at run time and becomes a gate. Give it a comparison or
+  a number: `statement format is ofx or csv`.
+- A **structural** constraint is a property of the step graph and is enforced on the design. Begin
+  it with `never` or `only`: `never reaches a model`.
+
+Anything else is a sentence that reads like a control and can never be evaluated. V30 refuses it.
+
+**Permissions are inherited, never granted.** The catalog says what class of data each tool
+carries. A tool whose `data_class` is `phi` cannot be used by a step whose actor is `model` — the
+catalog says that data does not leave the local boundary, and a model call is the boundary. If the
+model genuinely needs something from a PHI source, put a **mechanical** redaction step between
+them and give the model only that step's output. V31 refuses the rest.
+
 ## 4. The rules the validator enforces
 
 A design is rejected unless all of these hold:

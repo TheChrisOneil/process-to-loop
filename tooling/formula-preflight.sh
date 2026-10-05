@@ -132,6 +132,24 @@ for kv in "$@"; do
   esac
 done
 
+# The catalog, if this formula uses one. A tool that does not answer is a source
+# a run will discover is unreachable on attempt one, having spent an attempt.
+for kv in "$@"; do
+  case "${kv%%=*}" in catalog_path) ;; *) continue ;; esac
+  cat=${kv#*=}
+  [ -n "$cat" ] || continue
+  if [ ! -f "$cat" ]; then cap_no "catalog_path names no file: $cat"; continue; fi
+  cap_ok "catalog at $cat"
+  if out=$("$HERE_PF/catalog.sh" "$cat" health 2>&1); then
+    printf '%s\n' "$out" | sed 's/^/  /'
+  else
+    printf '%s\n' "$out" | sed 's/^/  /' >&2
+    cap_no "a catalogued tool does not answer; a design naming it would fail at run time"
+  fi
+  stale=$("$HERE_PF/catalog.sh" "$cat" stale 2>&1) || cap_no "the catalog has entries past their review date"
+  case "$stale" in *"within its review date"*) cap_ok "every catalog entry is within its review date" ;; esac
+done
+
 echo
 if [ "$PATHS_RC" = 0 ] && [ "$CAP_RC" = 0 ]; then
   echo "ready to sling"; exit 0
