@@ -189,7 +189,121 @@ aimed at. We would be prototyping the **interaction**, not the surface.
 
 ---
 
-## 4. Language
+## 4. The tool catalog
+
+A design should not discover its organization's tools. EverBetter has 43 services in
+`maxwell-k8s/charts`, versioned and GitOps-managed. A catalog can be seeded from what is
+actually deployed rather than invented.
+
+### Two kinds of tool knowledge
+
+**Inventory** — what exists, what it does, how it is reached. Enumerable from the charts.
+
+**Policy** — what each tool may touch, who sanctioned it, under what agreement. *This service may
+process PHI under BAA X, reviewed 2026-08.*
+
+For a regulated company the second is the one with teeth, and it is the stronger argument for a
+catalog than convenience is.
+
+### An entry is a decision, not an inventory row
+
+"Banking is SimpleFIN" is the conclusion of research somebody did once. Without the reasoning,
+the next person repeats it and may choose differently for reasons nobody can compare.
+
+```
+id          banking-feed
+provides    transactions, balances, account metadata
+via         mcp://eb-banking/fetch_transactions     (or a CLI, or a library)
+chosen      2026-09, over Plaid and direct OFX
+because     covers costing; no per-call fee
+decided by  Buzz
+data class  financial-account-detail
+may not     leave the local boundary
+review by   2027-09
+```
+
+An architecture decision record with a machine-readable head. The rationale is the part that
+stops the research being redone.
+
+### It enters BEFORE the questions
+
+The catalog turns open research questions into **confirm-or-deviate** questions.
+
+Without it: *"How do you get bank transactions?"* — answerable only by doing research.
+
+With it: *"Your org has SimpleFIN sanctioned for banking feeds. Use it, or is this different?"*
+
+For clinical processes the move is larger: *"Appointments come from `eb-appointment-service`.
+Confirm?"* rather than asking a doctor to describe the architecture.
+
+**Deviation is a finding.** If the catalog has no tool for a stated need, that is not an
+assumption to make. It is *"this process requires a capability the organization does not have"*,
+routed to whoever owns the catalog — a procurement and architecture signal raised at design time
+instead of at implementation.
+
+### Permissions are inherited, not authored
+
+A design does not write its own tool × data-class matrix. It **inherits the catalog's and may
+only narrow it.** One place defines what may touch PHI; every design is constrained by it. A
+design routing a clinical note to a tool whose entry forbids PHI fails validation, on the design,
+before anything runs.
+
+That is a different compliance posture from reviewing each workflow by hand.
+
+### Served over MCP
+
+The catalog is exposed as an **MCP server**, and where the tools themselves are MCP servers the
+`via` field names a server and a tool.
+
+What that buys:
+
+- **Discovery** — any agent in the pipeline queries the same catalog: the mayor while
+  interviewing, the author while designing, the auditor while judging.
+- **Schemas for free** — MCP tools publish JSON Schema. `@sources.provides` is *derived* from the
+  tool's schema rather than typed from memory, which answers the schema question the dialogue
+  section could not: do not ask a person to describe a record, read it from the server.
+- **Reachability** — preflight can ask whether each named server answers, exactly as it now
+  checks that a provider CLI exists. A catalog nothing verifies is a comment.
+
+What it does **not** buy:
+
+- **Authorization.** MCP is discovery and invocation, not policy. The PHI constraint is enforced
+  by the design validator and by what a step is permitted to call. Assuming the protocol enforces
+  it would be assuming safety we do not have.
+- **Universality.** `launchd`, `sqlite` and the `security` CLI are not MCP servers and should not
+  be. The catalog must carry plain CLI and library tools alongside MCP ones.
+
+### The file is truth; the server is the interface
+
+The catalog is a versioned file in git. The MCP server serves it. That keeps the pipeline able to
+run with the server down, keeps the audit trail in version control, and keeps review happening
+through pull requests rather than through an API.
+
+Same principle as everywhere else here: the conversation is the interface, the file is the record.
+
+### Two cautions
+
+**Verify it against reality.** If an entry claims a service exists, that is checkable against the
+charts. If it claims an agreement is current, the entry carries an attestation date and a design
+depending on a stale one refuses. Declared, reported, absent — applied where it matters most.
+
+**It needs an owner and a cadence.** A stale catalog asserting a tool is PHI-safe after its
+agreement lapsed is worse than no catalog, because designs will cite it. That is an
+organizational commitment, not a file.
+
+### What the clinical shift changes
+
+When the single judgment per unit is a **clinical** decision, the approver cannot be a process
+owner — it must be a clinician, and `@meta.approver` should be typed accordingly. The audit likely
+needs a dimension for it: *is this judgment one a licensed person must make, and does the design
+route it to one?*
+
+Worth deciding early: it changes who signs, and the acceptance register is built on the signer
+being the named approver.
+
+---
+
+## 5. Language
 
 ### The design's own language stays
 
@@ -250,8 +364,11 @@ choice.
 ## Order of work
 
 1. `@sources` alone, and see whether a real design can state its data contract honestly.
-2. `QUESTIONS.md` and the blocking/deferrable split.
-3. The interview, tested on a process neither of us has seen.
-4. `@tools` and permissions, which are only useful once the ledger records them.
+2. The tool catalog as a versioned file, seeded from `maxwell-k8s/charts`, with no server yet.
+3. `QUESTIONS.md` and the blocking/deferrable split, reading the catalog to ask
+   confirm-or-deviate rather than open questions.
+4. The interview, tested on a process neither of us has seen.
+5. The catalog over MCP, once there is a second consumer that justifies a server.
+6. `@tools` and permissions, which are only useful once the ledger records them.
 
 Each is separable. None is worth starting before one run completes end to end.
