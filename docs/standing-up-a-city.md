@@ -310,6 +310,14 @@ make formula-preflight F=formulas/design-authoring.toml RIG=~/cities/my-rig \
 It reports every check path resolved against the rig, every absolute path the substituted step
 text names, every `{{var}}` with no value and no default, and every required var not supplied.
 
+**Pass the providers too.** Add `author_provider=` and `audit_provider=` and it also checks each
+named CLI is installed and, where this repo manages the credential, that the credential resolves.
+It ends with `ready to sling` or `NOT ready to sling`.
+
+That half exists because paths resolving is not readiness. On 2026-10-05 every path resolved,
+preflight passed, and the run spent all three authoring attempts before failing: the audit
+provider had no credential. The run cost minutes and tokens to discover what a second would have.
+
 Do this because **a formula that names something missing does not fail fast.** On 2026-10-02 three
 checks resolved to a directory that did not exist. The checks were quarantined, the gated steps
 closed anyway, and the author spent **26 minutes and 528k output tokens** reading the city to work

@@ -95,3 +95,46 @@ print()
 print(f"{len(notes)} resolved, {len(problems)} unresolved")
 sys.exit(1 if problems else 0)
 PY
+PATHS_RC=$?
+
+# ---- CAN IT ACTUALLY RUN? --------------------------------------------------
+# Paths resolving says the formula names real things. It says nothing about
+# whether the run can do its work. On 2026-10-05 every path resolved, preflight
+# passed, and authoring burned all three attempts because the audit provider had
+# no credential — a fact knowable in a second, before the run started.
+#
+# Convention: a var named *_provider names a CLI the run will invoke.
+HERE_PF=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+CAP_RC=0
+cap_no() { echo "  MISSING  $1" >&2; CAP_RC=1; }
+cap_ok() { echo "  ok   $1"; }
+
+for kv in "$@"; do
+  case "${kv%%=*}" in *_provider) ;; *) continue ;; esac
+  prov=${kv#*=}
+  [ -n "$prov" ] || continue
+  if ! command -v "$prov" >/dev/null 2>&1; then
+    cap_no "provider \"$prov\" is named by ${kv%%=*} and is not on PATH"
+    continue
+  fi
+  cap_ok "provider $prov is installed"
+  case "$prov" in
+    gemini)
+      if ( . "$HERE_PF/credential.sh" 2>/dev/null
+           load_credential GEMINI_API_KEY process-to-loop-gemini >/dev/null 2>&1 ); then
+        cap_ok "provider $prov has a credential"
+      else
+        cap_no "provider $prov has NO credential — the audit lane cannot run"
+        echo "           store one: security add-generic-password -a \"\$USER\" -s process-to-loop-gemini -w" >&2
+      fi ;;
+    claude) cap_ok "provider $prov carries its own session auth" ;;
+    *)      cap_ok "provider $prov credential not verified by this tool" ;;
+  esac
+done
+
+echo
+if [ "$PATHS_RC" = 0 ] && [ "$CAP_RC" = 0 ]; then
+  echo "ready to sling"; exit 0
+fi
+echo "NOT ready to sling"; exit 1
+
