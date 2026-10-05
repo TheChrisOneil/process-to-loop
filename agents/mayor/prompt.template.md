@@ -131,6 +131,7 @@ ready queue looking healthy:
       --var design_path=$HOME/cities/ptl-rig/processes/<name>/<name>.design \
       --var method_path=$HOME/software/process-to-loop/tooling/method/GENERATE.md \
       --var tooling_root=$HOME/software/process-to-loop/tooling \
+      --var checks_root=$HOME/cities/ptl-rig/checks \
       --var artifact_root=$HOME/cities/ptl-rig/processes/<name> \
       --var approver="<the named person>"
 

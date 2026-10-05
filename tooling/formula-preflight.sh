@@ -51,7 +51,17 @@ for v in left:
 
 # Check paths resolve against the RIG. This is where a formula's check paths are
 # looked up, not against the city, and getting it wrong quarantines every check.
+checks_root = values.get("checks_root", os.path.join(rig, "checks"))
+art = values.get("artifact_root", "")
 for cp in sorted(set(re.findall(r'path\s*=\s*"([^"]+)"', resolved))):
+    # Bound at run time: it will not exist yet, but what gets bound must.
+    if art and cp.startswith(os.path.join(art, "checks") + os.sep):
+        src = os.path.join(checks_root, os.path.basename(cp))
+        if os.path.exists(src):
+            notes.append(f"check bound at run time: {os.path.basename(cp)} <- {src}")
+        else:
+            problems.append(f"check bound at run time has no source: {src}")
+        continue
     full = cp if os.path.isabs(cp) else os.path.join(rig, cp)
     if not os.path.exists(full):
         problems.append(f"check path does not resolve: {cp}  ->  {full}")

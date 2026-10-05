@@ -68,6 +68,17 @@ END {
   ng=0
   for (i=1;i<=si;i++) if (CPATH[i]!="") {
     ng++
+    # A path carrying a {{var}} is bound at run time and cannot be on disk now.
+    # The dropped-gate protection still applies: whatever will be bound has to
+    # exist here, so check the basename against this repo's checks.
+    if (CPATH[i] ~ /\{\{/) {
+      base = CPATH[i]; sub(/.*\//, "", base)
+      p = (CHECKROOT!="" ? CHECKROOT "/checks/" base : "checks/" base)
+      if ((getline junk < p) < 0)
+        fail("F5", "step " SID[i] ": check " base " is bound at run time and does not exist at checks/" base)
+      else close(p)
+      continue
+    }
     p = (CHECKROOT!="" ? CHECKROOT "/" CPATH[i] : CPATH[i])
     if ((getline junk < p) < 0) fail("F5", "step " SID[i] ": check script " CPATH[i] " does not exist")
     else { close(p); cmd="test -x \"" p "\""; if (system(cmd)!=0) fail("F5", "step " SID[i] ": check script " CPATH[i] " is not executable") }

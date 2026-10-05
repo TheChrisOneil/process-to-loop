@@ -10,8 +10,13 @@
   line=$0; sub(/^[ \t]+/,"",line); sub(/[ \t]+$/,"",line)
   if (sec=="meta" || sec=="unit" || sec=="evidence" || sec=="record") {
       i=index(line,":"); if (i==0) next
-      k=substr(line,1,i-1); v=substr(line,i+1); sub(/^[ \t]+/,"",v); sub(/[ \t]+$/,"",v)
-      V[sec"."k]=v; next
+      # ky, NOT k: k is the KPI counter below, and every variable in this file is
+      # global to every rule that reads it. Assigning a key name to k left it
+      # holding a string like "approver", so a later `for (i=1;i<=k;i++)` became
+      # a string comparison that is always true — the validator hung forever on
+      # any design with no @kpis section. Never reuse a, s, g, k or i here.
+      ky=substr(line,1,i-1); v=substr(line,i+1); sub(/^[ \t]+/,"",v); sub(/[ \t]+$/,"",v)
+      V[sec"."ky]=v; next
   }
   if (sec=="assumptions") { if (substr(line,1,1)=="-") { a++; ASSUM[a]=substr(line,3) } next }
   if (sec=="steps" || sec=="gates" || sec=="kpis") {

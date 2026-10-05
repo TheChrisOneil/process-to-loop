@@ -310,6 +310,69 @@ fi
 
 
 echo
+echo "THE VALIDATOR TERMINATES"
+# parse.awk used k for a keyed-section key name AND as the KPI counter. After
+# @meta, k held a string like "approver", so validate.awk's `for (i=1;i<=k;i++)`
+# became a string comparison that is always true. Any design with no @kpis
+# section hung the validator forever — the first gate, spinning on exactly the
+# malformed input it exists to reject, until the controller's 15m timeout.
+VT=$(mktemp -d)
+printf '@meta\nuse_case: x\napprover: A. Person\n' > "$VT/nokpis.design"
+( "$HERE/tooling/validate.sh" "$VT/nokpis.design" >/dev/null 2>&1; echo $? > "$VT/rc" ) &
+VP=$!
+VN=0
+while kill -0 $VP 2>/dev/null && [ $VN -lt 15 ]; do sleep 1; VN=$((VN+1)); done
+if kill -0 $VP 2>/dev/null; then
+  kill -9 $VP 2>/dev/null
+  no "the validator hangs on a design with no @kpis section"
+else
+  ok "the validator terminates on a design with no @kpis section"
+  [ "$(cat "$VT/rc" 2>/dev/null)" = "1" ] \
+    && ok "and refuses it rather than passing it" \
+    || no "it terminated but did not refuse an incomplete design"
+fi
+rm -rf "$VT"
+
+echo
+echo "COMPILE-TIME BINDING"
+BT=$(mktemp -d); mkdir -p "$BT/run"
+printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"
+"$HERE/tooling/bind-checks.sh" "$BT/run" "$HERE/checks" \
+  DESIGN_PATH="$BT/run/x.design" ARTIFACT_ROOT="$BT/run" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "a run binds its checks" || no "bind-checks failed on a valid run"
+
+# The property the whole change exists for: no gc, no env, no cwd.
+OUT=$(cd / && env -i PATH=/usr/bin:/bin bash "$BT/run/checks/design-validate.sh" 2>&1)
+case "$OUT" in
+  *"DESIGN_PATH is not set"*) no "a bound check still could not find its inputs" ;;
+  *) ok "a bound check runs with no gc, no environment and from /" ;;
+esac
+
+# A wrapper that carries no value is worse than none: it runs on whatever it finds.
+sed 's/^export DESIGN_PATH=.*$//' "$BT/run/checks/design-validate.sh" > "$BT/run/checks/tmp" \
+  && mv "$BT/run/checks/tmp" "$BT/run/checks/design-validate.sh" && chmod +x "$BT/run/checks/design-validate.sh"
+ARTIFACT_ROOT="$BT/run" "$HERE/checks/checks-bound.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "the gate refuses a wrapper that binds no value" \
+             || no "a wrapper carrying no DESIGN_PATH passed the binding gate"
+
+# And one pointing at a check that is not there.
+BT2=$(mktemp -d); mkdir -p "$BT2/run"
+"$HERE/tooling/bind-checks.sh" "$BT2/run" "$HERE/checks" DESIGN_PATH=/x ARTIFACT_ROOT="$BT2/run" >/dev/null 2>&1
+sed -i '' "s|^exec '.*'|exec '/no/such/check.sh'|" "$BT2/run/checks/design-validate.sh"
+ARTIFACT_ROOT="$BT2/run" "$HERE/checks/checks-bound.sh" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "the gate refuses a wrapper whose target does not exist" \
+             || no "a wrapper pointing at nothing passed the binding gate"
+
+# A missing source check must stop the binding entirely, not half-write it.
+BT3=$(mktemp -d); mkdir -p "$BT3/run" "$BT3/empty"
+"$HERE/tooling/bind-checks.sh" "$BT3/run" "$BT3/empty" DESIGN_PATH=/x >/dev/null 2>&1
+[ $? -eq 1 ] && ok "binding refuses when a named check is missing" \
+             || no "binding wrote wrappers against a checks dir that has none"
+[ ! -d "$BT3/run/checks" ] && ok "a refused binding wrote nothing" \
+                          || no "a refused binding left partial wrappers behind"
+rm -rf "$BT" "$BT2" "$BT3"
+
+echo
 echo "ARCHIVING A RUN"
 AT=$(mktemp -d)
 printf 'd\n' > "$AT/x.design"; printf 'b\n' > "$AT/BRIEF.md"
@@ -527,7 +590,7 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
 "$HERE/tooling/formula-preflight.sh" "$HERE/formulas/design-authoring.toml" "$HERE" \
   use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
   method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
-  artifact_root="$HERE" approver=a >/dev/null 2>&1
+  checks_root="$HERE/checks" artifact_root="$HERE" approver=a >/dev/null 2>&1
 [ $? -eq 0 ] && ok "preflight passes when everything resolves" \
              || no "preflight refused a setup where every path exists"
 # A required var with no value must be named, not silently defaulted.
@@ -573,7 +636,13 @@ echo "CHECK PATHS"
 MISSING=""
 for f in "$HERE"/formulas/*.toml; do
   for cp in $(grep -o 'path = "[^"]*"' "$f" | sed 's/path = "//; s/"//'); do
-    case "$cp" in /*) continue ;; esac
+    case "$cp" in
+      *'{{'*)   # bound at run time; what gets bound still has to exist here
+        [ -e "$HERE/checks/$(basename "$cp")" ] \
+          || MISSING="$MISSING $(basename "$f"):$(basename "$cp")(bound)"
+        continue ;;
+      /*) continue ;;
+    esac
     [ -e "$HERE/$cp" ] || MISSING="$MISSING $(basename "$f"):$cp"
   done
 done

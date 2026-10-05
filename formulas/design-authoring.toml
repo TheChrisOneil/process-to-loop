@@ -74,6 +74,10 @@ required = true
 description = "Absolute path to the written method the authoring step follows — tooling/method/GENERATE.md in this repo. NOT schema/DESIGN-FORMAT.md, which describes the file format rather than the method, and which a run on 2026-10-02 was pointed at by mistake."
 required = true
 
+[vars.checks_root]
+description = "Absolute path to the directory holding the real check scripts — the rig's checks/. The run binds its own wrappers against these. Explicit because a step computing it from the working directory is the kind of implicit dependency that made every check pass by hand and fail under the controller."
+required = true
+
 [vars.tooling_root]
 description = "Absolute path to the tooling directory — the one holding method/, lib/, validate.sh, brief.sh and compile.sh. The authoring step is given this so it does not have to find them: a run on 2026-10-02 opened eight awk libraries to work out what the downstream tooling required of a design."
 required = true
@@ -112,8 +116,57 @@ required = true
 
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
+id = "bind-checks"
+title = "Bind this run's checks to this run's values"
+description = """
+Deterministic work only. This runs before anything else.
+
+A formula declares its [vars] when it is cooked. An exec check needs those
+values when it runs, and gc hands a check only GC_BEAD_ID. Recovering them at
+run time means a check that needs gc on PATH, a reachable bead store, a cwd
+inside a city tree, and a login-shell environment. Each of those four failed at
+least once in the week of 2026-10-02, and each time the check reported something
+other than what was wrong: a missing API key read as a defective design, an
+unreachable bead store read as "DESIGN_PATH is not set", an unset USER read as a
+locked keychain.
+
+So bind them here, once, while every value is already known:
+
+    {{tooling_root}}/bind-checks.sh {{artifact_root}} {{checks_root}} \
+      DESIGN_PATH={{design_path}} \
+      USE_CASE_PATH={{use_case_path}} \
+      ARTIFACT_ROOT={{artifact_root}} \
+      AUTHOR_MODEL={{author_model}} \
+      AUDIT_MODEL={{audit_model}} \
+      TOOLING_ROOT={{tooling_root}}
+
+It writes one wrapper per check into {{artifact_root}}/checks/. Each exports its
+values literally and execs the real check in {{checks_root}}. Every later step in
+this formula runs the bound wrapper, not the original.
+
+The result needs nothing but a filesystem. That is the property emit-bundle.sh
+already gives the RPA this pipeline produces; this gives it to the pipeline
+itself.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and the reason. Do not
+continue past a failed binding: every gate after this one would be running on
+whatever the environment happened to carry.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/checks-bound.sh"
+timeout = "2m"
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
 id = "archive-prior"
 title = "Put the previous run's conclusions beyond reach"
+needs = ["bind-checks"]
 description = """
 Deterministic work only. This runs before anything is read or written.
 
@@ -160,7 +213,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/prior-archived.sh"
+path = "{{artifact_root}}/checks/prior-archived.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- mechanical ----
@@ -252,7 +305,7 @@ max_attempts = 3
 
 [steps.check.check]
 mode = "exec"
-path = "checks/design-reviewed.sh"
+path = "{{artifact_root}}/checks/design-reviewed.sh"
 timeout = "15m"
 
 # ---------------------------------------------------------------------- gate ----
@@ -290,7 +343,7 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "checks/design-validate.sh"
+path = "{{artifact_root}}/checks/design-validate.sh"
 timeout = "3m"
 
 # ---------------------------------------------------------------------- gate ----
@@ -328,7 +381,7 @@ max_attempts = 1
 
 [steps.check.check]
 mode = "exec"
-path = "checks/design-audited.sh"
+path = "{{artifact_root}}/checks/design-audited.sh"
 timeout = "3m"
 
 # ---------------------------------------------------------------- mechanical ----
@@ -382,7 +435,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/diagrams-complete.sh"
+path = "{{artifact_root}}/checks/diagrams-complete.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- mechanical ----
@@ -513,5 +566,5 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/bundle-records.sh"
+path = "{{artifact_root}}/checks/bundle-records.sh"
 timeout = "5m"
