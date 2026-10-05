@@ -41,6 +41,28 @@ cp "$DESIGN" "$B/design/loop.design"
 
 PLAN=$(awk -f "$HERE/lib/parse.awk" -f "$HERE/lib/emit-plan.awk" "$DESIGN")
 m() { printf '%s\n' "$PLAN" | awk -F'\t' -v k="$1" '$1=="meta" && $2==k {print $3}'; }
+
+# The catalog, so a tool named in the design becomes a path baked into the
+# bundle. The bundle must run with no gc, no city and no network; resolving a
+# tool at run time through a catalog lookup would break that, so it is resolved
+# here, once, and written in.
+CATALOG=${CATALOG:-$HERE/../catalog/eb-tools.catalog}
+CATVIA=$(mktemp)
+if [ -f "$CATALOG" ]; then
+  cat > "$CATVIA.q" <<'CATQ'
+END{ for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".via"], T[TID[i] ".data_class"] }
+CATQ
+  awk -f "$HERE/lib/catalog.awk" -f "$CATVIA.q" "$CATALOG" > "$CATVIA" 2>/dev/null
+  rm -f "$CATVIA.q"
+fi
+trap 'rm -f "$CATVIA"' EXIT
+tool_via() { awk -F'\t' -v id="$1" '$1==id {print $2}' "$CATVIA"; }
+tool_class() { awk -F'\t' -v id="$1" '$1==id {print $3}' "$CATVIA"; }
+tool_abs() { case "$1" in /*) printf '%s' "$1" ;; *) printf '%s' "$(cd "$HERE/.." && pwd)/$1" ;; esac; }
+# Which tools does step N use?
+tools_for() { printf '%s\n' "$PLAN" | awk -F'\t' -v sid="$1" '$1=="tool" { n=split($3,B," "); for(i=1;i<=n;i++) if (B[i]==sid) print $2 }'; }
+# Which source comes from a given tool?
+source_of() { printf '%s\n' "$PLAN" | awk -F'\t' -v tl="$1" '$1=="source" && $3==tl {print $2; exit}'; }
 USE_CASE=$(m use_case); APPROVER=$(m approver); UNIT_DEF=$(m unit)
 FANOUT=$(m fanout); EVID_STEP=$(m evidence_step); INTEGRITY=$(m integrity); EXITC=$(m exit)
 GATES=$(printf '%s\n' "$PLAN" | awk -F'\t' '$1=="gate"' | wc -l | tr -d ' ')
@@ -133,6 +155,54 @@ UNIT="\${1:--}"
 VALUE="\${2:-}"
 EOF
   } > "$F"
+
+  # A step named by a @tools row actually calls that tool. This is what makes the
+  # records gate mean something: it runs a tick and reads the ledger, and a read
+  # that never happened leaves no row.
+  for TL in $(tools_for "$ID"); do
+    VIA=$(tool_via "$TL"); [ -n "$VIA" ] || continue
+    ABS=$(tool_abs "$VIA"); SRC=$(source_of "$TL"); SRC=${SRC:-$TL}
+    CLASS=$(tool_class "$TL")
+    cat >> "$F" <<EOF
+
+# ---- source: $SRC, via $TL ($CLASS) -------------------------------------
+# Resolved when this bundle was built. The bundle needs no catalog at run time.
+TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')="$ABS"
+SRC_OUT="\$MEM/$SRC.tsv"
+
+if [ ! -x "\$TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')" ]; then
+  ledger "\$UNIT" "$SLUG" deferred "$SRC: tool $TL is not installed at \$TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')"
+  step_say "$ID" "$SLUG" "$TYPE" "DEFERRED — $TL is not installed"
+  exit 75
+fi
+
+set +e
+# A batch step has no unit; "-" is the placeholder, not a key to filter on.
+if [ "\$UNIT" = "-" ]; then
+  "\$TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')" fetch > "\$SRC_OUT" 2>/dev/null
+else
+  "\$TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')" fetch "\$UNIT" > "\$SRC_OUT" 2>/dev/null
+fi
+FETCH_RC=\$?
+set -e
+if [ "\$FETCH_RC" = 75 ]; then
+  ledger "\$UNIT" "$SLUG" deferred "$SRC: $TL could not be read"
+  step_say "$ID" "$SLUG" "$TYPE" "DEFERRED — $SRC could not be read"
+  exit 75
+fi
+if [ "\$FETCH_RC" != 0 ]; then
+  ledger "\$UNIT" "$SLUG" refused "$SRC: $TL refused"
+  step_say "$ID" "$SLUG" "$TYPE" "REFUSED — $TL refused"
+  exit 1
+fi
+
+SRC_ROWS=\$(( \$(grep -c . "\$SRC_OUT" 2>/dev/null || echo 1) - 1 ))
+# The ledger records WHICH source was read, by WHICH tool, and how much. An
+# auditor asking where a number came from reads this line, not the code.
+ledger "\$UNIT" "$SLUG" read "$SRC via $TL ($CLASS): \$SRC_ROWS row(s)"
+step_say "$ID" "$SLUG" "$TYPE" "read \$SRC_ROWS row(s) from $SRC"
+EOF
+  done
 
   if [ -n "$GCOND" ]; then
     cat >> "$F" <<EOF

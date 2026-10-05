@@ -358,6 +358,54 @@ grep -q 'iteration' "$HERE/tooling/run-status.sh" \
   || no "run-status would show a step as both done and failed"
 
 echo
+echo "THE BUNDLE READS ITS SOURCES"
+# The records gate used to prove a ledger existed. It now proves PROVENANCE: the
+# bundle called the tool the design named and logged which source, via which
+# tool, at what data class. That is the row an auditor reads.
+BR=$(mktemp -d)
+"$HERE/tooling/emit-bundle.sh" "$HERE/examples/appointments-chase.design" --name appt --out "$BR" >/dev/null 2>&1
+[ -x "$BR/appt/run.sh" ] && ok "a design with sources emits a runnable bundle" \
+                         || no "emit-bundle produced nothing for a design with sources"
+( cd "$BR/appt" && ./run.sh >/dev/null 2>&1 ) || true
+grep -q '	read	appointments via eb-appointment-service' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
+  && ok "a tick read the CSV-backed source and logged it" \
+  || no "the bundle did not log a read of appointments"
+grep -q '	read	intake-forms via eb-form-builder-service' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
+  && ok "a tick read the XML-backed source and logged it" \
+  || no "the bundle did not log a read of intake-forms"
+grep -q '(phi)' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
+  && ok "the ledger records the data class of what was read" \
+  || no "the ledger does not say what class of data was read"
+[ -s "$BR/appt/memory/appointments.tsv" ] \
+  && ok "the tool's rows landed where the design said" \
+  || no "no rows were written for the appointments source"
+
+BRES=$(DESIGN_PATH="$HERE/examples/appointments-chase.design" BUNDLE_PATH="$BR/appt" \
+       "$HERE/checks/bundle-records.sh" 2>&1 || true)
+case "$BRES" in
+  *"provenance: 2 source(s) read and logged"*) ok "the records gate confirms provenance" ;;
+  *) no "the records gate did not confirm provenance: $BRES" ;;
+esac
+
+# And refuses a bundle that declares a source it never reads.
+python3 - "$BR/appt/steps/1-pull-appointments.sh" <<'PY_STRIP'
+import re, sys
+p = sys.argv[1]; s = open(p).read()
+s = re.sub(r'\n# ---- source: appointments.*?(?=\nledger |\n# |\Z)', '\n', s, flags=re.S)
+s = re.sub(r'\nledger "\$UNIT" "pull-appointments" read .*\n', '\n', s)
+s = re.sub(r'\nstep_say "1" "pull-appointments" "mechanical" "read .*\n', '\n', s)
+open(p, 'w').write(s)
+PY_STRIP
+rm -f "$BR/appt/memory/ledger.tsv" "$BR/appt/memory/units.tsv"
+BRES2=$(DESIGN_PATH="$HERE/examples/appointments-chase.design" BUNDLE_PATH="$BR/appt" \
+        "$HERE/checks/bundle-records.sh" 2>&1 || true)
+case "$BRES2" in
+  *"logged no read of it"*) ok "a declared source that is never read is refused" ;;
+  *) no "a bundle ignoring a declared source passed the records gate" ;;
+esac
+rm -rf "$BR"
+
+echo
 echo "THE DATA CONTRACT (V27-V31)"
 DC=$(mktemp -d); DESIGN_OK="$HERE/examples/appointments-chase.design"
 dcheck() { # dcheck <rule> <design> <want FAIL|PASS>

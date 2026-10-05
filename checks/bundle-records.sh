@@ -46,6 +46,21 @@ sed 's/#.*//' "$B/run.sh" 2>/dev/null | grep -q "unit_row" \
 [ -s "$B/memory/ledger.tsv" ] || say "a tick ran and memory/ledger.tsv is empty — the ledger is not wired."
 [ -s "$B/memory/units.tsv" ]  || say "a tick ran and memory/units.tsv is empty — no unit outcome was recorded."
 
+# A design that declares sources must leave proof it READ them. Without this the
+# gate proves a ledger exists; with it, the gate proves provenance — which
+# source, via which tool, at what data class. An auditor asking where a number
+# came from reads this row.
+SRCS=$(awk '/^@sources/{f=1;next} /^@[a-z]/{f=0} f && NF && $0 !~ /^#/ {split($0,F," *\\| *"); print F[1]}' "$D" 2>/dev/null)
+if [ -n "$SRCS" ]; then
+  for sid in $SRCS; do
+    grep -q "	read	$sid via " "$B/memory/ledger.tsv" 2>/dev/null \
+      || say "the design declares source \"$sid\" and a tick logged no read of it."
+  done
+  if [ "$fail" -eq 0 ]; then
+    printf 'provenance: %s source(s) read and logged\n' "$(printf '%s\n' "$SRCS" | grep -c .)"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "         Next human action: the design promised these records. Fix the emitter, not the design." >&2
   exit 1

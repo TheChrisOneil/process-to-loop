@@ -13,6 +13,10 @@ END {
     printf "step\t%s\t%s\t%s\t%s\t%s\t%s\n", SID[i], slug(SNAME[i]), tolower(STYPE[i]), tolower(SACT[i]), SDESC[i], SSCOPE[i]
   for (j=1;j<=g;j++)
     printf "gate\t%s\t%s\t%s\n", GAFT[j], GCOND[j], GREF[j]
+  for (i=1;i<=n_src;i++)
+    printf "source\t%s\t%s\t%s\t%s\n", SRCID[i], SRCFROM[i], SRCPROV[i], SRCCON[i]
+  for (i=1;i<=n_tool;i++)
+    printf "tool\t%s\t%s\t%s\n", TLID[i], TLBY[i], TLPURP[i]
   for (i=1;i<=a;i++) printf "assumption\t%s\n", ASSUM[i]
   for (i=1;i<=k;i++) printf "kpi\t%s\t%s\t%s\n", KNAME[i], KKIND[i], KBASE[i]
 }
