@@ -109,7 +109,7 @@ install-city:
 	@for d in formulas checks tooling lib; do \
 	   [ -d "$$d" ] || continue; \
 	   mkdir -p "$(CITY)/$$d"; \
-	   cp -p "$$d"/* "$(CITY)/$$d/" 2>/dev/null || true; \
+	   cp -pR "$$d"/. "$(CITY)/$$d/"; \
 	   echo "  synced $$d/"; \
 	 done
 	@echo "A running workflow keeps the formula it was cooked with."
