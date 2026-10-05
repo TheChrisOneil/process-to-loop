@@ -808,6 +808,16 @@ WRONGHOME=$( env -u GEMINI_API_KEY HOME=/tmp bash -c '
   && ok "the keychain path does not come from \$HOME" \
   || no "credential.sh builds its keychain path from HOME, which the agent overrides"
 
+# The gemini CLI is a node script with `#!/usr/bin/env node`. Under nvm it sits
+# beside the node it was built for, and an older node first on PATH kills it with
+# a SyntaxError before it prints anything. It must run with its own runtime.
+grep -q 'GEM_BIN' "$HERE/tooling/audit-design.sh" \
+  && ok "the audit pins the gemini CLI to its own node" \
+  || no "audit-design.sh lets PATH decide which node runs the gemini CLI"
+grep -q 'GEMINI_CLI_TRUST_WORKSPACE' "$HERE/tooling/audit-design.sh" \
+  && ok "the audit runs the CLI headlessly without a trust prompt" \
+  || no "the gemini CLI will refuse an untrusted directory and exit 55"
+
 echo
 echo "AUDIT FRESHNESS"
 FX=$(mktemp -d)

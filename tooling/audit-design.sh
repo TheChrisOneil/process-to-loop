@@ -60,7 +60,19 @@ EOF
 
 ERR=$(mktemp)
 case "$AP" in
-  gemini) RAW=$(cd "$(dirname "$D")" && gemini -m "$AM" -p "$(cat "$P")" 2>"$ERR") ;;
+  # GEMINI_CLI_TRUST_WORKSPACE: the CLI refuses to run in an untrusted directory
+  # and exits 55 with no output. The documented route for headless use. The audit
+  # prompt is self-contained — the design and use case are read by this script and
+  # passed as text — so the CLI needs nothing from the workspace it starts in.
+  gemini)
+    # The CLI is a node script with `#!/usr/bin/env node`. Installed under nvm it
+    # sits beside the node it was built for, and whichever node happens to be
+    # first on PATH may be older: v18 cannot parse the `v` regex flag the bundle
+    # uses and dies with SyntaxError before printing anything. Put the CLI's own
+    # bin directory first so it gets its own runtime.
+    GEM_BIN=$(dirname "$(command -v gemini)")
+    RAW=$(cd "$(dirname "$D")" && PATH="$GEM_BIN:$PATH" GEMINI_CLI_TRUST_WORKSPACE=true \
+          gemini -m "$AM" -p "$(cat "$P")" 2>"$ERR") ;;
   claude) RAW=$(claude -p --model "$AM" --output-format json < "$P" 2>"$ERR" \
                 | python3 -c 'import json,sys;print(json.load(sys.stdin).get("result",""))' 2>>"$ERR") ;;
   *) echo "REFUSED: no invocation known for provider $AP." >&2; rm -f "$P" "$ERR"; exit 75 ;;
