@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<submissions>
+  <submission id="SUB-5001" patient="PT-4417" form="pre-visit-intake" submitted="2026-10-05T18:02" flagged="false"/>
+  <submission id="SUB-5002" patient="PT-9930" form="pre-visit-intake" submitted="2026-10-05T19:41" flagged="true"/>
+  <submission id="SUB-5003" patient="PT-2250" form="symptom-review"   submitted="2026-10-05T20:15" flagged="false"/>
+  <submission id="SUB-5004" patient="PT-7781" form="pre-visit-intake" submitted="2026-10-06T07:03" flagged="false"/>
+</submissions>

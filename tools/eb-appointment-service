@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Stand-in for the EverBetter appointment service. Reads a local CSV fixture.
+# Real in every way that matters to a design: it answers health, reports a
+# schema, and returns rows. It simply does not talk to a cluster.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+FIXTURE=${EB_APPOINTMENT_FIXTURE:-$HERE/fixtures/appointments.csv}
+
+case "${1:-}" in
+  health)
+    [ -r "$FIXTURE" ] || { echo "appointment source unreadable at $FIXTURE" >&2; exit 75; }
+    echo "ok: eb-appointment-service, $(( $(grep -c . "$FIXTURE") - 1 )) appointment(s)"; exit 0 ;;
+  schema)
+    printf 'appointment_id\tstring\npatient_ref\tstring\nclinician\tstring\nstarts_at\ttimestamp\nduration_minutes\tinteger\nstatus\tstring\n'; exit 0 ;;
+  fetch)
+    [ -r "$FIXTURE" ] || { echo "appointment source unreadable at $FIXTURE" >&2; exit 75; }
+    awk -F, -v want="${2:-}" 'NR==1 { $1=$1; print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6; next }
+      want=="" || $1==want { print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6 }' "$FIXTURE"; exit 0 ;;
+  *) echo "usage: eb-appointment-service health|schema|fetch [appointment_id]" >&2; exit 64 ;;
+esac

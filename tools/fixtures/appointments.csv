@@ -1,0 +1,6 @@
+appointment_id,patient_ref,clinician,starts_at,duration_minutes,status
+APT-1001,PT-4417,Dr. Nwosu,2026-10-06T09:00,30,booked
+APT-1002,PT-9930,Dr. Nwosu,2026-10-06T09:30,30,booked
+APT-1003,PT-4417,Dr. Alvarez,2026-10-06T11:00,60,rescheduled
+APT-1004,PT-2250,Dr. Alvarez,2026-10-06T13:00,30,no-show
+APT-1005,PT-7781,Dr. Nwosu,2026-10-06T14:00,45,booked

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Stand-in for the EverBetter form builder service. Reads a local XML fixture,
+# so the catalog carries more than one shape of source.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+FIXTURE=${EB_FORM_FIXTURE:-$HERE/fixtures/intake-forms.xml}
+
+case "${1:-}" in
+  health)
+    [ -r "$FIXTURE" ] || { echo "form source unreadable at $FIXTURE" >&2; exit 75; }
+    echo "ok: eb-form-builder-service, $(grep -c '<submission ' "$FIXTURE") submission(s)"; exit 0 ;;
+  schema)
+    printf 'submission_id\tstring\npatient_ref\tstring\nform\tstring\nsubmitted_at\ttimestamp\nflagged\tboolean\n'; exit 0 ;;
+  fetch)
+    [ -r "$FIXTURE" ] || { echo "form source unreadable at $FIXTURE" >&2; exit 75; }
+    printf 'submission_id\tpatient_ref\tform\tsubmitted_at\tflagged\n'
+    # Deterministic attribute extraction. No XML library, no parser surprises.
+    awk -v want="${2:-}" '
+      /<submission / {
+        id=""; pt=""; fm=""; at=""; fl=""
+        if (match($0, /id="[^"]*"/))           id=substr($0,RSTART+4,RLENGTH-5)
+        if (match($0, /patient="[^"]*"/))      pt=substr($0,RSTART+9,RLENGTH-10)
+        if (match($0, /form="[^"]*"/))         fm=substr($0,RSTART+6,RLENGTH-7)
+        if (match($0, /submitted="[^"]*"/))    at=substr($0,RSTART+11,RLENGTH-12)
+        if (match($0, /flagged="[^"]*"/))      fl=substr($0,RSTART+9,RLENGTH-10)
+        if (want=="" || id==want) print id"\t"pt"\t"fm"\t"at"\t"fl
+      }' "$FIXTURE"; exit 0 ;;
+  *) echo "usage: eb-form-builder-service health|schema|fetch [submission_id]" >&2; exit 64 ;;
+esac

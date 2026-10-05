@@ -1,0 +1,53 @@
+# The EverBetter tool catalog.
+#
+# One entry per tool a design may name. An entry is a DECISION, not an inventory
+# row: the rationale is the part that stops the research being redone.
+#
+# Entries are read by the design validator, by preflight, and by the interview —
+# which uses them to ask "use this, or is your process different?" instead of
+# asking a person to do research.
+
+@catalog
+owner: Buzz, process owner
+reviewed: 2026-10-05
+source_of_truth: maxwell-k8s/charts for existence; this file for policy
+
+@tool eb-appointment-service
+provides: appointment_id, patient_ref, clinician, starts_at, duration_minutes, status
+via: tools/eb-appointment-service
+data_class: phi
+may_not: leave the local boundary
+chosen: 2026-09, over polling FHIR directly
+because: already deployed, and carries clinician and status in one call
+decided_by: Buzz, process owner
+review_by: 2027-09
+
+@tool eb-form-builder-service
+provides: submission_id, patient_ref, form, submitted_at, flagged
+via: tools/eb-form-builder-service
+data_class: phi
+may_not: leave the local boundary
+chosen: 2026-09, over a bespoke intake form
+because: clinicians already author forms in it; submissions carry a flag the triage rule needs
+decided_by: Buzz, process owner
+review_by: 2027-09
+
+@tool keychain
+provides: secret
+via: security
+data_class: credential
+may_not: be written to a file or passed as a command-line argument
+chosen: 2026-10, over a dotenv file
+because: survives a reboot, is not readable by a stray process listing, and is macOS native
+decided_by: Buzz, process owner
+review_by: 2027-10
+
+@tool local-ledger
+provides: append-only rows
+via: sqlite3
+data_class: operational
+may_not: hold PHI in clear text
+chosen: 2026-10
+because: no server, durable, queryable by anything
+decided_by: Buzz, process owner
+review_by: 2027-10

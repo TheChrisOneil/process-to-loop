@@ -358,6 +358,47 @@ grep -q 'iteration' "$HERE/tooling/run-status.sh" \
   || no "run-status would show a step as both done and failed"
 
 echo
+echo "THE TOOL CATALOG"
+CT="$HERE/catalog/eb-tools.catalog"
+[ -f "$CT" ] && ok "a tool catalog exists" || no "no catalog at catalog/eb-tools.catalog"
+
+# Every tool it names must answer. A catalog nothing verifies is a comment.
+"$HERE/tooling/catalog.sh" "$CT" health >/dev/null 2>&1 \
+  && ok "every tool in the catalog answers health" \
+  || no "a catalogued tool is unreachable"
+
+# And must actually provide what the catalog claims. This is the one that stops
+# a design naming a field that will not exist at run time.
+for TID in eb-appointment-service eb-form-builder-service; do
+  "$HERE/tooling/catalog.sh" "$CT" verify "$TID" >/dev/null 2>&1 \
+    && ok "$TID provides every field the catalog claims" \
+    || no "$TID does not report a field the catalog claims"
+done
+
+CTT=$(mktemp -d)
+sed 's/^provides: appointment_id, patient_ref/provides: appointment_id, patient_ref, insurance_plan/' "$CT" > "$CTT/bad"
+"$HERE/tooling/catalog.sh" "$CTT/bad" verify eb-appointment-service >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a claimed field the tool does not report is refused" \
+             || no "the catalog accepted a claim the tool contradicts"
+"$HERE/tooling/catalog.sh" "$CT" stale 2030-01 >/dev/null 2>&1
+[ $? -eq 1 ] && ok "an entry past its review date is reported stale" \
+             || no "a stale attestation passed"
+sed 's|via: tools/eb-appointment-service|via: tools/eb-nope-service|' "$CT" > "$CTT/gone"
+"$HERE/tooling/catalog.sh" "$CTT/gone" health >/dev/null 2>&1
+[ $? -eq 1 ] && ok "an unreachable tool fails health" \
+             || no "health passed a tool that is not there"
+rm -rf "$CTT"
+
+# The tools themselves hold the three-subcommand contract, including 75.
+for TOOL in eb-appointment-service eb-form-builder-service; do
+  "$HERE/tools/$TOOL" schema >/dev/null 2>&1 && "$HERE/tools/$TOOL" fetch >/dev/null 2>&1 \
+    && ok "$TOOL answers schema and fetch" || no "$TOOL does not hold the tool contract"
+done
+EB_APPOINTMENT_FIXTURE=/nope "$HERE/tools/eb-appointment-service" fetch >/dev/null 2>&1
+[ $? -eq 75 ] && ok "an unreadable source exits 75, not 1" \
+              || no "a tool reported infrastructure failure as a business outcome"
+
+echo
 echo "COMPILE-TIME BINDING"
 BT=$(mktemp -d); mkdir -p "$BT/run"
 printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"

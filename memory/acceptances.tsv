@@ -1,2 +1,3 @@
 seq	timestamp	action	design	design_sha	by	detail	chain
 1	2026-10-01T15:34:19	accept	examples/invoices.design	b28e6bed015b916126116f69944b09f2aa164246d3bc0fc8535510f72beb7881	A. Rivera, Accounts Payable	I accept	0aa095e9f9227cbb36702f23fc700d925021b324393afd14e69a18c10389d212
+2	2026-10-05T16:14:36	accept	/Users/thechrisoneil/cities/ptl-rig/processes/monthly-close/monthly-close.design	dd1505b252195a48da6966efc871bc4fa9598ee6c0b73ae53eb86d7d894b3774	Buzz, process owner	i accept	581d5d9e731cb1d546a7e2a93959ab45ea5bc2a4b27a6e64a7f61612ed50582d
