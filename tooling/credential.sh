@@ -38,9 +38,15 @@ load_credential() {
     return 1
   fi
 
-  local err
+  # The agent's security session does not always carry the user's keychain
+  # search list: the controller-run check reported "no such item" for a key this
+  # shell finds immediately. Name the login keychain explicitly as a fallback
+  # rather than trusting the search list to be inherited.
+  local err kc
   err=$(mktemp)
-  if val=$(security find-generic-password -a "$acct" -s "$svc" -w 2>"$err"); then
+  kc="$HOME/Library/Keychains/login.keychain-db"
+  if val=$(security find-generic-password -a "$acct" -s "$svc" -w 2>"$err") \
+     || { [ -f "$kc" ] && val=$(security find-generic-password -a "$acct" -s "$svc" -w "$kc" 2>"$err"); }; then
     if [ -n "$val" ]; then
       export "$var=$val"
       rm -f "$err"
@@ -55,6 +61,11 @@ load_credential() {
   # fixes are different and a locked keychain looks like a missing key.
   if grep -q 'could not be found' "$err" 2>/dev/null; then
     echo "REFUSED: no credential. $var is unset and Keychain has no item \"$svc\"." >&2
+    # Say where it looked and what security said, or the next failure is as
+    # opaque as this one was: the key was present the whole time and the agent's
+    # security session simply could not see it.
+    echo "         looked as account \"$acct\", service \"$svc\", in the search list and $kc" >&2
+    [ -s "$err" ] && { echo "         security said:" >&2; sed 's/^/           /' "$err" >&2; }
     echo "         Store one — the key is typed into the prompt, not the command line:" >&2
     echo "             security add-generic-password -a \"$acct\" -s $svc -w" >&2
   else
