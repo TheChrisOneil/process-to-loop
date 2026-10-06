@@ -12,4 +12,7 @@ D=${DESIGN_PATH:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set — the authoring step did not record where it wrote." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D — nothing was authored." >&2; exit 75; }
 [ -x "$HERE/tooling/validate.sh" ] || { echo "the validator is not at $HERE/tooling/validate.sh." >&2; exit 75; }
-exec "$HERE/tooling/validate.sh" "$D"
+# The question set goes in, or V32-V34 do not run and nothing says so. A rule
+# that quietly does not run is the defect this pipeline exists to catch.
+exec env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
+     "$HERE/tooling/validate.sh" "$D"

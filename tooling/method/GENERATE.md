@@ -20,7 +20,24 @@ and record what you saw as an assumption.
 
 ## 2. The procedure, in order
 
-**Step 1 — State your assumptions before anything else.** You are working from an incomplete
+**Step 0 — Read the answers.** If a `QUESTIONS.md` was supplied, it holds answers obtained
+from a person for this design. Read it before the description, and set `@meta.questions_sha256`
+to its SHA-256: the design is bound to the answers by content, never by filename.
+
+Every question becomes an assumption that cites it and says how it was answered:
+
+```
+- [Q1] stated by Buzz, process owner: one unit is one appointment
+- [Q4] unanswered — Finance owes the retention period; assumed seven years
+- [Q9] delegated by Buzz, who asked the system to choose: 48 hours
+```
+
+A `stated` answer is a fact you were given; do not second-guess it. An `unanswered` question is
+a real gap — assume, and say whose answer is still owed. A `delegated` question is one the owner
+asked you to settle; settle it, and record that they asked, because that is what makes the
+choice defensible rather than merely made.
+
+**Step 1 — State your remaining assumptions.** You are working from an incomplete
 description. Every gap you filled is an assumption, and it goes in `@assumptions`. Be specific:
 "the ERP exposes order lines by query" rather than "data is available". A design whose
 assumptions are hidden reads as authoritative and stops the conversation it should start.
@@ -112,7 +129,8 @@ them and give the model only that step's output. V31 refuses the rest.
 A design is rejected unless all of these hold:
 
 1. Every section is present: `@meta @assumptions @unit @steps @gates @evidence @kpis`
-2. `@meta` sets `use_case` (20+ characters), `author`, `date`, `approver`, `exit_criterion`
+2. `@meta` sets `use_case` (20+ characters), `author`, `date`, `approver`, `exit_criterion`,
+   and `questions_sha256` when a question set was supplied
 3. The approver is a role or a person, never "the system", "the agent" or "automatic"
 4. `exit_criterion` contains a figure
 5. At least one assumption

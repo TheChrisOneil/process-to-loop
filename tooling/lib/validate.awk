@@ -21,6 +21,16 @@ BEGIN {
     }
     close(CATFILE)
   }
+  # The question set: id -> class, answer type. Loaded here for the same reason
+  # the catalog is — one read, and every rule below leans on the same arrays.
+  QN = 0
+  if (QFILE != "") {
+    while ((getline ql < QFILE) > 0) {
+      nq2 = split(ql, qf, "\t")
+      if (nq2 >= 1 && qf[1] != "") { QN++; QORD[QN] = qf[1]; QCLASS[qf[1]] = qf[2]; QTYPE[qf[1]] = qf[3] }
+    }
+    close(QFILE)
+  }
 }
 
 END {
@@ -273,6 +283,42 @@ END {
       if (leak=="") { if (n_tool>0) ok("V31","no PHI tool is used by a model step") }
       else rec("ERROR","V31","PHI reaches a model:" leak,"the catalog says this data does not leave the local boundary; redact in a mechanical step and give the model only that output")
     }
+  }
+
+  # ---- the interview, V32-V34 ----
+  # A design is bound to the question set that produced it the same way
+  # acceptance is bound to the design: by content. Without that, an answered
+  # question and a model's guess are the same sentence in the same list, and the
+  # whole point of asking was to make them distinguishable.
+  if (QN == 0) {
+    rec("WARN","V32","no question set was supplied, so V32-V34 did not run",
+        "pass QUESTIONS=<QUESTIONS.md>. A design authored without an interview carries assumptions nobody was asked about")
+  } else {
+    if (V["meta.questions_sha256"] == "")
+      rec("ERROR","V32","@meta.questions_sha256 is not set","name the question set this design was authored from, by digest — a filename is not a binding")
+    else if (V["meta.questions_sha256"] != QSHA)
+      rec("ERROR","V32","@meta.questions_sha256 is " substr(V["meta.questions_sha256"],1,12) "... and the question set is " substr(QSHA,1,12) "...",
+          "the design was authored from a different set of answers than the one in front of you — re-author, or point at the right file")
+    else ok("V32","the design is bound to its question set by digest")
+
+    uncited=""; wrongprov=""
+    for (vq=1; vq<=QN; vq++) {
+      vqid = QORD[vq]; vqt = QTYPE[vqid]
+      cited = 0; provok = 0
+      for (vqa=1; vqa<=a+0; vqa++) {
+        if (index(ASSUM[vqa], "[" vqid "]") == 0) continue
+        cited = 1
+        if (vqt == "" || index(tolower(ASSUM[vqa]), vqt) > 0) provok = 1
+      }
+      if (!cited) uncited = uncited " " vqid
+      else if (!provok) wrongprov = wrongprov " " vqid "(" vqt ")"
+    }
+    if (uncited=="") ok("V33","every one of the " QN " questions is cited by an assumption")
+    else rec("ERROR","V33","asked and never carried into the design:" uncited,
+             "declare an assumption citing [Qn] for each — a question answered and then dropped is worse than one never asked")
+    if (wrongprov=="") { if (uncited=="") ok("V34","every citing assumption carries how the answer was given") }
+    else rec("ERROR","V34","the assumption does not say how the answer was given:" wrongprov,
+             "write stated, unanswered or delegated in the assumption — an auditor reading this list must be able to tell a confirmed fact from a surviving guess")
   }
 
   # ---- output ----

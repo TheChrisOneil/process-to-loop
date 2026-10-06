@@ -20,18 +20,27 @@ R=${ARTIFACT_ROOT:-}
 [ -d "$R/checks" ] || { echo "REFUSED: $R/checks does not exist — nothing was bound." >&2
   echo "         Next human action: run tooling/bind-checks.sh and try again." >&2; exit 1; }
 
-EXPECT="design-reviewed design-validate design-audited diagrams-complete bundle-records prior-archived"
+# name:the one variable without which THAT check is running on nothing. Naming
+# it per check, rather than testing DESIGN_PATH for all of them, is the
+# difference between proving the binding and proving a binding happened: the
+# question gates would pass a DESIGN_PATH test while carrying no questions.
+EXPECT="design-reviewed:DESIGN_PATH design-validate:DESIGN_PATH design-audited:DESIGN_PATH
+        diagrams-complete:DESIGN_PATH bundle-records:BUNDLE_PATH prior-archived:ARTIFACT_ROOT
+        questions-asked:QUESTIONS_PATH questions-answered:QUESTIONS_PATH"
 BAD=""
-for n in $EXPECT; do
+NCHECK=0
+for spec in $EXPECT; do
+  n=${spec%%:*}; need=${spec#*:}
+  NCHECK=$((NCHECK+1))
   W="$R/checks/$n.sh"
   if   [ ! -f "$W" ];            then BAD="$BAD $n(absent)"
   elif [ ! -x "$W" ];            then BAD="$BAD $n(not-executable)"
   else
     # A wrapper with no value bound is worse than no wrapper: it runs, and it
     # runs on whatever the environment happened to carry.
-    v=$(sed -n "s/^export DESIGN_PATH='\(.*\)'$/\1/p" "$W" | head -1)
+    v=$(sed -n "s/^export $need='\(.*\)'$/\1/p" "$W" | head -1)
     t=$(sed -n "s/^exec '\(.*\)' .*/\1/p" "$W" | head -1)
-    if   [ -z "$v" ];            then BAD="$BAD $n(no-DESIGN_PATH)"
+    if   [ -z "$v" ];            then BAD="$BAD $n(no-$need)"
     elif [ -z "$t" ];            then BAD="$BAD $n(no-target)"
     elif [ ! -f "$t" ];          then BAD="$BAD $n(target-missing)"
     fi
@@ -47,5 +56,5 @@ if [ -n "$BAD" ]; then
   exit 1
 fi
 
-echo "bound and usable: $(echo $EXPECT | wc -w | tr -d ' ') check(s) in $R/checks"
+echo "bound and usable: $NCHECK check(s) in $R/checks"
 exit 0

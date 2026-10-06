@@ -761,6 +761,145 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "THE INTERVIEW"
+IV=$(mktemp -d)
+cat > "$IV/Q.md" <<'QEOF'
+# Questions on test
+
+interview: tooling/method/INTERVIEW.md v1
+asked: 2026-10-06
+catalog: catalog/eb-tools.catalog
+use_case_sha256: deadbeef
+
+Prose: with a colon in it, which the parser must ignore.
+
+## Q1 — the unit of work
+class: structural
+asks: Is one unit one appointment, or one patient?
+why: Everything downstream is costed per unit.
+catalog: eb-appointment-service provides appointment_id, patient_ref
+answer:
+
+## Q2 — the thresholds
+class: parametric
+asks: What figure separates routine from escalation?
+why: Every gate condition must carry a number.
+answer:
+QEOF
+cp "$IV/Q.md" "$IV/base.md"
+
+"$HERE/tooling/questions.sh" validate "$IV/Q.md" >/dev/null 2>&1 \
+  && ok "a well-formed question set passes its rules" \
+  || no "a well-formed question set was refused"
+"$HERE/tooling/questions.sh" answered "$IV/Q.md" >/dev/null 2>&1 \
+  && no "a set with every block open was reported as answered" \
+  || ok "an open block is refused — silence is not one of the three answers"
+
+# The three answers, each legal, each leaving different provenance.
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz" --value "one appointment" >/dev/null 2>&1 \
+  && ok "a stated answer is written" || no "a stated answer was refused"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q2 delegated --by "Buzz" --value "48 hours" >/dev/null 2>&1 \
+  && ok "you pick it is a legal answer" || no "a delegated answer was refused"
+grep -q 'assumed: 48 hours' "$IV/Q.md" \
+  && ok "a delegated answer records the value chosen on their behalf" \
+  || no "a delegated answer did not carry what was assumed"
+"$HERE/tooling/questions.sh" answered "$IV/Q.md" >/dev/null 2>&1 \
+  && ok "a fully answered set passes" || no "a fully answered set was refused"
+
+cp "$IV/base.md" "$IV/Q.md"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 unanswered --by "Finance" >/dev/null 2>&1 \
+  && ok "I do not know is a legal answer" || no "an unanswered answer was refused"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz" >/dev/null 2>&1 \
+  && no "a stated answer with no value was accepted" \
+  || ok "a stated answer with no value is refused — that is unanswered with the wrong label"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 maybe --by "Buzz" --value x >/dev/null 2>&1 \
+  && no "a fourth answer type was accepted" || ok "there are exactly three answer types"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz|x" --value y >/dev/null 2>&1 \
+  && no "a pipe inside a field was accepted" || ok "a pipe cannot appear inside a field it separates"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q9 stated --by "Buzz" --value y >/dev/null 2>&1 \
+  && no "an answer to a question that does not exist was accepted" \
+  || ok "an answer to a question nobody asked is refused"
+
+# use_case_sha256 holds digits. A key pattern of letters alone drops it silently.
+grep -q 'use_case_sha256' "$IV/Q.md" && \
+  "$HERE/tooling/questions.sh" validate "$IV/Q.md" 2>&1 | grep -q 'PASS.*I1' \
+  && ok "a header key containing digits is parsed, not treated as prose" \
+  || no "use_case_sha256 was not read as a header key"
+
+# A catalog line naming something nobody has is the interview inventing a tool.
+sed 's|catalog: eb-appointment-service.*|catalog: eb-no-such-service provides everything|' "$IV/base.md" > "$IV/ghost.md"
+"$HERE/tooling/questions.sh" validate "$IV/ghost.md" >/dev/null 2>&1 \
+  && no "a question citing a tool the organization does not have was accepted" \
+  || ok "the interview cannot invent a tool — none is the honest answer"
+
+# The gate must not accept questions about a different description.
+UC=$(mktemp); echo "a described process" > "$UC"
+cp "$IV/base.md" "$IV/Q.md"
+QUESTIONS_PATH="$IV/Q.md" USE_CASE_PATH="$UC" "$HERE/checks/questions-asked.sh" >/dev/null 2>&1 \
+  && no "questions about a different use case passed the gate" \
+  || ok "a question set about another description is refused by digest"
+QUESTIONS_PATH="$IV/nothing.md" "$HERE/checks/questions-asked.sh" >/dev/null 2>&1
+[ $? -eq 75 ] && ok "a missing question set exits 75 — could not run, not a bad design" \
+              || no "a missing question set did not exit 75"
+rm -f "$UC"
+
+# V32-V34: the design is bound to the answers, and says how each was given.
+cp "$IV/base.md" "$IV/Q.md"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz" --value "one appointment" >/dev/null 2>&1
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q2 delegated --by "Buzz" --value "48 hours" >/dev/null 2>&1
+QSHA=$(shasum -a 256 "$IV/Q.md" | cut -d' ' -f1)
+sed -e "s|^@meta|@meta\nquestions_sha256: $QSHA|" \
+    -e "s|^@assumptions|@assumptions\n- [Q1] stated by Buzz: one appointment\n- [Q2] delegated by Buzz, who asked the system to choose: 48 hours|" \
+    "$HERE/examples/appointments-chase.design" > "$IV/d.design"
+QUESTIONS="$IV/Q.md" "$HERE/tooling/validate.sh" "$IV/d.design" >/dev/null 2>&1 \
+  && ok "a design citing every question, with its provenance, passes V32-V34" \
+  || no "a correctly cited design was refused"
+"$HERE/tooling/validate.sh" "$IV/d.design" 2>&1 | grep -q 'WARN.*V32.*no question set' \
+  && ok "a run with no question set is WARNED, never silently skipped" \
+  || no "V32 skipped without saying so — a rule that quietly does not run"
+sed 's|^questions_sha256: .*|questions_sha256: 0000|' "$IV/d.design" > "$IV/d2.design"
+QUESTIONS="$IV/Q.md" "$HERE/tooling/validate.sh" "$IV/d2.design" >/dev/null 2>&1 \
+  && no "a design bound to a different set of answers was accepted" \
+  || ok "a design authored from other answers is refused by digest"
+grep -v '^- \[Q2\]' "$IV/d.design" > "$IV/d3.design"
+QUESTIONS="$IV/Q.md" "$HERE/tooling/validate.sh" "$IV/d3.design" >/dev/null 2>&1 \
+  && no "a design that dropped an answered question was accepted" \
+  || ok "a question answered and then dropped is refused"
+sed 's|^- \[Q2\] delegated by Buzz, who asked the system to choose:|- [Q2] the system chose:|' "$IV/d.design" > "$IV/d4.design"
+QUESTIONS="$IV/Q.md" "$HERE/tooling/validate.sh" "$IV/d4.design" >/dev/null 2>&1 \
+  && no "an assumption hiding how it was answered was accepted" \
+  || ok "an assumption must say whether it was stated, unanswered or delegated"
+
+# A delegated structural choice reaches the person who signs.
+cat > "$IV/v.json" <<'VEOF'
+{"author_model":"m1","audit_model":"m2","verdict":"sound","confidence":"high","checked":["unit-of-work"],"defects":[]}
+VEOF
+# Q2 is parametric and stays delegated: delegating a threshold is the end of it.
+"$HERE/tooling/findings.sh" "$IV/v.json" "$IV/d.design" --questions "$IV/Q.md" >/dev/null 2>&1
+grep -q 'You delegated a structural choice' "$IV/FINDINGS.md" \
+  && no "delegating a PARAMETRIC answer raised a finding — that is the interruption this avoids" \
+  || ok "a delegated threshold is the end of it, and interrupts nobody"
+# Q1 is structural. Delegating the unit of work is the highest-leverage decision
+# in the system being handed over, and it must come back before anybody signs.
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 delegated --by "Buzz" --value "one appointment" >/dev/null 2>&1
+"$HERE/tooling/findings.sh" "$IV/v.json" "$IV/d.design" --questions "$IV/Q.md" >/dev/null 2>&1
+grep -q 'You delegated a structural choice' "$IV/FINDINGS.md" \
+  && ok "a delegated structural choice becomes a finding before signing" \
+  || no "a delegated structural choice never reached the approver"
+grep -q 'Q1' "$IV/FINDINGS.md" && grep -q 'one appointment' "$IV/FINDINGS.md" \
+  && ok "the finding names the question and what was assumed" \
+  || no "the finding did not say what was chosen"
+grep -q 'How the questions were answered' "$IV/FINDINGS.md" \
+  && ok "the ratio of stated to delegated is reported at the gate" \
+  || no "the gate does not report how the questions were answered"
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz" --value "one appointment" --synthetic >/dev/null 2>&1
+"$HERE/tooling/findings.sh" "$IV/v.json" "$IV/d.design" --questions "$IV/Q.md" >/dev/null 2>&1
+grep -q 'synthetic' "$IV/FINDINGS.md" \
+  && ok "an answer supplied on the owner's behalf is declared, not hidden" \
+  || no "a synthetic answer was indistinguishable from a real one"
+rm -rf "$IV"
+
+echo
 echo "FORMULA PREFLIGHT"
 PT=$(mktemp -d); mkdir -p "$PT/rig"
 # A rig with no checks is exactly the 2026-10-02 failure. It must be caught
@@ -777,6 +916,7 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
   use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
   method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
   checks_root="$HERE/checks" catalog_path="$HERE/catalog/eb-tools.catalog" \
+  questions_path="$HERE/README.md" interview_path="$HERE/tooling/method/INTERVIEW.md" \
   artifact_root="$HERE" approver=a >/dev/null 2>&1
 [ $? -eq 0 ] && ok "preflight passes when everything resolves" \
              || no "preflight refused a setup where every path exists"
@@ -787,6 +927,7 @@ grep -q 'checks/design-reviewed.sh' "$PT/out" \
   use_case_path="$HERE/README.md" design_path="$HERE/README.md" \
   method_path="$HERE/tooling/method/GENERATE.md" tooling_root="$HERE/tooling" \
   checks_root="$HERE/checks" artifact_root="$HERE" approver=a \
+  questions_path="$HERE/README.md" interview_path="$HERE/tooling/method/INTERVIEW.md" \
   audit_provider=ptl-no-such-provider >"$PT/cap" 2>&1
 [ $? -eq 1 ] && ok "preflight refuses a provider that is not installed" \
              || no "preflight passed a run whose audit provider does not exist"

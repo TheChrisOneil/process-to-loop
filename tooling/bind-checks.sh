@@ -23,7 +23,7 @@ R=${1:?artifact_root}; C=${2:?checks_dir}; shift 2
 
 # The checks a design-authoring run uses. A name here that is not in $C is a
 # dropped gate, so it refuses rather than emitting a partial set.
-CHECKS="design-reviewed design-validate design-audited diagrams-complete bundle-records prior-archived"
+CHECKS="design-reviewed design-validate design-audited diagrams-complete bundle-records prior-archived questions-asked questions-answered"
 
 MISSING=""
 for n in $CHECKS; do [ -f "$C/$n.sh" ] || MISSING="$MISSING $n"; done

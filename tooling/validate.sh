@@ -7,6 +7,11 @@
 #   ./validate.sh <design file>          human-readable findings; exit 1 on any ERROR
 #   ./validate.sh --tsv <design file>    machine-readable, for a later step to gate on
 #   ./validate.sh --rules                print the rule list and exit
+#
+# env: CATALOG    the tool catalog the design is checked against
+#      QUESTIONS  the QUESTIONS.md this design was authored from. Supplying it
+#                 turns on V32-V34, which are what make an answered question
+#                 traceable into the design. Omitting it is reported, not silent.
 set -uo pipefail
 
 MODE=human
@@ -51,6 +56,9 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V29  every tool is used by a step that exists
 # V30  every source constraint is structural (never/only) or evaluable
 # V31  no tool carrying PHI is used by a step whose actor is a model
+# V32  the design names the question set it was authored from, by digest
+# V33  every question asked is cited by an assumption, as [Qn]
+# V34  the citing assumption carries the answer's provenance: stated, unanswered or delegated
 # END RULES
 
 # The catalog, flattened so validate.awk can read it without a second parser.
@@ -70,6 +78,24 @@ CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATFILE.q" "$CATALOG" > "$CATFILE" 2>/dev/null
   rm -f "$CATFILE.q"
 fi
-trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"' EXIT
+# The question set, flattened the same way, plus its digest. A design is bound to
+# the interview that produced it exactly as acceptance is bound to the design: by
+# content, never by filename. Supplying no question set is legal and is WARNED
+# about rather than passed over — a rule that quietly does not run is the defect
+# this whole project is about.
+QUESTIONS=${QUESTIONS:-}
+QFILE=""; QSHA=""
+if [ -n "$QUESTIONS" ] && [ -f "$QUESTIONS" ]; then
+  QSHA=$(shasum -a 256 "$QUESTIONS" | cut -d' ' -f1)
+  QFILE=$(mktemp)
+  cat > "$QFILE.q" <<'QQ'
+END { for (qx=1; qx<=nq; qx++) { qd=QID[qx]
+  printf "%s\t%s\t%s\n", qd, Q[qd ".class"], Q[qd ".answer_type"] } }
+QQ
+  awk -f "$HERE/lib/questions.awk" -f "$QFILE.q" "$QUESTIONS" > "$QFILE" 2>/dev/null
+  rm -f "$QFILE.q"
+fi
+trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"; [ -n "$QFILE" ] && rm -f "$QFILE"' EXIT
 
-awk -v mode="$MODE" -v CATFILE="$CATFILE" -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"
+awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" \
+    -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"

@@ -4,7 +4,8 @@ OUT   ?= build
 BUNDLES ?= bundles
 
 help:
-	@echo "make design DESIGN=<path>                        validate a design, 25 rules"
+	@echo "make design DESIGN=<path> [Q=<QUESTIONS.md>]     validate a design, 34 rules"
+	@echo "make questions Q=<QUESTIONS.md> [C=validate|answered|status|open]   the interview"
 	@echo "make compile DESIGN=<path> NAME=<formula-name>   design -> formula + check scripts"
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
@@ -27,8 +28,12 @@ help:
 	@echo "make clean                                       remove $(OUT)/"
 
 design:
-	@[ -n "$(DESIGN)" ] || { echo "make design DESIGN=<path>"; exit 64; }
-	@tooling/validate.sh "$(DESIGN)"
+	@[ -n "$(DESIGN)" ] || { echo "make design DESIGN=<path> [Q=<QUESTIONS.md>]"; exit 64; }
+	@QUESTIONS="$(Q)" tooling/validate.sh "$(DESIGN)"
+
+questions:
+	@[ -n "$(Q)" ] || { echo "make questions Q=<QUESTIONS.md> [C=validate|answered|status|open|tsv]"; exit 64; }
+	@tooling/questions.sh $(if $(C),$(C),status) "$(Q)"
 
 compile:
 	@[ -n "$(DESIGN)" ] && [ -n "$(NAME)" ] || { echo "make compile DESIGN=<path> NAME=<formula-name>"; exit 64; }
@@ -131,7 +136,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
+.PHONY: help design questions compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

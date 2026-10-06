@@ -98,6 +98,11 @@ one by hand and you produce a control that is declared, reported, and absent —
 the exact failure this system exists to catch. Changes go in by re-running the
 workflow, as a revision.
 
+**You do not answer the questions.** `QUESTIONS.md` is written by the run and
+answered by a person, through `questions.sh answer`. An answer you invented is
+the model-authored assumption this step was built to replace, wearing a person's
+name.
+
 **You do not accept on the person's behalf.** The acceptance register refuses a
 signature from anybody other than the approver the design itself names. Do not
 route around that. It is the point.
@@ -121,6 +126,7 @@ One folder per process, under the rig:
 
     $HOME/cities/ptl-rig/processes/<process-name>/
         use-case.txt          what they told you
+        QUESTIONS.md          written by the run, answered by them
 
 Then one command. `sling` compiles, materializes **and** routes; `gc formula
 cook` does only the first two and then stops, with nothing running and the
@@ -133,6 +139,8 @@ ready queue looking healthy:
       --var tooling_root=$HOME/software/process-to-loop/tooling \
       --var checks_root=$HOME/cities/ptl-rig/checks \
       --var catalog_path=$HOME/software/process-to-loop/catalog/eb-tools.catalog \
+      --var questions_path=$HOME/cities/ptl-rig/processes/<name>/QUESTIONS.md \
+      --var interview_path=$HOME/software/process-to-loop/tooling/method/INTERVIEW.md \
       --var artifact_root=$HOME/cities/ptl-rig/processes/<name> \
       --var approver="<the named person>"
 
@@ -152,6 +160,8 @@ mean in plain words:
 | step | say |
 |---|---|
 | `intake` | reading what they wrote, and screening it |
+| `questions` | working out what the description does not say |
+| `answers` | **waiting for them.** The interview. This is your first stop |
 | `author-design` | writing the design — **this one loops** |
 | `render` | drawing the flowchart, the sequence view, and the brief |
 | `diagrams` | checking the drawings carry every control the design claims |
@@ -174,6 +184,49 @@ suspect the supervisor — a supervisor that went stale across an upgrade leaves
 the dashboard frozen and every pool at zero agents, and it looks exactly like a
 hung step. `docs/standing-up-a-city.md` has the check and the fix.
 
+## The interview
+
+The run stops at `answers` and waits for a person. This is the part you are for.
+
+`QUESTIONS.md` is already written by then. You do not write it and you do not
+answer it — you put each question to them, in order, structural ones first, and
+you say what each one blocks. A question with no stated consequence gets a shrug.
+
+**Write every answer with the tool, never by hand:**
+
+    tooling/questions.sh answer <QUESTIONS.md> <Qn> \
+      stated|unanswered|delegated --by "<who>" [--value "<what>"]
+
+A hand-edited artifact is a control that is declared, reported and absent. The
+tool is also the only thing that knows the format, so it is the only thing that
+cannot get it wrong.
+
+**Three answers are legal, and saying so out loud is part of your job.** People
+stall on questions they cannot answer, and the whole run stalls with them:
+
+| they say | you write | what it leaves behind |
+|---|---|---|
+| the answer | `stated` | *the owner stated this* |
+| "I don't know" | `unanswered --by <who owes it>` | a minor finding naming them |
+| "you pick it" | `delegated --value <what you chose>` | the choice, and that they asked |
+
+A delegated **structural** choice becomes a major finding, so they see what was
+chosen before they sign. That is what makes "you pick it" always safe to say:
+the decision is deferred to the acceptance gate, not removed, and they get to
+disagree with a whole design in front of them instead of a question asked cold.
+
+Never write `--synthetic` for an answer a person actually gave. That flag means
+you supplied the answer on their behalf — a rehearsal, a dry run — and it is
+counted, reported and raised as a finding, because a design whose interview was
+answered by the system is not a design anybody confirmed.
+
+    tooling/questions.sh open   <QUESTIONS.md>     what is left
+    tooling/questions.sh status <QUESTIONS.md>     the ratio
+
+Transcribe; do not author. If you fill in an answer you did not get, the result
+is indistinguishable from the model-authored assumption the whole step exists to
+replace.
+
 ## When it parks at the gate
 
 `accept-design` is a real blocking bead. It holds until a person closes it, and
@@ -192,6 +245,9 @@ Put in front of them, on one screen:
 - **what the rules said**, including any warning, and **the audit verdict**,
   including what it found. Do not compress the audit into a sentence that loses
   what it found.
+- **how their questions were answered** — stated against delegated against
+  unanswered, and how many were synthetic. A design with more delegated answers
+  than stated ones was not really interviewed.
 
 Then ask the two questions the step asks: is this the unit of work you would
 defend to the person who owns this process, and is the one judgment really the

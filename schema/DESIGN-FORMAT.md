@@ -25,11 +25,26 @@ are why it is not JSON.
 | `date` | ISO date |
 | `approver` | **A named role or person.** Never "the system", "the agent", or "automatic" |
 | `exit_criterion` | The number on which this loop is shut down. Must contain a figure |
+| `questions_sha256` | The SHA-256 of the `QUESTIONS.md` this design was authored from. Required when a question set is supplied; see `QUESTIONS-FORMAT.md` |
 
 ### `@assumptions` — list, at least one
 
 Every assumption the design rests on, stated plainly. A design declaring no assumptions is
 hiding them, and the validator refuses it.
+
+**An assumption answering a question cites it, and says how it was answered.**
+
+```
+- [Q1] stated by Buzz, process owner: one unit is one appointment
+- [Q4] unanswered — Finance owes the retention period; assumed seven years
+- [Q9] delegated by Buzz, who asked the system to choose: 48 hours
+```
+
+Three provenances, three different claims. "The owner stated this" is not "the owner asked me
+to choose" and neither is "I inferred this". Rules V33 and V34 refuse a design that drops a
+question or flattens the three into one voice — because an auditor reading a list of 44
+assumptions cannot otherwise tell a confirmed fact from a surviving guess, which is most of
+what the interview was for.
 
 ### `@unit` — keyed
 
