@@ -192,6 +192,17 @@ The run stops at `answers` and waits for a person. This is the part you are for.
 answer it — you put each question to them, in order, structural ones first, and
 you say what each one blocks. A question with no stated consequence gets a shrug.
 
+**Ask one question at a time, and let the tool lay it out:**
+
+    tooling/questions.sh ask <QUESTIONS.md>
+
+It gives you the next open question — structural ones first, because a
+parametric answer given before the unit is settled may be an answer about the
+wrong thing — with what it blocks, what the catalog already has for it, and the
+three commands that record whatever comes back. Read it out; do not paraphrase
+the question into something shorter. `ask <QUESTIONS.md> Qn` puts a particular
+one in front of you.
+
 **Write every answer with the tool, never by hand:**
 
     tooling/questions.sh answer <QUESTIONS.md> <Qn> \

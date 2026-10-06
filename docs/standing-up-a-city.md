@@ -573,6 +573,18 @@ A delegated **structural** answer — the unit of work, the judgment, the source
 becomes a major finding, so the owner sees the choice at the acceptance gate. Delegation defers
 the decision rather than removing it. That is what makes "you pick it" always safe to say.
 
+### Ask one question at a time
+
+```bash
+tooling/questions.sh ask <QUESTIONS.md>        # the next open one, laid out to read aloud
+tooling/questions.sh ask <QUESTIONS.md> Q7     # a particular one
+```
+
+It hands back the structural questions first — a parametric answer given before the unit is
+settled may be an answer about the wrong thing — with what the question blocks, what the catalog
+already has for it, and the three commands that record whatever comes back. Read it out rather
+than paraphrasing it shorter; the phrasing is what the gate checked.
+
 ### Write answers with the tool
 
 ```bash

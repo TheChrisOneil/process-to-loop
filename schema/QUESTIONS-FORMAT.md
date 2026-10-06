@@ -60,6 +60,10 @@ All four are required.
 | `catalog` | no | what the organization already has for this, or `none` |
 | `answer` | yes | written by `questions.sh answer`, never by hand |
 
+`questions.sh ask` renders one of these for a person to answer; `questions.sh brief` renders all
+of them as a table for the acceptance screen. Neither is a second definition of the format —
+both read the same parser.
+
 Ids run `Q1..Qn` with no gaps, because a finding cites a question by id.
 
 ---

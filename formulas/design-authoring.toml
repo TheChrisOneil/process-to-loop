@@ -344,9 +344,14 @@ description = """
 A person does this. The gate below holds until every block in {{questions_path}}
 has an answer.
 
-Put the questions to {{approver}} — structural first, because a parametric answer
-given before the unit is settled may be an answer about the wrong thing. Say what
-each one blocks. A question with no stated consequence gets a shrug.
+Put the questions to {{approver}} one at a time:
+
+    {{tooling_root}}/questions.sh ask {{questions_path}}
+
+It hands you the next open one — structural first, because a parametric answer
+given before the unit is settled may be an answer about the wrong thing — with
+what that question blocks and what the catalog already has for it. Say what each
+one blocks. A question with no stated consequence gets a shrug.
 
 Write each answer with the tool, never by hand:
 

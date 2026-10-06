@@ -5,6 +5,7 @@
 #   questions.sh answered  <QUESTIONS.md>                      has every block an answer?
 #   questions.sh status    <QUESTIONS.md>                      the counts, and the ratio
 #   questions.sh open      <QUESTIONS.md>                      what is still unanswered
+#   questions.sh ask       <QUESTIONS.md> [Qn]                 put the next question to a person
 #   questions.sh tsv       <QUESTIONS.md>                      one row per question
 #   questions.sh brief     <QUESTIONS.md>                      the same, as a markdown table
 #   questions.sh answer    <QUESTIONS.md> <Qn> <type> --by <who> [--value <v>] [--synthetic]
@@ -118,13 +119,55 @@ trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"' EXIT
 
 case "$CMD" in
 
-tsv|open|status|brief)
+tsv|open|status|brief|ask)
   # A short query program, appended to the parser. Once awk is given -f it takes
   # EVERY program that way, so these go to a file: a program passed inline after
   # -f is read as a data file, and the first symptom is a parse error quoting
   # your own program back at you.
   QP=$(mktemp)
   case "$CMD" in
+  ask) cat > "$QP" <<'QAWK'
+# One question, laid out to be read ALOUD. The interview is a conversation and
+# the file is the record; this is the half that makes the conversation possible
+# without a person learning the file format first.
+END {
+  pick = ""
+  for (qx=1; qx<=nq; qx++) { qd=QID[qx]
+    if (want != "") { if (qd==want) { pick=qd; break } ; continue }
+    # Structural first: a parametric answer given before the unit is settled may
+    # be an answer about the wrong thing.
+    if (Q[qd ".answer_type"]=="" && Q[qd ".class"]=="structural") { pick=qd; break }
+  }
+  if (pick=="" && want=="")
+    for (qx=1; qx<=nq; qx++) { qd=QID[qx]
+      if (Q[qd ".answer_type"]=="") { pick=qd; break } }
+  if (pick=="") { print "Every question has an answer. Nothing left to ask."; exit 0 }
+
+  left=0
+  for (qx=1; qx<=nq; qx++) if (Q[QID[qx] ".answer_type"]=="") left++
+
+  printf "%s  (%s)   %d of %d still open\n\n", pick, Q[pick ".class"], left, nq
+  print Q[pick ".asks"]
+  printf "\n  why it matters: %s\n", Q[pick ".why"]
+  if (Q[pick ".catalog"] != "") {
+    if (tolower(Q[pick ".catalog"])=="none")
+      print "  the catalog has nothing for this. If they need it, that is a finding, not an assumption."
+    else
+      printf "  your organization already has: %s\n", Q[pick ".catalog"]
+  }
+  if (Q[pick ".answer_type"] != "")
+    printf "\n  ALREADY ANSWERED %s by %s on %s: %s\n", Q[pick ".answer_type"], Q[pick ".answer_by"], Q[pick ".answer_date"], Q[pick ".answer_value"]
+  print "\n  Three answers are legal. Whichever they give, write it with:"
+  printf "\n    questions.sh answer <file> %s stated     --by \"<who>\" --value \"<what they said>\"\n", pick
+  printf "    questions.sh answer <file> %s unanswered --by \"<who owes the answer>\"\n", pick
+  printf "    questions.sh answer <file> %s delegated  --by \"<who asked you to choose>\" --value \"<what you chose>\"\n", pick
+  if (Q[pick ".class"]=="structural")
+    print "\n  This one is structural. A delegated answer here becomes a finding they see\n  before they sign, so \"you pick it\" is safe to offer."
+  else
+    print "\n  This one is parametric. A delegated answer here is the end of it."
+}
+QAWK
+    ;;
   tsv) cat > "$QP" <<'QAWK'
 END { for (qx=1; qx<=nq; qx++) { qd=QID[qx]
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", qd, Q[qd ".class"],
@@ -180,7 +223,7 @@ END {
 QAWK
     ;;
   esac
-  awk -f "$AWKLIB" -f "$QP" "$F"; RC=$?
+  awk -v want="${1:-}" -f "$AWKLIB" -f "$QP" "$F"; RC=$?
   rm -f "$QP"; exit $RC
   ;;
 

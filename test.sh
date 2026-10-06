@@ -970,6 +970,32 @@ grep -q 'questions_path' "$HERE/formulas/design-authoring.toml" \
   && grep -q 'brief.sh {{design_path}} --questions' "$HERE/formulas/design-authoring.toml" \
   && ok "the render step hands the brief its question set" \
   || no "the brief is written without the answers, so the acceptance screen is half a screen"
+# ask: the half that makes the interview a conversation rather than a file format.
+# base.md is the pristine copy: by this point Q.md is fully answered, and ask
+# would correctly report that there is nothing left to ask.
+A1=$("$HERE/tooling/questions.sh" ask "$IV/base.md" 2>&1)
+printf '%s' "$A1" | grep -q '^Q1 ' \
+  && ok "ask puts the first open STRUCTURAL question first" \
+  || no "ask did not lead with a structural question"
+printf '%s' "$A1" | grep -q 'stated' && printf '%s' "$A1" | grep -q 'unanswered' \
+  && printf '%s' "$A1" | grep -q 'delegated' \
+  && ok "ask shows all three answers every time, so none is forgotten" \
+  || no "ask does not offer all three answer types"
+printf '%s' "$A1" | grep -q 'why it matters' \
+  && ok "ask says what the question blocks" \
+  || no "a question with no stated consequence gets a shrug"
+printf '%s' "$A1" | grep -q 'becomes a finding' \
+  && ok "ask says a delegated structural answer comes back before signing" \
+  || no "ask does not say why you pick it is safe to offer here"
+AE=$("$HERE/tooling/questions.sh" ask "$IV/Q.md" 2>&1)
+printf '%s' "$AE" | grep -q 'Nothing left to ask' \
+  && ok "ask says so when every question has an answer" \
+  || no "ask invents a question when none is open"
+grep -q 'questions.sh ask' "$HERE/agents/mayor/prompt.template.md" \
+  && grep -q 'questions.sh ask' "$HERE/formulas/design-authoring.toml" \
+  && ok "the mayor and the formula both point at ask" \
+  || no "ask exists and nothing tells anyone to use it"
+
 # run-status is the screen I report from, so its blind spots are mine.
 RS="$HERE/tooling/run-status.sh"
 grep -q 'gc bd gate list' "$RS" \
