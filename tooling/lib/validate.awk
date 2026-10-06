@@ -2,7 +2,16 @@
 function rec(sev,id,msg,fix) { n++; SEV[n]=sev; ID[n]=id; MSG[n]=msg; FIX[n]=fix
                                if (sev=="ERROR") errs++; if (sev=="WARN") warns++ }
 function ok(id,msg) { n++; SEV[n]="PASS"; ID[n]=id; MSG[n]=msg; passes++ }
-function checkable(c,   s) { s=tolower(c)
+# A gate condition of the form "<table> yields <output> <value>" is checkable by
+# construction: the table is executable, and V35-V38 already checked it. It is
+# MORE checkable than prose, which is why it does not have to look like prose.
+function decision_ref(c,   s) { s=tolower(c); return (s ~ /^[a-z0-9_-]+ +yields +[a-z0-9_-]+ +/) }
+function decision_table(c,   P) { split(c, P, / +/); return P[1] }
+function decision_out(c,   P)   { split(c, P, / +/); return P[3] }
+function decision_val(c,   P, n, i, v) { n=split(c, P, / +/); v=""
+  for (i=4; i<=n; i++) v = v (i>4 ? " " : "") P[i]; return v }
+function checkable(c,   s) { if (decision_ref(c)) return 1
+  s=tolower(c)
   # A condition is checkable when a script could evaluate it with no judgment: a figure, a
   # comparison, an absolute, or a stated equality or absence test.
   return (s ~ /[0-9]/ || s ~ /never/ || s ~ /[<>=]/ || s ~ /at least|at most/ ||
@@ -320,6 +329,71 @@ END {
     else rec("ERROR","V34","the assumption does not say how the answer was given:" wrongprov,
              "write stated, unanswered or delegated in the assumption — an auditor reading this list must be able to tell a confirmed fact from a surviving guess")
   }
+
+  # ---- decision tables, V35-V38 ----
+  # A gate whose condition is prose compiles to a STUB somebody must implement.
+  # A gate backed by a table compiles to working logic — and the table can be
+  # asked three questions a bash conditional cannot answer: does any input fall
+  # through, do two rules claim the same input, is any output never produced.
+  # Those three rules are the entire reason for the feature.
+  if (n_dt > 0) {
+    bad=""; badhit=""; badw=""
+    for (dz=1; dz<=n_dt; dz++) {
+      did=DTID[dz]
+      if (DTNIN[did]+0 == 0 || DTNOUT[did]+0 == 0) bad = bad " " did
+      if (DTHIT[did] != "unique" && DTHIT[did] != "first") badhit = badhit " " did "(" (DTHIT[did]=="" ? "none" : DTHIT[did]) ")"
+      if (DTNR[did]+0 == 0) bad = bad " " did "(no rules)"
+      want = DTNIN[did] + DTNOUT[did]
+      for (dr=1; dr<=DTNR[did]+0; dr++) {
+        got = dt_cells(did, dr, DC)
+        if (got != want) badw = badw " " did "#" dr "(" got " of " want ")"
+      }
+    }
+    if (bad=="") ok("V35", n_dt " decision table(s), each with inputs, outputs and rules")
+    else rec("ERROR","V35","incomplete decision table(s):" bad,"a table declares inputs, outputs and at least one rule")
+    if (badhit=="") ok("V36","every table names a hit policy")
+    else rec("ERROR","V36","unknown hit policy at:" badhit,"write unique or first after the table name — unique is the one a reviewer can check, and first hides an overlap behind an ordering")
+    if (badw=="") ok("V37","every rule has one cell per input and per output")
+    else rec("ERROR","V37","wrong cell count at:" badw,"a short row silently shifts every output one column left")
+
+    # overlap, under unique only: two rules claiming the same input is a defect
+    # the table format can detect and prose cannot.
+    ov=""
+    for (dz=1; dz<=n_dt; dz++) {
+      did=DTID[dz]
+      if (DTHIT[did] != "unique") continue
+      for (dr=1; dr<=DTNR[did]+0; dr++) {
+        dt_cells(did, dr, DA)
+        for (dr2=dr+1; dr2<=DTNR[did]+0; dr2++) {
+          dt_cells(did, dr2, DB)
+          clash=1
+          for (dc=1; dc<=DTNIN[did]+0; dc++)
+            if (!dt_cells_overlap(DA[dc], DB[dc])) { clash=0; break }
+          if (clash) ov = ov " " did "#" dr "/#" dr2
+        }
+      }
+    }
+    if (ov=="") ok("V38","no two rules under a unique policy claim the same input")
+    else rec("ERROR","V38","overlapping rules:" ov,"under unique exactly one rule may match — narrow one of them, or say first and accept that the order is the logic")
+  }
+
+  # V39 a gate naming a decision table names one that exists, and an output it has.
+  # Without this a typo compiles to a check that evaluates nothing and refuses
+  # everything, which reads in the log exactly like a design that is working.
+  dghost=""
+  for (dg=1; dg<=g+0; dg++) {
+    if (!decision_ref(GCOND[dg])) continue
+    dtab = decision_table(GCOND[dg]); dout = decision_out(GCOND[dg])
+    dfound = 0
+    for (dz=1; dz<=n_dt; dz++) if (DTID[dz] == dtab) { dfound = 1; break }
+    if (!dfound) { dghost = dghost " gate" dg "(no table " dtab ")"; continue }
+    don = split(DTOUT[dtab], DO2, / *\| */); dok = 0
+    for (dc=1; dc<=don; dc++) { gsub(/^ +| +$/, "", DO2[dc]); if (DO2[dc] == dout) { dok = 1; break } }
+    if (!dok) dghost = dghost " gate" dg "(" dtab " has no output " dout ")"
+    if (decision_val(GCOND[dg]) == "") dghost = dghost " gate" dg "(no value to compare)"
+  }
+  if (dghost=="") { if (n_dt > 0) ok("V39","every gate naming a decision table names a real one") }
+  else rec("ERROR","V39","gate(s) naming a table or output that does not exist:" dghost,"write <table> yields <output> <value>, naming a table in @decisions and one of its outputs")
 
   # ---- output ----
   if (mode=="tsv") {

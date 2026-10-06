@@ -59,6 +59,11 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V32  the design names the question set it was authored from, by digest
 # V33  every question asked is cited by an assumption, as [Qn]
 # V34  the citing assumption carries the answer's provenance: stated, unanswered or delegated
+# V35  every decision table declares inputs, outputs and at least one rule
+# V36  every decision table names a hit policy: unique or first
+# V37  every rule has one cell per input and per output
+# V38  under a unique policy, no two rules claim the same input
+# V39  a gate naming a decision table names a real table and a real output
 # END RULES
 
 # The catalog, flattened so validate.awk can read it without a second parser.
@@ -98,4 +103,6 @@ fi
 trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"; [ -n "$QFILE" ] && rm -f "$QFILE"' EXIT
 
 awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" \
-    -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/validate.awk" "$FILE"
+    -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/dt-cell.awk" \
+    -f "$(dirname "$0")/lib/decisions.awk" \
+    -f "$(dirname "$0")/lib/validate.awk" "$FILE"

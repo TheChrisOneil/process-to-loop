@@ -115,6 +115,60 @@ a data class the catalog withheld. The rule that matters: a tool carrying `data_
 cannot be `used_by` a step whose actor is `model`, because the catalog says that data may not
 leave the local boundary and a model call does.
 
+### `@decisions` — optional, one or more tables
+
+A gate whose condition is prose compiles to a **stub** somebody has to implement. A gate backed
+by a decision table compiles to **working logic**. That is the whole reason this section exists.
+
+```
+@decisions
+table: flag-severity | unique
+inputs: difference | category
+outputs: action | who
+- new         | prescription | flag     | the clinician before the visit
+- new         | otc          | record   | nobody
+- unresolved  | -            | escalate | the medical assistant
+```
+
+| | |
+|---|---|
+| `table` | `<id> \| <hit policy>`. The policy is `unique` or `first` |
+| `inputs` | the input column names, in order |
+| `outputs` | the output column names, in order |
+| `- …` | one rule: every input cell, then every output cell |
+
+**A cell** is `-` (any value), a literal, a comparison (`>2000`, `<=5`, `!=0`), a range
+(`[0..100]`), or a list (`a,b,c`). Literals are compared case-folded.
+
+**Hit policy.** `unique` means exactly one rule may match, and the validator proves no two rules
+can both match. `first` means the first match wins, and the order becomes part of the logic —
+which is legal, and less reviewable, so prefer `unique`.
+
+**A fall-through is a refusal, never a default.** A table that matches nothing has a case nobody
+decided, and inventing an answer there is the guess this whole system exists to avoid.
+
+### A gate backed by a table
+
+```
+@gates
+5 | flag-severity yields action escalate | hand it to the medical assistant named on the worklist
+```
+
+The condition is `<table> yields <output> <value>`. It satisfies V15 by construction — the table
+is executable, and V35–V39 checked it before the gate was compiled. The emitted check evaluates
+the table and refuses when the output equals the value.
+
+### Why a table rather than a conditional
+
+Three questions are answerable about a table and are not answerable about a bash conditional:
+
+- **does any input fall through?** — completeness
+- **do two rules claim the same input?** — overlap, which V38 proves absent under `unique`
+- **is any output never produced?** — a dead branch
+
+A reviewer who cannot read bash can read the table, and that matters if the people who own these
+processes are meant to own their logic too.
+
 ### `@evidence` — keyed
 
 | Key | Meaning |

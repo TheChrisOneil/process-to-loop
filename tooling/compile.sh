@@ -64,11 +64,37 @@ awk -f "$TOOLING/lib/parse.awk" -f "$HERE/lib/emit-formula.awk" \
 # ---- 3. emit one check script per gate
 GATEROWS=$(awk -f "$TOOLING/lib/parse.awk" -f "$HERE/lib/gates.awk" "$DESIGN")
 GATES=$(printf '%s' "$GATEROWS" | grep -c . || true)
+# Any decision table in the design ships beside the checks, with the two awk
+# files that evaluate it. A check carrying its own copy of what ">= 2000" means
+# would be a second definition of the table the validator checked.
+DEC=$(awk -f "$TOOLING/lib/parse.awk" -f "$TOOLING/lib/dt-cell.awk" \
+          -f "$TOOLING/lib/decisions.awk" -f "$TOOLING/lib/emit-decision.awk" "$DESIGN" 2>/dev/null)
+if [ -n "${DEC:-}" ]; then
+  mkdir -p "$OUT/$(dirname "$CHECKDIR")/decisions" "$OUT/$(dirname "$CHECKDIR")/lib"
+  printf '%s' "$DEC" | awk -v D="$OUT/$(dirname "$CHECKDIR")/decisions" -F'\t' '
+    /^#table/ { f = D "/" $2 ".tsv"; printf "" > f }
+    f != "" { print > f }'
+  cp "$TOOLING/lib/dt-cell.awk" "$TOOLING/lib/decide.awk" "$OUT/$(dirname "$CHECKDIR")/lib/"
+  echo "  decision table(s): $(ls "$OUT/$(dirname "$CHECKDIR")/decisions" | tr '\n' ' ')"
+fi
+
 while IFS=$'\t' read -r n cond ref; do
   [ -n "${n:-}" ] || continue
   NN=$(printf '%02d' "$n")
+  # A gate naming a table compiles to a working check. One naming prose compiles
+  # to a stub that refuses and says it is a stub. That difference is the point.
+  DTAB=""; DOUT=""; DWANT=""
+  case "$cond" in
+    *" yields "*)
+      DTAB=${cond%% *}
+      REST=${cond#* yields }
+      DOUT=${REST%% *}
+      DWANT=${REST#* } ;;
+  esac
   awk -f "$HERE/lib/emit-check.awk" -v NAME="$NAME" -v N="$NN" \
-      -v COND="$cond" -v REFUSAL="$ref" /dev/null > "$OUT/$CHECKDIR/$NAME-g$NN.sh"
+      -v COND="$cond" -v REFUSAL="$ref" \
+      -v TABLE="$DTAB" -v OUT="$DOUT" -v WANT="$DWANT" \
+      /dev/null > "$OUT/$CHECKDIR/$NAME-g$NN.sh"
   chmod +x "$OUT/$CHECKDIR/$NAME-g$NN.sh"
   awk -f "$HERE/lib/fixtures.awk" -v N="$NN" \
       -v COND="$cond" -v REFUSAL="$ref" /dev/null > "$OUT/$CHECKDIR/$NAME-g$NN.fixtures.tsv"

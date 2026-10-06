@@ -763,6 +763,106 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "DECISION TABLES"
+DT=$(mktemp -d)
+cp "$HERE/examples/appointments-chase.design" "$DT/d.design"
+cat >> "$DT/d.design" <<'DTEOF'
+
+@decisions
+table: flag-severity | unique
+inputs: difference | category
+outputs: action | who
+- new | prescription | flag | the clinician before the visit
+- new | otc | record | nobody
+- stopped | prescription | flag | the clinician before the visit
+- stopped | otc | record | nobody
+- unresolved | - | escalate | the medical assistant
+DTEOF
+"$HERE/tooling/validate.sh" "$DT/d.design" >/dev/null 2>&1 \
+  && ok "a design carrying a decision table passes its rules" \
+  || no "a well-formed decision table was refused"
+
+# The three questions a table can answer and a bash conditional cannot.
+sed 's/^- new | otc | record | nobody/- new | - | record | nobody/' "$DT/d.design" > "$DT/ov.design"
+dtsay() { # <design> <rule> <ok msg> <no msg> — refused BY that rule?
+  local o; o=$("$HERE/tooling/validate.sh" "$1" 2>&1 || true)
+  case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+    *"FAIL  $2"*) ok "$3" ;;
+    *) no "$4" ;;
+  esac
+}
+dtsay "$DT/ov.design" V38 "two rules claiming the same input are caught — the overlap check" \
+                          "an overlapping table passed under a unique policy"
+sed 's/^- unresolved | - | escalate | the medical assistant/- unresolved | - | escalate/' "$DT/d.design" > "$DT/sh.design"
+dtsay "$DT/sh.design" V37 "a short row is caught before it shifts every output one column left" \
+                          "a row with the wrong cell count was accepted"
+sed 's/^table: flag-severity | unique/table: flag-severity/' "$DT/d.design" > "$DT/nh.design"
+dtsay "$DT/nh.design" V36 "a table with no hit policy is refused" \
+                          "a table with no hit policy was accepted"
+
+# Evaluating one.
+DTR_OUT=$("$HERE/tooling/decide.sh" "$DT/d.design" -- new prescription 2>&1); RC=$?
+[ "$RC" = 0 ] && printf '%s' "$DTR_OUT" | grep -q 'flag' \
+  && ok "a table evaluates to its outputs" \
+  || no "evaluating a table did not produce its outputs"
+DTR_OUT=$("$HERE/tooling/decide.sh" "$DT/d.design" -- unresolved anything 2>&1); RC=$?
+[ "$RC" = 0 ] && printf '%s' "$DTR_OUT" | grep -q 'escalate' \
+  && ok "a dash matches any value in that column" \
+  || no "the any-value cell did not match"
+"$HERE/tooling/decide.sh" "$DT/d.design" -- renamed prescription >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a case nobody decided is a refusal, never a default" \
+             || no "a fall-through did not refuse"
+"$HERE/tooling/decide.sh" "$DT/d.design" -- new >/dev/null 2>&1
+[ $? -eq 75 ] && ok "the wrong number of inputs exits 75 — could not run, not a business failure" \
+              || no "a bad arity was reported as a business outcome"
+
+# The payoff: a gate naming a table compiles to a WORKING check, not a stub.
+python3 - "$DT/d.design" <<'PYEOF'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1]); t = p.read_text()
+t = t.replace("5 | the drafted wording contains 1 or more patient identifiers | return it to step 3 and redact again",
+              "5 | flag-severity yields action escalate | hand it to the medical assistant named on the worklist")
+p.write_text(t)
+PYEOF
+"$HERE/tooling/validate.sh" "$DT/d.design" >/dev/null 2>&1 \
+  && ok "a gate may name a table instead of prose, and still be checkable" \
+  || no "a gate backed by a table failed V15"
+sed 's/flag-severity yields action escalate/flag-severty yields action escalate/' "$DT/d.design" > "$DT/typo.design"
+dtsay "$DT/typo.design" V39 "a gate naming a table that does not exist is refused" \
+                            "a typo compiled to a check that evaluates nothing and refuses everything"
+sed 's/yields action escalate/yields severity escalate/' "$DT/d.design" > "$DT/bo.design"
+dtsay "$DT/bo.design" V39 "a gate naming an output the table does not have is refused" \
+                          "a gate read a column that does not exist"
+
+if "$HERE/tooling/compile.sh" "$DT/d.design" --name dt-t --out "$DT/o" >/dev/null 2>&1; then
+  [ -f "$DT/o/.gc/scripts/decisions/flag-severity.tsv" ] \
+    && ok "the table ships beside the checks that evaluate it" \
+    || no "the compiled check has no table to read"
+  [ -f "$DT/o/.gc/scripts/lib/dt-cell.awk" ] \
+    && ok "the cell semantics ship with it, so the check cannot drift from the rules" \
+    || no "the emitted check carries no definition of what a cell means"
+  CK="$DT/o/.gc/scripts/checks/dt-t-g02.sh"
+  grep -q 'NOT a stub' "$CK" \
+    && ok "a table-backed gate compiles to working logic, not a stub" \
+    || no "a table-backed gate still compiled to a stub"
+  grep -q 'not implemented' "$DT/o/.gc/scripts/checks/dt-t-g01.sh" \
+    && ok "a prose gate still compiles to a stub that says so" \
+    || no "a prose gate silently pretended to be implemented"
+  "$CK" U1 unresolved prescription >/dev/null 2>&1
+  [ $? -eq 1 ] && ok "the generated check refuses when the table yields the gated value" \
+               || no "the generated check did not refuse on escalate"
+  "$CK" U1 new prescription >/dev/null 2>&1
+  [ $? -eq 0 ] && ok "the generated check passes when it does not" \
+               || no "the generated check refused a unit it should have passed"
+  "$CK" U1 >/dev/null 2>&1
+  [ $? -eq 75 ] && ok "the generated check exits 75 when it has no inputs to decide on" \
+                || no "a check with nothing to evaluate reported a business failure"
+else
+  no "a design with a decision table did not compile"
+fi
+rm -rf "$DT"
+
+echo
 echo "REHEARSAL"
 # A gate may be closed without a person, because "does the machinery work" and
 # "is this design right" are different questions and blocking the first on the

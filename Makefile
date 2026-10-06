@@ -6,6 +6,7 @@ BUNDLES ?= bundles
 help:
 	@echo "make design DESIGN=<path> [Q=<QUESTIONS.md>]     validate a design, 34 rules"
 	@echo "make questions Q=<QUESTIONS.md> [C=validate|answered|status|open]   the interview"
+	@echo "make decide DESIGN=<path> T=<table> IN='a b c'    evaluate a decision table"
 	@echo "make compile DESIGN=<path> NAME=<formula-name>   design -> formula + check scripts"
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
@@ -18,7 +19,7 @@ help:
 	@echo "make formula-preflight F=<formula> RIG=<dir> V='k=v ...'   does everything it names resolve?"
 	@echo "make run-status Q=<artifact_root> [F=--follow]    where is this run right now?"
 	@echo "make run-report T=<transcript.jsonl>              where a run spent its time and tokens"
-	@echo "make rules                                       both rule sets"
+	@echo "make rules                                       all three rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
 	@echo "make install-mayor CITY=<dir>                    put the front-door prompt in a city"
@@ -30,6 +31,11 @@ help:
 design:
 	@[ -n "$(DESIGN)" ] || { echo "make design DESIGN=<path> [Q=<QUESTIONS.md>]"; exit 64; }
 	@QUESTIONS="$(Q)" tooling/validate.sh "$(DESIGN)"
+
+decide:
+	@[ -n "$(DESIGN)" ] || { echo "make decide DESIGN=<path> [T=<table>] IN='<v1> <v2> ...'   (omit IN to list)"; exit 64; }
+	@if [ -z "$(IN)" ]; then tooling/decide.sh "$(DESIGN)" --list; \
+	 else tooling/decide.sh "$(DESIGN)" $(if $(T),--table "$(T)",) -- $(IN); fi
 
 questions:
 	@[ -n "$(Q)" ] || { echo "make questions Q=<QUESTIONS.md> [C=validate|answered|status|open|tsv]"; exit 64; }
@@ -139,7 +145,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design questions compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
+.PHONY: help design questions decide compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

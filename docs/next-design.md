@@ -344,14 +344,34 @@ preflight checks the runtime exists, exactly as it now checks providers.
 larger ones, each re-implementing the ledger and exit-code contract — precisely where divergence
 would hide.
 
-### The open fork
+### The open fork — settled 2026-10-06: BOTH, and the difference is visible
 
-**Gate logic as bash conditionals, or DMN-style decision tables?** A decision table is auditable
-by inspection, diffable, and readable by a non-programmer — which matters if business people are
-meant to own these processes. Bash is more flexible and less reviewable.
+**Gate logic as bash conditionals, or DMN-style decision tables?** The answer is that a gate may
+be either, and which one it is shows in what compiles:
 
-This constrains the language question more than the runtime does, and is the more consequential
-choice.
+| the gate says | it compiles to |
+|---|---|
+| prose — *"exposure over 2000 USD"* | a **stub** that refuses and says it is a stub |
+| `flag-severity yields action escalate` | a **working check** that evaluates the table |
+
+Not one or the other, because prose is still the right shape for a one-threshold gate and a
+table would be ceremony around a single comparison. What the fork actually asked was whether
+anything in the system could be *proved* about gate logic, and only one of the two answers
+allows that:
+
+- **does any input fall through?** completeness
+- **do two rules claim the same input?** overlap — V38 proves it absent under `unique`
+- **is any output never produced?** a dead branch
+
+None of those can be asked of a bash conditional. That, rather than readability, is the argument
+that decided it — though readability is the reason it matters for the people who are meant to
+own these processes.
+
+**A fall-through is a refusal, never a default.** The one rule that keeps a table honest.
+
+Shipped: `@decisions` in the design format, V35–V39, `tooling/decide.sh`, and one definition of
+what a cell means (`lib/dt-cell.awk`) loaded by both the validator and the emitted check — two
+copies would be two dialects of the same table.
 
 ---
 
@@ -384,8 +404,9 @@ choice.
 6. ~~`@tools` permissions recorded in the ledger.~~ **Done 2026-10-06.** A read logs the
    restriction the catalog placed on the tool, on the read row itself, and `bundle-records.sh`
    refuses a bundle that reads a restricted tool and records no restriction.
-7. Gate logic as DMN-style decision tables rather than bash conditionals (section 5, *The open
-   fork*). **Not built, and undecided.** It constrains the language question more than the
-   runtime does, and it is the more consequential choice of the two.
+7. ~~Gate logic as DMN-style decision tables rather than bash conditionals.~~ **Done
+   2026-10-06.** Both, and the difference is visible: a prose gate compiles to a stub, a
+   table-backed gate compiles to working logic. V35-V39, and completeness and overlap are
+   provable where a bash conditional admits neither question.
 
 Each is separable.
