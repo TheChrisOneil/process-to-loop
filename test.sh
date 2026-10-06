@@ -426,8 +426,9 @@ rm -rf "$BR"
 echo
 echo "THE DATA CONTRACT (V27-V31)"
 DC=$(mktemp -d); DESIGN_OK="$HERE/examples/appointments-chase.design"
-dcheck() { # dcheck <rule> <design> <want FAIL|PASS>
-  r=$("$HERE/tooling/validate.sh" "$2" 2>&1 | grep -E "  $1  " | head -1)
+dcheck() { # dcheck <rule> <design> <want FAIL|PASS> <label> [catalog]
+  r=$(CATALOG="${5:-$HERE/catalog/eb-tools.catalog}" "$HERE/tooling/validate.sh" "$2" 2>&1 \
+      | grep -E "  $1  " | head -1)
   case "$r" in
     *FAIL*) got=FAIL ;; *PASS*) got=PASS ;; *) got=ABSENT ;;
   esac
@@ -460,7 +461,12 @@ dcheck V27 "$DC/uncat.design"  FAIL "refuses a tool nobody catalogued"
 dcheck V28 "$DC/invent.design" FAIL "refuses a field the tool does not provide"
 dcheck V29 "$DC/nostep.design" FAIL "refuses a tool used by a step that does not exist"
 dcheck V30 "$DC/vague.design"  FAIL "refuses a constraint that is neither structural nor evaluable"
-dcheck V31 "$DC/leak.design"   FAIL "refuses PHI reaching a model step"
+# V31 is about a BUSINESS AGREEMENT now, not about the data, so the refusal has
+# to be tested against a catalog that records no agreement. Under the one that
+# does, the same design is correct — which is the behaviour, not a regression.
+sed 's/phi_may_reach_models: yes/phi_may_reach_models: no/' "$HERE/catalog/eb-tools.catalog" > "$DC/nobaa.catalog"
+dcheck V31 "$DC/leak.design"   FAIL "refuses PHI reaching a model where nothing permits it" "$DC/nobaa.catalog"
+dcheck V31 "$DC/leak.design"   PASS "allows it where the catalog records a covering agreement"
 
 # And the rule that cannot be skipped by omission: no catalog, no verification.
 # Capture first, then match. validate.sh exits non-zero on a failing design and
@@ -763,6 +769,54 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "WHERE PHI MAY GO"
+# Whether PHI may reach a model is a BUSINESS AGREEMENT, not a property of the
+# data. It lives in the catalog so a contract change is a dated, reviewable diff
+# rather than an edit to a rule — and so the rule can refuse a lapsed one.
+PV=$(mktemp -d)
+python3 - "$PV" <<'PYEOF'
+import sys, pathlib
+T=sys.argv[1]
+d = pathlib.Path("examples/appointments-chase.design").read_text()
+pathlib.Path(f"{T}/leak.design").write_text(
+    d.replace("eb-appointment-service | 1 | read the day's appointments",
+              "eb-appointment-service | 1 4 | read the day's appointments"))
+c = pathlib.Path("catalog/eb-tools.catalog").read_text()
+pathlib.Path(f"{T}/covered.catalog").write_text(c)
+pathlib.Path(f"{T}/nobaa.catalog").write_text(c.replace("phi_may_reach_models: yes","phi_may_reach_models: no"))
+pathlib.Path(f"{T}/lapsed.catalog").write_text(c.replace("phi_model_review_by: 2027-10-06","phi_model_review_by: 2026-01-01"))
+pathlib.Path(f"{T}/nodate.catalog").write_text(c.replace("phi_model_review_by: 2027-10-06","phi_model_review_by:"))
+PYEOF
+phisay() { # <catalog> <verdict> <rule> <ok> <no>
+  local o; o=$(CATALOG="$PV/$1.catalog" "$HERE/tooling/validate.sh" "$PV/leak.design" 2>&1 || true)
+  case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+    *"$2  V31"*) ok "$3" ;;
+    *) no "$4" ;;
+  esac
+}
+phisay covered PASS "a model step may read PHI where the catalog records a covering agreement" \
+                    "a covered model call was refused"
+phisay nobaa FAIL "without a covering agreement, PHI reaching a model is refused" \
+                  "PHI went to a model with nothing permitting it"
+phisay lapsed FAIL "a lapsed attestation refuses, because designs cite a stale catalog" \
+                   "an expired agreement still permitted PHI to reach a model"
+phisay nodate FAIL "a permission with no review date is refused" \
+                   "a permission nobody has to renew was accepted"
+# The policy must not be hard-coded in the rule, or changing a contract means
+# editing a validator.
+grep -q 'phi_may_reach_models' "$HERE/tooling/lib/validate.awk" \
+  && ok "V31 reads the policy from the catalog, not from itself" \
+  || no "the PHI boundary is written into the rule, so a contract change edits code"
+grep -q 'phi_may_reach_models' "$HERE/catalog/eb-tools.catalog" \
+  && grep -q 'phi_model_review_by' "$HERE/catalog/eb-tools.catalog" \
+  && ok "the catalog states where PHI may go, and when that must be re-attested" \
+  || no "the catalog does not record the boundary it is the source of truth for"
+grep -q 'UNRECORDED' "$HERE/catalog/eb-tools.catalog" \
+  && ok "the unverified half of the agreement is flagged in the entry, not assumed away" \
+  || no "an agreement nobody verified reads as a verified one"
+rm -rf "$PV"
+
+echo
 echo "DECISION TABLES"
 DT=$(mktemp -d)
 cp "$HERE/examples/appointments-chase.design" "$DT/d.design"
@@ -917,7 +971,7 @@ echo "TOOL PERMISSIONS IN THE LEDGER"
 PB=$(mktemp -d)
 if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/appointments-chase.design" \
      --name tp --out "$PB" >/dev/null 2>&1; then
-  grep -q 'may not leave the local boundary' "$PB"/tp/steps/*.sh \
+  grep -q 'may not leave the covered boundary' "$PB"/tp/steps/*.sh \
     && ok "an emitted read carries the permission the catalog withheld" \
     || no "the bundle logs the data class and not what the tool may not do"
   # On the read row, not beside it: a permission on a row of its own can be
@@ -938,8 +992,8 @@ if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/appointments-chase.design" \
   # And it must refuse when the emitter drops it. The gate runs its own tick, so
   # the ledger is cleared first — otherwise correct rows from the build survive
   # and mask the defect.
-  sed -i '' 's/; may not leave the local boundary//' "$PB"/tp/steps/*.sh 2>/dev/null \
-    || sed -i 's/; may not leave the local boundary//' "$PB"/tp/steps/*.sh
+  sed -i '' 's/; may not leave the covered boundary//' "$PB"/tp/steps/*.sh 2>/dev/null \
+    || sed -i 's/; may not leave the covered boundary//' "$PB"/tp/steps/*.sh
   : > "$PB/tp/memory/ledger.tsv"
   if BUNDLE_PATH="$PB/tp" DESIGN_PATH="$PD" CATALOG="$HERE/catalog/eb-tools.catalog" \
        "$HERE/checks/bundle-records.sh" >"$PB/out2" 2>&1; then

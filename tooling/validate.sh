@@ -55,7 +55,7 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V28  it takes only fields the catalogued tool actually provides — narrow, never invent
 # V29  every tool is used by a step that exists
 # V30  every source constraint is structural (never/only) or evaluable
-# V31  no tool carrying PHI is used by a step whose actor is a model
+# V31  PHI reaches a model only where the catalog says it may, under a current attestation
 # V32  the design names the question set it was authored from, by digest
 # V33  every question asked is cited by an assumption, as [Qn]
 # V34  the citing assumption carries the answer's provenance: stated, unanswered or delegated
@@ -78,7 +78,8 @@ if [ -f "$CATALOG" ]; then
   # A quoted heredoc, not printf: printf turns the \n into a real newline
   # inside the awk string literal and the query file stops parsing.
   cat > "$CATFILE.q" <<'CATQ'
-END{ for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".data_class"], T[TID[i] ".provides"] }
+END{ for (k in CAT) { ck=k; sub(/^catalog\./,"",ck); printf "#catalog\t%s\t%s\n", ck, CAT[k] }
+     for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".data_class"], T[TID[i] ".provides"] }
 CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATFILE.q" "$CATALOG" > "$CATFILE" 2>/dev/null
   rm -f "$CATFILE.q"
@@ -102,7 +103,7 @@ QQ
 fi
 trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"; [ -n "$QFILE" ] && rm -f "$QFILE"' EXIT
 
-awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" \
+awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" -v TODAY="$(date +%F)" \
     -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/dt-cell.awk" \
     -f "$(dirname "$0")/lib/decisions.awk" \
     -f "$(dirname "$0")/lib/validate.awk" "$FILE"

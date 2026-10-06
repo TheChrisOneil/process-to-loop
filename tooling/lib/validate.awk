@@ -26,6 +26,7 @@ BEGIN {
   if (CATFILE != "") {
     while ((getline cl < CATFILE) > 0) {
       n = split(cl, cf, "\t")
+      if (n >= 1 && cf[1] == "#catalog") { CPOL[cf[2]] = cf[3]; continue }
       if (n >= 1 && cf[1] != "") { CATN++; CTOOL[cf[1]] = 1; CCLASS[cf[1]] = cf[2]; CPROV[cf[1]] = cf[3] }
     }
     close(CATFILE)
@@ -276,10 +277,14 @@ END {
       if (vague=="") { if (n_src>0) ok("V30","every source constraint is structural or evaluable") }
       else rec("ERROR","V30","constraints that cannot be evaluated or recognised as structural:" vague,"begin a structural constraint with never or only; give a checkable one a comparison")
 
-      # V31 the permission the catalog withheld cannot be granted here. A tool
-      # carrying PHI may not be used by a step whose actor is a model: the
-      # catalog says that data does not leave the boundary, and a model call is
-      # the boundary.
+      # V31 the permission the catalog withheld cannot be granted here.
+      #
+      # Whether PHI may reach a model is a BUSINESS AGREEMENT, not a property of
+      # the data, so the answer is read from the catalog rather than written
+      # here. Without a covering agreement a model call is outside the boundary
+      # and the design is refused. With one it is inside, and the rule becomes
+      # about the agreement instead: an attestation nobody has renewed is worse
+      # than no catalog, because designs will cite it.
       leak=""
       for (i=1;i<=n_tool;i++) {
         if (CCLASS[TLID[i]] != "phi") continue
@@ -289,8 +294,20 @@ END {
           for (m=1;m<=s;m++) if (SID[m]==sid && tolower(SACT[m])=="model") leak = leak " " TLID[i] "@step" sid
         }
       }
+      covered = (tolower(CPOL["phi_may_reach_models"]) == "yes")
+      byw = CPOL["phi_model_review_by"]
       if (leak=="") { if (n_tool>0) ok("V31","no PHI tool is used by a model step") }
-      else rec("ERROR","V31","PHI reaches a model:" leak,"the catalog says this data does not leave the local boundary; redact in a mechanical step and give the model only that output")
+      else if (!covered)
+        rec("ERROR","V31","PHI reaches a model and the catalog does not permit it:" leak,
+            "redact in a mechanical step and give the model only that output — or record the covering agreement in the catalog, which is a business decision and not a rule change")
+      else if (byw == "")
+        rec("ERROR","V31","the catalog permits PHI to reach a model and names no review date:" leak,
+            "set phi_model_review_by — a permission nobody has to renew is a permission nobody will revisit")
+      else if (TODAY != "" && byw < TODAY)
+        rec("ERROR","V31","the agreement permitting PHI to reach a model lapsed on " byw ":" leak,
+            "reattest it in the catalog, or stop sending PHI to a model — a stale catalog asserting a tool is safe is worse than no catalog, because designs cite it")
+      else
+        ok("V31","PHI reaches a model under " (CPOL["phi_model_basis"] != "" ? CPOL["phi_model_basis"] : "a catalogued agreement") ", attested to " byw)
     }
   }
 

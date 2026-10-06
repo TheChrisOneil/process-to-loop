@@ -248,6 +248,29 @@ assumption to make. It is *"this process requires a capability the organization 
 routed to whoever owns the catalog — a procurement and architecture signal raised at design time
 instead of at implementation.
 
+### Where PHI may go is an agreement, not a property of the data
+
+Settled 2026-10-06. V31 used to say *no tool carrying PHI may be used by a model step*, which
+read like a fact about PHI and was really a fact about what EverBetter had signed. When Buzz
+stated that a BAA covers both model providers, the rule was wrong — and a rule that has to be
+edited when a contract changes is a rule in the wrong place.
+
+The catalog now carries it:
+
+```
+phi_may_reach_models: yes
+phi_model_basis:      BAA with Anthropic and with Google, stated by Buzz, process owner
+phi_model_attested:   2026-10-06
+phi_model_review_by:  2027-10-06
+```
+
+V31 reads that. Without a covering agreement it refuses as before. With one it stops asking
+about the data and starts asking about the agreement: **a lapsed attestation refuses**, because
+a stale catalog asserting a tool is safe is worse than no catalog — designs cite it.
+
+The agreement identifiers are recorded as `UNRECORDED` rather than omitted, so the unverified
+half of the claim is visible in the entry instead of assumed away.
+
 ### Permissions are inherited, not authored
 
 A design does not write its own tool × data-class matrix. It **inherits the catalog's and may
