@@ -892,11 +892,20 @@ grep -q 'Q1' "$IV/FINDINGS.md" && grep -q 'one appointment' "$IV/FINDINGS.md" \
 grep -q 'How the questions were answered' "$IV/FINDINGS.md" \
   && ok "the ratio of stated to delegated is reported at the gate" \
   || no "the gate does not report how the questions were answered"
+# One synthetic answer among real ones is its own finding.
 "$HERE/tooling/questions.sh" answer "$IV/Q.md" Q1 stated --by "Buzz" --value "one appointment" --synthetic >/dev/null 2>&1
 "$HERE/tooling/findings.sh" "$IV/v.json" "$IV/d.design" --questions "$IV/Q.md" >/dev/null 2>&1
-grep -q 'synthetic' "$IV/FINDINGS.md" \
+grep -q 'Answered synthetically' "$IV/FINDINGS.md" \
   && ok "an answer supplied on the owner's behalf is declared, not hidden" \
   || no "a synthetic answer was indistinguishable from a real one"
+# A WHOLLY synthetic interview is one fact, not one per question. Fifteen copies
+# of the same claim buried the two findings that needed a decision.
+"$HERE/tooling/questions.sh" answer "$IV/Q.md" Q2 delegated --by "Buzz" --value "48 hours" --synthetic >/dev/null 2>&1
+"$HERE/tooling/findings.sh" "$IV/v.json" "$IV/d.design" --questions "$IV/Q.md" >/dev/null 2>&1
+[ "$(grep -c 'Answered synthetically' "$IV/FINDINGS.md")" = "0" ] \
+  && grep -q 'CRITICAL.*Every answer in this interview' "$IV/FINDINGS.md" \
+  && ok "an interview answered entirely by the system is one critical finding, not one per question" \
+  || no "a wholly synthetic interview raised a finding per answer and buried the real ones"
 rm -rf "$IV"
 
 echo

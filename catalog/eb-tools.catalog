@@ -61,3 +61,13 @@ chosen: 2026-10, over reading the FHIR MedicationStatement endpoint directly
 because: carries rxnorm beside the free-text name, which is what makes two spellings of one drug comparable without a model
 decided_by: Buzz, process owner
 review_by: 2027-10
+
+@tool eb-intake-medications
+provides: submission_id, patient_ref, reported_name, reported_dose, reported_unit, reported_frequency, free_text
+via: tools/eb-intake-medications
+data_class: phi
+may_not: leave the local boundary
+chosen: 2026-10, over extending eb-form-builder-service to return submission bodies
+because: the form service knows a submission exists and who made it, not what is inside one; a catalog entry claiming otherwise would assert a capability the service does not have
+decided_by: Buzz, process owner
+review_by: 2027-10

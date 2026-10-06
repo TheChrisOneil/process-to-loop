@@ -55,6 +55,7 @@ defects = d.get("defects") or []
 # not about the design, and they are marked so nobody mistakes one for the
 # other. They always need a person: that is the whole reason they are here.
 interview = []
+synthetic_rows = []
 tally = {"stated": 0, "delegated": 0, "unanswered": 0, "synthetic": 0, "total": 0}
 if qtsv:
     try:
@@ -84,12 +85,33 @@ if qtsv:
                         f"gap rather than over it. Nothing here is wrong; something here is unknown."),
             })
         if qprov == "synthetic" and qtype in ("stated", "delegated"):
-            interview.append({
-                "severity": "major", "fixable": "needs_a_person", "source": "interview",
-                "what": f"[{qid}] Answered synthetically, not by {qby}: {qasks}",
-                "why": (f"The answer recorded is **{qvalue or '(none)'}**, supplied on behalf of "
-                        f"{qby} rather than by them. Nobody with domain knowledge confirmed it."),
-            })
+            synthetic_rows.append((qid, qby, qasks, qvalue))
+
+# One finding per synthetic answer is right when a few were supplied on somebody
+# else's behalf. When the WHOLE interview was, it is fifteen copies of one fact,
+# and they bury the two findings that actually need a decision. "Nobody confirmed
+# any of this" is a single, larger claim, so it is raised once and raised higher.
+answered = tally["stated"] + tally["delegated"]
+if synthetic_rows and answered and len(synthetic_rows) == answered:
+    who = synthetic_rows[0][1]
+    interview.insert(0, {
+        "severity": "critical", "fixable": "needs_a_person", "source": "interview",
+        "what": f"Every answer in this interview was supplied on behalf of {who}, not by them",
+        "why": (f"All {len(synthetic_rows)} answered questions are marked synthetic. Nobody with "
+                f"domain knowledge confirmed any of them, so this design rests entirely on answers "
+                f"the system produced while standing in for the owner. It is a rehearsal, and it "
+                f"is not signable as it stands. Read the question set in full and re-answer it, or "
+                f"record here why a rehearsal is what was wanted.\n\n"
+                + "\n".join(f"- **[{q}]** {a}" for q, _, a, _ in synthetic_rows)),
+    })
+else:
+    for qid, qby, qasks, qvalue in synthetic_rows:
+        interview.append({
+            "severity": "major", "fixable": "needs_a_person", "source": "interview",
+            "what": f"[{qid}] Answered synthetically, not by {qby}: {qasks}",
+            "why": (f"The answer recorded is **{qvalue or '(none)'}**, supplied on behalf of "
+                    f"{qby} rather than by them. Nobody with domain knowledge confirmed it."),
+        })
 defects = defects + interview
 order = {"critical": 0, "major": 1, "minor": 2}
 defects.sort(key=lambda x: order.get(x.get("severity", "minor"), 3))

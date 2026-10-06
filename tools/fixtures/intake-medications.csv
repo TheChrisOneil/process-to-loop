@@ -1,0 +1,10 @@
+submission_id,patient_ref,reported_name,reported_dose,reported_unit,reported_frequency,free_text
+SUB-5001,PT-4417,Lisinopril,10,mg,daily,
+SUB-5001,PT-4417,Lipitor,20,mg,at night,
+SUB-5001,PT-4417,Metformin,1000,mg,twice daily,
+SUB-5002,PT-9930,Levothyroxine,75,mcg,daily,
+SUB-5002,PT-9930,Zoloft,50,mg,daily,
+SUB-5002,PT-9930,Vitamin D,2000,IU,daily,
+SUB-5004,PT-7781,Warfarin,5,mg,daily,
+SUB-5004,PT-7781,Omeprazole,20,mg,daily,
+SUB-5004,PT-7781,,,,,the little white one for my stomach

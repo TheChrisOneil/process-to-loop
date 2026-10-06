@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Stand-in for the reader that gives back the medication answers inside a
+# pre-visit intake submission.
+#
+# A separate tool from eb-form-builder-service on purpose. The form service
+# knows a submission exists, who made it and when; it does not know what is
+# inside one. Folding the two together would make the catalog claim a capability
+# the form service does not have, which is the thing a catalog exists to stop.
+#
+# What it returns is what a PATIENT TYPED: a brand name, a dose they remember, or
+# a sentence that names no drug at all. Nothing here is coded, and that is the
+# whole reason the process needs a judgment.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+FIXTURE=${EB_INTAKE_MED_FIXTURE:-$HERE/fixtures/intake-medications.csv}
+
+case "${1:-}" in
+  health)
+    [ -r "$FIXTURE" ] || { echo "intake medication source unreadable at $FIXTURE" >&2; exit 75; }
+    echo "ok: eb-intake-medications, $(( $(wc -l < "$FIXTURE") - 1 )) reported entry(s)"; exit 0 ;;
+  schema)
+    printf 'submission_id\tstring\npatient_ref\tstring\nreported_name\tstring\nreported_dose\tnumber\nreported_unit\tstring\nreported_frequency\tstring\nfree_text\tstring\n'; exit 0 ;;
+  fetch)
+    [ -r "$FIXTURE" ] || { echo "intake medication source unreadable at $FIXTURE" >&2; exit 75; }
+    awk -F, -v want="${2:-}" 'BEGIN { OFS="\t" }
+      NR==1 { $1=$1; print; next }
+      want=="" || $1==want { $1=$1; print }' "$FIXTURE"; exit 0 ;;
+  *) echo "usage: eb-intake-medications health|schema|fetch [submission_id]" >&2; exit 64 ;;
+esac
