@@ -4,8 +4,9 @@ What the pipeline should become, decided in discussion on 2026-10-05.
 
 **Built since, and proven end to end:** sections 1 and 4 (`@sources`, `@tools`, the tool
 catalog, V27-V31, source-integrity) on 2026-10-05, and sections 2 and 3 (`QUESTIONS.md`, the
-three answers, the reordered pipeline, V32-V34, the interview script) on 2026-10-06. Section 5
-and the MCP half of section 4 are not built. The order of work at the foot of this file is
+three answers, the reordered pipeline, V32-V34, the interview script) and the ledger half of
+section 1 (tool permissions on every read row) on 2026-10-06. Section 5 and the MCP half of
+section 4 are not built. The order of work at the foot of this file is
 annotated with what remains.
 
 The current system turns a described process into a validated, audited, signed design and a
@@ -380,9 +381,9 @@ choice.
    pre-visit medication reconciliation, with the answers given synthetically and marked as such.
    Still untested with a real person on the other end, which is the thing it is for.
 5. The catalog over MCP, once there is a second consumer that justifies a server. **Not built.**
-6. `@tools` permissions recorded in the ledger. **Not built.** The design-time half exists —
-   V31 refuses a PHI tool used by a model step — but the emitted bundle logs the data class
-   without logging the permission it exercised.
+6. ~~`@tools` permissions recorded in the ledger.~~ **Done 2026-10-06.** A read logs the
+   restriction the catalog placed on the tool, on the read row itself, and `bundle-records.sh`
+   refuses a bundle that reads a restricted tool and records no restriction.
 7. Gate logic as DMN-style decision tables rather than bash conditionals (section 5, *The open
    fork*). **Not built, and undecided.** It constrains the language question more than the
    runtime does, and it is the more consequential choice of the two.
