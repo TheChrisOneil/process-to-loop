@@ -366,6 +366,9 @@ grep -q 'gc.outcome' "$HERE/tooling/run-status.sh" \
 grep -q 'FAILED' "$HERE/tooling/run-status.sh" \
   && ok "it has a distinct label for a failed step" \
   || no "run-status has no way to render a failure"
+grep -q 'ROOT_BEAD' "$HERE/tooling/run-status.sh" \
+  && ok "the status tool scopes to one workflow" \
+  || no "run-status mixes steps from other runs in the same rig"
 grep -q 'iteration' "$HERE/tooling/run-status.sh" \
   && ok "it reports the logical bead, not every iteration" \
   || no "run-status would show a step as both done and failed"

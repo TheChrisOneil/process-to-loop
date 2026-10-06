@@ -9,6 +9,22 @@ Q=${1:?artifact_root}
 FOLLOW=${2:-}
 INT=${3:-30}
 
+# Which workflow owns this artifact_root? Resolved once, so a caller needs no
+# bead id to get a truthful answer.
+if [ -z "${ROOT_BEAD:-}" ]; then
+  ROOT_BEAD=$(ARTQ="$Q" gc bd list --json 2>/dev/null | ARTQ="$Q" python3 -c "
+import json, sys, os
+q = os.environ.get('ARTQ', '')
+try: bs = json.load(sys.stdin)
+except Exception: raise SystemExit
+for b in bs:
+    md = b.get('metadata') or {}
+    if md.get('gc.kind') == 'workflow' and md.get('gc.var.artifact_root') == q:
+        print(b.get('id') or ''); break
+" 2>/dev/null)
+fi
+export ROOT_BEAD
+
 snapshot() {
   printf '\n%s\n' "$(date '+%H:%M:%S')"
   echo "  ── steps ─────────────────────────────────────────"
@@ -17,7 +33,8 @@ snapshot() {
   # which is the failure this whole project exists to catch — in the tool
   # written to watch for it. Read gc.outcome.
   gc bd list --status closed --json 2>/dev/null | python3 -c '
-import sys, json
+import sys, json, os
+ROOT = os.environ.get("ROOT_BEAD", "")
 try: beads = json.load(sys.stdin)
 except Exception: sys.exit(0)
 seen = set()
@@ -25,6 +42,10 @@ for b in beads:
     t = b.get("title") or ""
     if t.startswith("Step spec") or not t: continue
     md = b.get("metadata") or {}
+    # One rig can hold several runs at once. Without this filter another
+    # workflow steps appear as this one: it once showed compile and finalize
+    # as done when both belonged to a different design.
+    if ROOT and md.get("gc.root_bead_id") != ROOT: continue
     # Each step has iteration beads and one logical bead. An iteration may fail
     # and a later one pass, which is the loop working; the logical bead carries
     # the outcome that stands. Show only that one, or a step reads as both done
