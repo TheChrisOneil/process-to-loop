@@ -5,6 +5,7 @@
 #
 # Reads the rig's beads and the artifacts on disk. Changes nothing.
 set -uo pipefail
+HERE_T=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 Q=${1:?artifact_root}
 FOLLOW=${2:-}
 INT=${3:-30}
@@ -96,6 +97,32 @@ for b in beads:
   gc bd ready 2>/dev/null | grep '○' | grep -vE 'Step spec|^Status:|^Priority:' \
     | sed 's/^.*P2 /    next   /' | head -3
 
+  # An open GATE bead is the run waiting for a person, and it is the one state
+  # the step list cannot show: every step before it reads "done", so the run
+  # looks finished and is not. It parked at the interview on 2026-10-06 and the
+  # screen said nothing at all about why.
+  # A gate bead is NOT in `gc bd list` — gates are a separate kind, and a first
+  # attempt at this filtered a list that never contained one, so the section
+  # silently never printed. `gc bd gate list` is where they live.
+  local gates
+  gates=$(gc bd gate list 2>/dev/null | awk '/^○ / { print $2 }')
+  if [ -n "$gates" ]; then
+    echo "  ── waiting for a person ──────────────────────────"
+    for g in $gates; do
+      gc bd show "$g" --json 2>/dev/null | ROOT="$ROOT_BEAD" python3 -c '
+import sys, json, os
+try: b = json.load(sys.stdin)
+except Exception: raise SystemExit
+b = b[0] if isinstance(b, list) else b
+md = b.get("metadata") or {}
+root = os.environ.get("ROOT", "")
+if root and md.get("gc.root_bead_id") != root: raise SystemExit
+ref = (md.get("gc.step_ref") or "").split(".")[-1]
+print("    %-8s %s" % (b.get("id"), ref or (b.get("title") or "").strip()))'
+    done
+    echo "    nothing after these runs until a person closes them"
+  fi
+
   echo "  ── artifacts ─────────────────────────────────────"
   local d v f
   d=$(ls "$Q"/*.design 2>/dev/null | head -1)
@@ -129,6 +156,16 @@ PY
   [ -f "$Q/FINDINGS.md" ] \
     && printf '    findings %s\n' "$Q/FINDINGS.md" \
     || printf '    findings not yet\n'
+  # The interview, in one line. A run whose answers were supplied on the owner's
+  # behalf is a rehearsal, and that should be visible without opening a file.
+  local qp qt
+  qp=$(ls "$Q"/QUESTIONS.md 2>/dev/null | head -1)
+  if [ -n "$qp" ]; then
+    qt=$(awk -f "$HERE_T/lib/questions.awk" -f "$HERE_T/lib/questions-count.awk" "$qp" 2>/dev/null)
+    printf '    asked    %s\n' "${qt:-QUESTIONS.md is unreadable}"
+  else
+    printf '    asked    nothing yet — the interview has not run\n'
+  fi
 }
 
 if [ "$FOLLOW" = "--follow" ]; then

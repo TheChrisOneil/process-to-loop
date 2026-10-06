@@ -926,6 +926,24 @@ grep -q 'questions_path' "$HERE/formulas/design-authoring.toml" \
   && grep -q 'brief.sh {{design_path}} --questions' "$HERE/formulas/design-authoring.toml" \
   && ok "the render step hands the brief its question set" \
   || no "the brief is written without the answers, so the acceptance screen is half a screen"
+# run-status is the screen I report from, so its blind spots are mine.
+RS="$HERE/tooling/run-status.sh"
+grep -q 'gc bd gate list' "$RS" \
+  && ok "run-status reads gates from the gate list" \
+  || no "run-status looks for gates in gc bd list, which never contains one"
+grep -q 'waiting for a person' "$RS" \
+  && ok "a run parked at a human gate says so" \
+  || no "a parked run shows every step done and nothing about why it stopped"
+grep -q 'questions-count.awk' "$RS" && [ -f "$HERE/tooling/lib/questions-count.awk" ] \
+  && ok "run-status says how the questions were answered" \
+  || no "run-status does not show whether the interview was real or a rehearsal"
+QC=$(awk -f "$HERE/tooling/lib/questions.awk" -f "$HERE/tooling/lib/questions-count.awk" "$IV/Q.md")
+printf '%s' "$QC" | grep -q 'SYNTHETIC' \
+  && ok "a rehearsal interview is called one on the status screen" \
+  || no "a synthetic interview is indistinguishable from a real one at a glance"
+grep -q 'cd "$Q"' "$RS" \
+  && ok "run-status stands in the rig before asking gc anything" \
+  || no "run-status asks whatever city the caller happened to be standing in"
 rm -rf "$IV"
 
 echo
