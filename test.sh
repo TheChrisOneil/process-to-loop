@@ -763,6 +763,18 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "WHAT AN INSTALL CARRIES"
+# Every script that reads a catalog falls back to one beside its own tooling. A
+# rig synced without catalog/ holds whatever it had when it was last copied, and
+# answers questions about a set of tools the run was never given. Found on
+# 2026-10-06 with a four-entry catalog in the rig and a six-entry one in the run.
+for d in checks tooling lib catalog tools; do
+  grep -qE "^	@for d in .*$d.*; do" "$HERE/Makefile" \
+    && ok "install-rig and install-city carry $d/" \
+    || no "an install leaves $d/ behind, so the rig keeps a stale copy"
+done
+
+echo
 echo "TOOL PERMISSIONS IN THE LEDGER"
 PB=$(mktemp -d)
 if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/appointments-chase.design" \

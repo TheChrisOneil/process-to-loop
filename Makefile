@@ -104,7 +104,7 @@ demo:
 install-rig:
 	@[ -n "$(RIG)" ] || { echo "make install-rig RIG=<rig-dir>"; exit 64; }
 	@[ -d "$(RIG)" ] || { echo "no such rig directory: $(RIG)"; exit 65; }
-	@for d in checks tooling lib; do \
+	@for d in checks tooling lib catalog tools; do \
 	   [ -d "$$d" ] || continue; \
 	   mkdir -p "$(RIG)/$$d"; \
 	   cp -pR "$$d"/. "$(RIG)/$$d/"; \
@@ -112,11 +112,14 @@ install-rig:
 	 done
 	@echo "A formula's check paths are relative to the RIG working directory,"
 	@echo "not the city. Checks installed only in the city are never found."
+	@echo "catalog/ and tools/ are synced too: every script that reads a catalog"
+	@echo "falls back to one beside its own tooling, and a rig holding an older"
+	@echo "copy answers a question about tools the run was never given."
 
 install-city:
 	@[ -n "$(CITY)" ] || { echo "make install-city CITY=<city-dir>"; exit 64; }
 	@[ -f "$(CITY)/city.toml" ] || { echo "not a city: $(CITY)/city.toml is not there"; exit 65; }
-	@for d in formulas checks tooling lib; do \
+	@for d in formulas checks tooling lib catalog tools; do \
 	   [ -d "$$d" ] || continue; \
 	   mkdir -p "$(CITY)/$$d"; \
 	   cp -pR "$$d"/. "$(CITY)/$$d/"; \
