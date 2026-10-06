@@ -1,0 +1,11 @@
+1/ 69% of S&P 500 companies deploy AI. 2% track a metric over time. None report AI value as its own KPI. Adoption is solved; measurement is the problem. #HealthIT #AIGovernance #TVR
+
+2/ TCO is the floor. Total Value Realized is the ceiling. The advantage is the spread. Most firms count only cost, and count it badly.
+
+3/ 70% of disclosed AI proof points were cost savings. 22% were revenue. Savings are the easy half of the value equation.
+
+4/ In healthcare an automated outcome you cannot defend to an auditor has negative value. TVR must price that in.
+
+5/ My rules: measure cost per completed decision. Capture the manual baseline first. Deterministic code by default; the model handles judgment only.
+
+6/ Claude supplies the harness. We own the proprietary context: prompts plus a loop that turns a described process into an auditable workflow. Part 1 of a series: [link]

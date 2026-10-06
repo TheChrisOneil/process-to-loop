@@ -1,0 +1,91 @@
+<!-- wp:paragraph -->
+<p><em>Auditable Workflows in a Regulated Environment, Part 1 of a series.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>In the second quarter of 2026, 69% of S&amp;P 500 companies pointed to a live AI deployment. Only 29% put a number on a result. Only 2% reported a metric tracked over time. None broke AI value out as its own KPI or P&amp;L line [1], [2].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Adoption is solved. Measurement is the problem.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>I build automated workflows for healthcare, where every automated decision must survive an auditor. I start every design with one question: what is the Total Value Realized? I answer it before I write a prompt, a rule, or a line of code. This series explains why, and how I built that question into the development loop itself.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">TCO manages the operational floor. TVR sets the enterprise ceiling. The advantage is the spread between them.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Two numbers govern an automation business case. Total Cost of Ownership (TCO) is what the workflow costs from womb to tomb. Total Value Realized (TVR) is what the workflow returns: cycle time cut from weeks to minutes, transaction volume grown without new headcount, decisions made while the competitor is still scheduling a meeting, and margin widened by the spread between compute spend and enterprise yield. Most organizations count only the first. Most of those count it badly.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A business case that lists licenses and tokens is a quote. Real TCO has seven layers: design and build, inference, human review, platform, assurance, quality safeguards, and lifecycle upgrades. In my experience tokens are the smallest line on that ledger. Human oversight and assurance are the operating core.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">Of the AI proof points S&amp;P 500 companies disclosed, 70% were cost. 22% were revenue [1].</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>TVR is the number that gets misrepresented, when it is represented at all. The disclosure data shows why. Companies report what they can see: savings inside existing operations [1]. Savings are the easy half. A workflow that cuts a clerk's hours is a cost project. A workflow that lets one manager supervise the output of a department is a growth engine. The same code can be either; only the TVR model tells you which one you built.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Regulated industries add a term the rest of the market ignores. An automated outcome you cannot defend to an auditor has negative value. It carries the cost of the decision plus the cost of the finding. So my TVR model asks three questions about every automated decision. What rule produced this outcome, and who approved that rule? What evidence shows the rule was applied, written by something other than the component that made the claim? If the process changed, when, by whom, and against what review? A workflow that answers all three accrues value. A workflow that answers none accrues liability.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">If two top performers always give the same answer, write the rule in code. Reserve the model for judgment.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>The unit of measure matters. I measure cost per completed decision, never cost per request. The formula has three terms: token compute, plus review minutes times the loaded labor rate, plus the quality assurance rate times the exception cost. The first term is architecture. The second is where productivity is won. The third compounds, because defect-free execution earns the trust to delegate more autonomy. And I capture today's manual baseline before the workflow ships. Without a baseline the yield cannot be proven.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>That formula drives the central design rule: deterministic by default, probabilistic where it creates value. A deterministic step costs nothing per run, returns the same output every time, and satisfies an auditor on sight. Thresholds, routing, arithmetic, and checksums belong in code. A model step charges per run and earns its place only on unstructured input, exceptions, and true judgment. Every rule I move out of a prompt and into code lowers TCO permanently and widens the TVR spread.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">The harness is rented. The proprietary context is owned.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>People ask where the intellectual property sits. Claude supplies the harness. Anyone can rent it. What we own is the proprietary context: a design format, a series of prompts, and a loop that turns a process described in its owner's words into an auditable workflow. The model authors one artifact. Everything downstream derives from it deterministically: 26 validation rules with no model involved, an adversarial audit by a different model on a different provider, a named approver who signs the design's SHA-256 hash rather than its filename, and a compiler that emits one check script per gate. Each gate can refuse. Each refusal names the next human action.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The adversarial audit already pays for itself. On a purchase order design it found a gate that refused 100% of partial receipts. On a monthly close design it found an execution deadlock: the gate demanded zero reconciliation variance before anyone could resolve the exceptions causing it. Both designs read as correct prose. A human reviewer skimming either one would likely have approved it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>I will publish the costs and the failures alongside the wins. The first week's real cost was eight defects at the boundary between the orchestration and the scripts it calls. The business logic was never the hard part. The next post covers the full TCO ledger. After that: the design format, the decorrelated audit, and the first end-to-end run.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Measure the value from day one, or you will never be able to prove it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph {"fontSize":"small"} -->
+<p class="has-small-font-size">[1] T. Slok, "From who is deploying AI to who can prove the ROI," <em>Apollo Daily Spark</em>, Sep. 11, 2026. [Online]. Available: https://www.apollo.com/wealth/insights-news/insights/daily-spark/from-who-is-deploying-ai-to-who-can-prove-the-roi<br>[2] C. Murray, "Nearly 70% of S&amp;P 500 companies deploy AI, but few track metrics over time," <em>Forbes</em>, Sep. 11, 2026. [Online]. Available: https://www.forbes.com/sites/conormurray/2026/09/11/nearly-70-of-sp-500-companies-deploy-ai-but-few-track-metrics-over-time/</p>
+<!-- /wp:paragraph -->

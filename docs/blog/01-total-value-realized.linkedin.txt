@@ -1,0 +1,25 @@
+69% of S&P 500 companies now point to a live AI deployment.
+
+2% report a metric tracked over time.
+
+None report AI value as its own KPI or P&L line. (Apollo, Q2 2026 earnings)
+
+Adoption is solved. Measurement is the problem.
+
+I build automated workflows for healthcare, where every automated decision must survive an auditor. I start every design with one question: what is the Total Value Realized?
+
+TCO is the floor. TVR is the ceiling. The advantage is the spread.
+
+Most business cases count licenses and tokens. That is a quote. Real TCO has seven layers, and tokens are usually the smallest.
+
+TVR is the number that gets misrepresented. 70% of disclosed AI proof points were cost savings; 22% were revenue. Savings are the easy half.
+
+Regulated industries add a term: an outcome you cannot defend to an auditor has negative value.
+
+So I measure cost per completed decision, capture the manual baseline before shipping, and default to deterministic code. The model handles judgment only.
+
+Claude supplies the harness. We own the proprietary context: the prompts and the loop that turn a described process into an auditable workflow.
+
+Part 1 of a series on auditable workflows in regulated environments. Link in comments.
+
+#HealthIT #AIGovernance #TotalValueRealized

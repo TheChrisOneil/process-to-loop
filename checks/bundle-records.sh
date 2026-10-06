@@ -61,6 +61,31 @@ if [ -n "$SRCS" ]; then
   fi
 fi
 
+# A tool the catalog restricted must have that restriction on the row. The gate
+# stops a violation; the ledger proves the non-violation for every unit that
+# passed, and that proof is what a regulated audit asks for. Recorded on the read
+# row rather than beside it, because a permission on its own row can be absent
+# while the reads continue — declared, reported, absent.
+CATALOG=${CATALOG:-$HERE/catalog/eb-tools.catalog}
+if [ -f "$CATALOG" ] && [ -s "$B/memory/ledger.tsv" ]; then
+  RESTRICTED=$(awk '/^@tool /{id=$2} /^may_not:/{v=$0; sub(/^may_not:[ \t]*/,"",v); if (id!="" && v!="") print id "\t" v}' "$CATALOG")
+  missing=""
+  while IFS=$'\t' read -r tid tconstraint; do
+    [ -n "$tid" ] || continue
+    # only tools this bundle actually reads through
+    grep -q " via $tid (" "$B/memory/ledger.tsv" 2>/dev/null || continue
+    grep -q " via $tid (.*may not $tconstraint" "$B/memory/ledger.tsv" 2>/dev/null \
+      || missing="$missing $tid"
+  done <<< "$RESTRICTED"
+  if [ -n "$missing" ]; then
+    say "these tools were read and the ledger does not record what the catalog forbids them:$missing"
+    echo "         A row proving access without proving the permission in force is half a record." >&2
+  else
+    NP=$(grep -c 'may not ' "$B/memory/ledger.tsv" 2>/dev/null || echo 0)
+    [ "$NP" -eq 0 ] || printf 'permissions: %s read(s) logged the restriction the catalog placed on the tool\n' "$NP"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "         Next human action: the design promised these records. Fix the emitter, not the design." >&2
   exit 1

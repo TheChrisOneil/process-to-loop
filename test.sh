@@ -389,7 +389,9 @@ grep -q '	read	appointments via eb-appointment-service' "$BR/appt/memory/ledger.
 grep -q '	read	intake-forms via eb-form-builder-service' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
   && ok "a tick read the XML-backed source and logged it" \
   || no "the bundle did not log a read of intake-forms"
-grep -q '(phi)' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
+# (phi) or (phi; may not ...) — the class is the part this asserts, and pinning
+# it to the exact old spelling made adding the permission look like a regression.
+grep -qE '\(phi[);]' "$BR/appt/memory/ledger.tsv" 2>/dev/null \
   && ok "the ledger records the data class of what was read" \
   || no "the ledger does not say what class of data was read"
 [ -s "$BR/appt/memory/appointments.tsv" ] \
@@ -759,6 +761,48 @@ grep -q 'lib/\*.awk' "$CT" && ok "the contract says which files not to read" \
 grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   && ok "the authoring step points at the contract" \
   || no "the formula never mentions the contract it depends on"
+
+echo
+echo "TOOL PERMISSIONS IN THE LEDGER"
+PB=$(mktemp -d)
+if "$HERE/tooling/emit-bundle.sh" "$HERE/examples/appointments-chase.design" \
+     --name tp --out "$PB" >/dev/null 2>&1; then
+  grep -q 'may not leave the local boundary' "$PB"/tp/steps/*.sh \
+    && ok "an emitted read carries the permission the catalog withheld" \
+    || no "the bundle logs the data class and not what the tool may not do"
+  # On the read row, not beside it: a permission on a row of its own can be
+  # absent while the reads continue.
+  grep -hE 'ledger .*read .*may not ' "$PB"/tp/steps/*.sh >/dev/null 2>&1 \
+    && ok "the permission is on the read row, not a row of its own" \
+    || no "the permission is recorded separately from the read it governs"
+  # A tick proves it, rather than the grep above trusting the emitter.
+  PD="$HERE/examples/appointments-chase.design"
+  if BUNDLE_PATH="$PB/tp" DESIGN_PATH="$PD" CATALOG="$HERE/catalog/eb-tools.catalog" \
+       "$HERE/checks/bundle-records.sh" >"$PB/out" 2>&1; then
+    grep -q 'permissions: .* logged the restriction' "$PB/out" \
+      && ok "a tick proves the restriction reached the ledger" \
+      || no "the gate passed without confirming any permission was logged"
+  else
+    no "a correctly emitted bundle was refused by the records gate" "$(tail -2 "$PB/out")"
+  fi
+  # And it must refuse when the emitter drops it. The gate runs its own tick, so
+  # the ledger is cleared first — otherwise correct rows from the build survive
+  # and mask the defect.
+  sed -i '' 's/; may not leave the local boundary//' "$PB"/tp/steps/*.sh 2>/dev/null \
+    || sed -i 's/; may not leave the local boundary//' "$PB"/tp/steps/*.sh
+  : > "$PB/tp/memory/ledger.tsv"
+  if BUNDLE_PATH="$PB/tp" DESIGN_PATH="$PD" CATALOG="$HERE/catalog/eb-tools.catalog" \
+       "$HERE/checks/bundle-records.sh" >"$PB/out2" 2>&1; then
+    no "a bundle that reads a restricted tool and logs no restriction was accepted"
+  else
+    grep -q 'does not record what the catalog forbids' "$PB/out2" \
+      && ok "a read with no permission on it is refused, and the gate says which tool" \
+      || no "the refusal did not name the tool whose permission was missing"
+  fi
+else
+  no "the worked example did not emit a bundle"
+fi
+rm -rf "$PB"
 
 echo
 echo "THE INTERVIEW"

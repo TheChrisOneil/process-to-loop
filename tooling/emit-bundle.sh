@@ -50,7 +50,7 @@ CATALOG=${CATALOG:-$HERE/../catalog/eb-tools.catalog}
 CATVIA=$(mktemp)
 if [ -f "$CATALOG" ]; then
   cat > "$CATVIA.q" <<'CATQ'
-END{ for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".via"], T[TID[i] ".data_class"] }
+END{ for(i=1;i<=t;i++) printf "%s\t%s\t%s\t%s\n", TID[i], T[TID[i] ".via"], T[TID[i] ".data_class"], T[TID[i] ".may_not"] }
 CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATVIA.q" "$CATALOG" > "$CATVIA" 2>/dev/null
   rm -f "$CATVIA.q"
@@ -58,6 +58,12 @@ fi
 trap 'rm -f "$CATVIA"' EXIT
 tool_via() { awk -F'\t' -v id="$1" '$1==id {print $2}' "$CATVIA"; }
 tool_class() { awk -F'\t' -v id="$1" '$1==id {print $3}' "$CATVIA"; }
+# The permission the catalog WITHHELD from this tool. A gate stops a violation;
+# the ledger proves the non-violation for the six hundred units that passed,
+# which is what a regulated audit actually asks for. It is written on the read
+# row rather than on a row of its own, because a separate row can be absent
+# while the reads still happen — declared, reported, absent.
+tool_maynot() { awk -F'\t' -v id="$1" '$1==id {print $4}' "$CATVIA"; }
 tool_abs() { case "$1" in /*) printf '%s' "$1" ;; *) printf '%s' "$(cd "$HERE/.." && pwd)/$1" ;; esac; }
 # Which tools does step N use?
 tools_for() { printf '%s\n' "$PLAN" | awk -F'\t' -v sid="$1" '$1=="tool" { n=split($3,B," "); for(i=1;i<=n;i++) if (B[i]==sid) print $2 }'; }
@@ -163,9 +169,13 @@ EOF
     VIA=$(tool_via "$TL"); [ -n "$VIA" ] || continue
     ABS=$(tool_abs "$VIA"); SRC=$(source_of "$TL"); SRC=${SRC:-$TL}
     CLASS=$(tool_class "$TL")
+    MAYNOT=$(tool_maynot "$TL")
+    # A double quote here would close the string in the generated step.
+    MAYNOT=$(printf '%s' "$MAYNOT" | tr -d '"')
+    PERM="$CLASS"; [ -z "$MAYNOT" ] || PERM="$CLASS; may not $MAYNOT"
     cat >> "$F" <<EOF
 
-# ---- source: $SRC, via $TL ($CLASS) -------------------------------------
+# ---- source: $SRC, via $TL ($PERM) -------------------------------------
 # Resolved when this bundle was built. The bundle needs no catalog at run time.
 TOOL_$(printf '%s' "$TL" | tr 'a-z-' 'A-Z_')="$ABS"
 SRC_OUT="\$MEM/$SRC.tsv"
@@ -197,9 +207,11 @@ if [ "\$FETCH_RC" != 0 ]; then
 fi
 
 SRC_ROWS=\$(( \$(grep -c . "\$SRC_OUT" 2>/dev/null || echo 1) - 1 ))
-# The ledger records WHICH source was read, by WHICH tool, and how much. An
-# auditor asking where a number came from reads this line, not the code.
-ledger "\$UNIT" "$SLUG" read "$SRC via $TL ($CLASS): \$SRC_ROWS row(s)"
+# The ledger records WHICH source was read, by WHICH tool, under WHICH
+# permission, and how much. An auditor asking where a number came from reads
+# this line, not the code — and the permission is on the same line because a
+# permission recorded separately can go missing while the reads continue.
+ledger "\$UNIT" "$SLUG" read "$SRC via $TL ($PERM): \$SRC_ROWS row(s)"
 step_say "$ID" "$SLUG" "$TYPE" "read \$SRC_ROWS row(s) from $SRC"
 EOF
   done
