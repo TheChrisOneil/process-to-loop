@@ -2,16 +2,25 @@
 # Turn a validated design into something a person can read and evaluate: the brief, and both
 # diagrams archived as files. Deterministic — nothing here is written by a model.
 #
-#   ./brief.sh <design file>        writes BRIEF.md and diagrams/ beside the design
+#   ./brief.sh <design file> [--questions <QUESTIONS.md>]
+#                                   writes BRIEF.md and diagrams/ beside the design
+#
+# With --questions the brief carries the interview: every question, how it was
+# answered, and by whom. The acceptance step asks for all of this "on one
+# screen", and a person deciding whether to sign needs to see which answers came
+# from a person and which the system chose.
 #
 # generate.sh calls this, and so does anyone who wrote a design by hand.
 # Students reach this through:  make brief DESIGN=<design>
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-DESIGN="${1:?usage: brief.sh <design file>}"
+DESIGN="${1:?usage: brief.sh <design file> [--questions <QUESTIONS.md>]}"
+shift || true
+QF="${QUESTIONS:-}"
+while [ $# -gt 0 ]; do case "$1" in --questions) QF="${2:-}"; shift 2 ;; *) shift ;; esac; done
 [ -f "$DESIGN" ] || { echo "no such design file: $DESIGN" >&2; exit 2; }
 
-if ! "$HERE/validate.sh" "$DESIGN" >/dev/null 2>&1; then
+if ! QUESTIONS="$QF" "$HERE/validate.sh" "$DESIGN" >/dev/null 2>&1; then
   echo "REFUSED: this design does not pass the validator, so no brief is written." >&2
   echo "         Run:  make check DESIGN=$DESIGN" >&2
   exit 1
@@ -57,6 +66,22 @@ fi
 
 {
   awk -f "$HERE/lib/parse.awk" -f "$HERE/lib/brief.awk" "$DESIGN"
+  if [ -n "$QF" ] && [ -f "$QF" ]; then
+    echo
+    echo "## What was asked, and who answered"
+    echo
+    echo "This design was written from answers, not from guesses alone. Each row says how the"
+    echo "answer was given. **Stated** means a person said it. **Delegated** means the person was"
+    echo "asked and told the system to choose. **Unanswered** means nobody present knew, and names"
+    echo "who owes it. The three are different claims and are not interchangeable."
+    echo
+    "$HERE/questions.sh" brief "$QF"
+    echo
+    echo "A **bold id** is a structural question: one whose answer decides the shape of the"
+    echo "design rather than a figure inside it. A delegated structural answer is raised in"
+    echo "\`FINDINGS.md\` as something to confirm before signing."
+    "$HERE/questions.sh" status "$QF" | sed -e "1s/^/\n### The ratio\n\n    /" -e "2,\$s/^/    /"
+  fi
   echo
   echo "## The flow it proposes"
   echo

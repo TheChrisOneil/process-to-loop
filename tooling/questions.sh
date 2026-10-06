@@ -6,6 +6,7 @@
 #   questions.sh status    <QUESTIONS.md>                      the counts, and the ratio
 #   questions.sh open      <QUESTIONS.md>                      what is still unanswered
 #   questions.sh tsv       <QUESTIONS.md>                      one row per question
+#   questions.sh brief     <QUESTIONS.md>                      the same, as a markdown table
 #   questions.sh answer    <QUESTIONS.md> <Qn> <type> --by <who> [--value <v>] [--synthetic]
 #
 # The conversation is the interface; this file is the record. An answer is
@@ -117,7 +118,7 @@ trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"' EXIT
 
 case "$CMD" in
 
-tsv|open|status)
+tsv|open|status|brief)
   # A short query program, appended to the parser. Once awk is given -f it takes
   # EVERY program that way, so these go to a file: a program passed inline after
   # -f is read as a data file, and the first symptom is a parse error quoting
@@ -137,6 +138,27 @@ END { qo=0
     if (Q[qd ".answer_type"]=="") { qo++; printf "%s  %-10s %s\n", qd, Q[qd ".class"], Q[qd ".asks"] } }
   if (qo==0) print "every question has an answer."
   exit (qo>0 ? 1 : 0) }
+QAWK
+    ;;
+  brief) cat > "$QP" <<'QAWK'
+END {
+  print "| | question | how it was answered | by |"
+  print "|---|---|---|---|"
+  for (qx=1; qx<=nq; qx++) { qd=QID[qx]
+    qc  = Q[qd ".class"]
+    qt  = Q[qd ".answer_type"]; if (qt=="") qt="OPEN"
+    qby = Q[qd ".answer_by"]
+    qv  = Q[qd ".answer_value"]
+    qa  = Q[qd ".asks"]
+    # A pipe inside a cell ends the cell. The answer writer refuses one in a
+    # field, but the question text comes from a model and is not policed.
+    gsub(/\|/, "\\|", qa); gsub(/\|/, "\\|", qv); gsub(/\|/, "\\|", qby)
+    mark  = (qc=="structural" ? "**" qd "**" : qd)
+    shown = (qt=="unanswered" ? "_nobody present knew_" : qv)
+    if (Q[qd ".answer_prov"]=="synthetic") qby = qby " — **synthetic**"
+    printf "| %s | %s | %s: %s | %s |\n", mark, qa, qt, shown, qby
+  }
+}
 QAWK
     ;;
   status) cat > "$QP" <<'QAWK'

@@ -600,9 +600,15 @@ design it depicts.
 1. Render the sequence view and the flowchart from {{design_path}}, and write
    them beside it under `diagrams/` as both `.mmd` and, where the Mermaid CLI is
    installed, `.svg`.
-2. Write the brief: the use case, the assumptions, the unit of work, the gates
-   with their refusals, and the measures — the page a person reads instead of
-   the design file.
+2. Write the brief, passing the answers:
+
+       {{tooling_root}}/brief.sh {{design_path}} --questions {{questions_path}}
+
+   The use case, the assumptions, the unit of work, the gates with their
+   refusals, the measures, and **what was asked and who answered** — the page a
+   person reads instead of the design file. The acceptance step asks for all of
+   it on one screen, and an approver cannot tell a confirmed fact from a chosen
+   one unless the brief says which is which.
 3. Report the path of each file written, and say plainly if the SVG step was
    skipped because the renderer is not installed. Do not leave a stale SVG
    beside a design that has changed.

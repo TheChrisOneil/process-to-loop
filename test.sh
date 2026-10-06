@@ -906,6 +906,26 @@ grep -q 'Answered synthetically' "$IV/FINDINGS.md" \
   && grep -q 'CRITICAL.*Every answer in this interview' "$IV/FINDINGS.md" \
   && ok "an interview answered entirely by the system is one critical finding, not one per question" \
   || no "a wholly synthetic interview raised a finding per answer and buried the real ones"
+# The brief is the page the approver reads. It must say who answered what.
+BQ=$("$HERE/tooling/questions.sh" brief "$IV/Q.md")
+printf '%s' "$BQ" | grep -q '^| | question | how it was answered | by |' \
+  && ok "the brief renders the interview as a table" \
+  || no "the brief table has no header"
+# Count DATA rows, not every line beginning with a pipe: the header and the
+# separator both do, so a threshold over all of them passes on an empty table.
+[ "$(printf '%s\n' "$BQ" | grep -cE '^\| (\*\*)?Q[0-9]')" -eq 2 ] \
+  && ok "every question reaches the brief, not just the header" \
+  || no "the brief table came back empty — the rows were lost in quoting"
+printf '%s' "$BQ" | grep -q '\*\*Q1\*\*' \
+  && ok "a structural question is marked in the brief" \
+  || no "structural and parametric look the same in the brief"
+printf '%s' "$BQ" | grep -q 'synthetic' \
+  && ok "the brief says which answers were supplied on the owner behalf" \
+  || no "the brief hides synthetic answers"
+grep -q 'questions_path' "$HERE/formulas/design-authoring.toml" \
+  && grep -q 'brief.sh {{design_path}} --questions' "$HERE/formulas/design-authoring.toml" \
+  && ok "the render step hands the brief its question set" \
+  || no "the brief is written without the answers, so the acceptance screen is half a screen"
 rm -rf "$IV"
 
 echo
