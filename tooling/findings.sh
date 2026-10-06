@@ -112,6 +112,24 @@ else:
             "why": (f"The answer recorded is **{qvalue or '(none)'}**, supplied on behalf of "
                     f"{qby} rather than by them. Nobody with domain knowledge confirmed it."),
         })
+# A gate closed without a person is the loudest thing on this page. It is not an
+# interview finding and it is not the auditor's — it is about how this run was
+# conducted, and it outranks both.
+import os
+reh = os.path.join(os.path.dirname(os.path.abspath(design)), "REHEARSAL")
+if os.path.exists(reh):
+    rows = [r.split("\t") for r in open(reh).read().splitlines() if r.strip()]
+    if rows:
+        interview.insert(0, {
+            "severity": "critical", "fixable": "needs_a_person", "source": "rehearsal",
+            "what": f"{len(rows)} gate(s) on this run were closed without a person",
+            "why": ("This run is a rehearsal of the machinery, not an approval of the design. "
+                    "`compile` refuses to build from it, and the acceptance register records any "
+                    "signature on it as a rehearsal.\n\n"
+                    + "\n".join(f"- `{(r+['']*5)[1]}` closed by **{(r+['']*5)[3]}** at {(r+['']*5)[0]}"
+                                 f" — {(r+['']*5)[4]}" for r in rows)
+                    + "\n\nTo make it real: run it again and have the named approver close each gate."),
+        })
 defects = defects + interview
 order = {"critical": 0, "major": 1, "minor": 2}
 defects.sort(key=lambda x: order.get(x.get("severity", "minor"), 3))
@@ -135,7 +153,8 @@ else:
     L.append("fix the design, or record why it is acceptable as it stands.")
     L.append("")
     for i, x in enumerate(defects, 1):
-        tag = " · from the interview" if x.get("source") == "interview" else ""
+        src = x.get("source")
+        tag = " · from the interview" if src == "interview" else (" · HOW THIS RUN WAS CLOSED" if src == "rehearsal" else "")
         L.append(f"## {i}. {x.get('severity','?').upper()}{tag} — {x.get('what','')}")
         L.append("")
         L.append(x.get("why", ""))

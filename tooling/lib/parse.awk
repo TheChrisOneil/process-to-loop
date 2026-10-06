@@ -4,6 +4,7 @@
 # Populates: V["section.key"] · ASSUM[1..a] · SID/SNAME/STYPE/SACT/SDESC[1..s]
 #            GAFT/GCOND/GREF[1..g] · KNAME/KKIND/KBASE[1..k]
 #            SRCID/SRCFROM/SRCPROV/SRCCON[1..n_src] · TLID/TLBY/TLPURP[1..n_tool]
+#            DTID[1..n_dt] · DTHIT/DTIN/DTOUT/DTNIN/DTNOUT[id] · DTR[id,1..DTNR[id]]
 # Counter names are spelled out — n_src, n_tool — because a short one collides.
 # k was reused once for a keyed-section key and hung the validator forever.
 /^[[:space:]]*#/ { next }
@@ -22,6 +23,29 @@
       V[sec"."ky]=v; next
   }
   if (sec=="assumptions") { if (substr(line,1,1)=="-") { a++; ASSUM[a]=substr(line,3) } next }
+  if (sec=="decisions") {
+      # A rule row starts with a dash, like a list item. Everything else in the
+      # section is a keyed line, and `table:` opens a new table — so a design may
+      # carry several, and a row can never be attached to no table.
+      if (substr(line,1,1)=="-") {
+          if (dcur=="") next
+          DTNR[dcur]++; DTR[dcur, DTNR[dcur]] = substr(line,3)
+          next
+      }
+      di=index(line,":"); if (di==0) next
+      dk=substr(line,1,di-1); dv=substr(line,di+1)
+      sub(/^[ \t]+/,"",dv); sub(/[ \t]+$/,"",dv)
+      if (dk=="table") {
+          dn=split(dv,DF," *\\| *")
+          n_dt++; DTID[n_dt]=DF[1]; dcur=DF[1]
+          DTHIT[dcur]=(dn>=2 ? tolower(DF[2]) : "")
+          next
+      }
+      if (dcur=="") next
+      if (dk=="inputs")  { DTIN[dcur]=dv;  DTNIN[dcur]=split(dv,DX," *\\| *") }
+      if (dk=="outputs") { DTOUT[dcur]=dv; DTNOUT[dcur]=split(dv,DY," *\\| *") }
+      next
+  }
   if (sec=="sources" || sec=="tools") {
       cnt=split(line,F," *\\| *")
       if (sec=="sources") { n_src++; SRCID[n_src]=F[1]; SRCFROM[n_src]=F[2]; SRCPROV[n_src]=F[3]; SRCCON[n_src]=F[4]; SRCF[n_src]=cnt }

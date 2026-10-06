@@ -123,6 +123,12 @@ print("    %-8s %s" % (b.get("id"), ref or (b.get("title") or "").strip()))'
     echo "    nothing after these runs until a person closes them"
   fi
 
+  if [ -f "$Q/REHEARSAL" ]; then
+    echo "  ── REHEARSAL ─────────────────────────────────────"
+    awk -F'\t' '{printf "    %s  %s  by %s\n", $1, $2, $4}' "$Q/REHEARSAL"
+    echo "    gate(s) closed without a person. compile will refuse this run."
+  fi
+
   echo "  ── artifacts ─────────────────────────────────────"
   local d v f
   d=$(ls "$Q"/*.design 2>/dev/null | head -1)

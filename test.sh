@@ -763,6 +763,44 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "REHEARSAL"
+# A gate may be closed without a person, because "does the machinery work" and
+# "is this design right" are different questions and blocking the first on the
+# second parks a run for hours. What a rehearsal may NOT do is look like an
+# approval afterwards.
+RH=$(mktemp -d)
+cp "$HERE/examples/appointments-chase.design" "$RH/d.design"
+"$HERE/tooling/compile.sh" "$RH/d.design" --name rh-clean --out "$RH/o" >/dev/null 2>&1 \
+  && ok "a run with no rehearsal compiles" \
+  || no "a clean design did not compile, so the rehearsal test proves nothing"
+printf '2026-10-06T00:00:00Z\twk-x\tgate\tthe assistant\ttesting\n' > "$RH/REHEARSAL"
+"$HERE/tooling/compile.sh" "$RH/d.design" --name rh-dirty --out "$RH/o" >"$RH/c" 2>&1 \
+  && no "a bundle was compiled out of a rehearsal" \
+  || ok "compile refuses a run whose gates were closed without a person"
+grep -q 'may not build out of one' "$RH/c" \
+  && ok "the refusal says what a rehearsal is for, and what it is not" \
+  || no "the refusal does not explain itself"
+grep -q 'wk-x' "$RH/c" && grep -q 'the assistant' "$RH/c" \
+  && ok "the refusal names which gate was rehearsed and by whom" \
+  || no "the refusal does not name the rehearsed gate"
+"$HERE/tooling/emit-bundle.sh" "$RH/d.design" --name rh-b --out "$RH/b" >/dev/null 2>&1 \
+  && no "the bundle emitter built out of a rehearsal" \
+  || ok "the bundle emitter refuses one too, not just the formula compiler"
+# The mark is written before the gate closes, so a closed gate always has one.
+grep -n 'REHEARSAL' "$HERE/tooling/rehearse-gate.sh" | head -1 >/dev/null
+awk '/>> "\$ART\/REHEARSAL"/{m=NR} /gc bd close/{c=NR} END{exit !(m>0 && c>0 && m<c)}' \
+  "$HERE/tooling/rehearse-gate.sh" \
+  && ok "the mark is written before the gate is closed, never after" \
+  || no "a gate could close with no mark beside it if the write failed"
+grep -q 'REHEARSAL' "$HERE/tooling/accept.sh" \
+  && ok "the acceptance register records a rehearsed signature as rehearsed" \
+  || no "a rehearsal could be signed and read back as a real acceptance"
+grep -q 'REHEARSAL' "$HERE/tooling/run-status.sh" \
+  && ok "the status screen says when a run is a rehearsal" \
+  || no "a rehearsal is invisible on the screen I report from"
+rm -rf "$RH"
+
+echo
 echo "WHAT AN INSTALL CARRIES"
 # Every script that reads a catalog falls back to one beside its own tooling. A
 # rig synced without catalog/ holds whatever it had when it was last copied, and

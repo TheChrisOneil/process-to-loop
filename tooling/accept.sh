@@ -188,7 +188,20 @@ if [ "$NORM" != "$PHRASE_REQUIRED" ]; then
   exit 1
 fi
 
-append accept "$(relpath "$F")" "$SHA" "$BY" "$TYPED"
+# A rehearsal does not become a signature by being signed. If any gate on this
+# run was closed without a person, the register says so on the row, so no later
+# reader can take the acceptance for more than it was.
+DETAIL="$TYPED"
+REH="$(cd "$(dirname "$F")" && pwd)/REHEARSAL"
+if [ -f "$REH" ]; then
+  NREH=$(grep -c . "$REH" 2>/dev/null || echo 0)
+  DETAIL="$TYPED [REHEARSAL: $NREH gate(s) on this run were closed without a person]"
+  echo
+  echo "NOTE: $NREH gate(s) on this run were closed as a rehearsal, not by a person."
+  echo "      The register will record this acceptance AS a rehearsal, and compile"
+  echo "      will refuse to build from it."
+fi
+append accept "$(relpath "$F")" "$SHA" "$BY" "$DETAIL"
 echo
 echo "Accepted by $BY."
 echo "Recorded in memory/acceptances.tsv, row $(awk -F'\t' 'END{print $1}' "$REG"), chained."

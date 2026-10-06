@@ -27,6 +27,22 @@ case "$NAME" in -*|*[!a-z0-9-]*) echo "REFUSED: --name must be lower case letter
   echo "         Next human action: pass a name like invoice-reconciliation." >&2; exit 1 ;; esac
 case "$INTERVAL" in ''|*[!0-9]*) echo "REFUSED: --interval must be whole seconds." >&2; exit 1 ;; esac
 
+# A rehearsal is not an approval, and this is where that becomes true rather
+# than merely stated. A run whose gates were closed without a person leaves a
+# REHEARSAL file beside the design; nothing is emitted from it.
+#
+# Remove this and rehearse-gate.sh turns the acceptance gate into a formality —
+# a control that is declared, reported and absent, which is the defect this
+# whole project exists to catch.
+REHEARSAL="$(cd "$(dirname "$DESIGN")" && pwd)/REHEARSAL"
+if [ -f "$REHEARSAL" ] && [ -z "${ALLOW_REHEARSAL:-}" ]; then
+  echo "REFUSED: this run is a REHEARSAL. $(grep -c . "$REHEARSAL") gate(s) were closed without a person:" >&2
+  awk -F'\t' '{printf "           %s  %s  by %s — %s\n", $1, $2, $4, $5}' "$REHEARSAL" >&2
+  echo "         You may rehearse the whole pipeline. You may not build out of one." >&2
+  echo "         Next human action: re-run it and have $(awk -F': *' '/^approver:/{print $2; exit}' "$DESIGN") close the gates." >&2
+  exit 1
+fi
+
 echo "  validating the design …"
 if ! "$HERE/validate.sh" "$DESIGN" > /tmp/eb-design.$$ 2>&1; then
   sed 's/^/    /' /tmp/eb-design.$$; rm -f /tmp/eb-design.$$
