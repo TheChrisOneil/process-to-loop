@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Stand-in for the EverBetter medication service: the medication list on file.
+# Reads a local CSV fixture. Same three-subcommand contract as every other tool
+# in the catalog, so nothing downstream has to know which one it is talking to.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+FIXTURE=${EB_MEDICATION_FIXTURE:-$HERE/fixtures/medications.csv}
+
+case "${1:-}" in
+  health)
+    [ -r "$FIXTURE" ] || { echo "medication source unreadable at $FIXTURE" >&2; exit 75; }
+    echo "ok: eb-medication-service, $(( $(wc -l < "$FIXTURE") - 1 )) medication record(s)"; exit 0 ;;
+  schema)
+    printf 'patient_ref\tstring\ndrug_name\tstring\nrxnorm\tstring\ndose\tnumber\nunit\tstring\nfrequency\tstring\nstatus\tstring\nrecorded_at\tdate\n'; exit 0 ;;
+  fetch)
+    [ -r "$FIXTURE" ] || { echo "medication source unreadable at $FIXTURE" >&2; exit 75; }
+    # Tab-separated out, whatever came in. One shape for every tool.
+    # OFS is set in BEGIN, not beside the assignment: $1=$1 rebuilds the record
+    # with whatever OFS held AT THAT MOMENT, so setting it afterwards leaves the
+    # first line still comma-separated and everything after it tabbed.
+    awk -F, -v want="${2:-}" 'BEGIN { OFS="\t" }
+      NR==1 { $1=$1; print; next }
+      want=="" || $1==want { $1=$1; print }' "$FIXTURE"; exit 0 ;;
+  *) echo "usage: eb-medication-service health|schema|fetch [patient_ref]" >&2; exit 64 ;;
+esac

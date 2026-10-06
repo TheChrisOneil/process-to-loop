@@ -8,6 +8,14 @@ set -uo pipefail
 Q=${1:?artifact_root}
 FOLLOW=${2:-}
 INT=${3:-30}
+[ -d "$Q" ] || { echo "no artifact_root at $Q." >&2; exit 75; }
+Q=$(cd "$Q" && pwd)
+
+# gc resolves its city and rig from the CURRENT DIRECTORY. Run this from a repo
+# checkout and gc answers about the city it defaults to, which holds none of
+# these beads — and the report came back empty rather than wrong, which is the
+# worse of the two. The artifact_root is inside the rig, so stand there.
+cd "$Q" || { echo "cannot enter $Q." >&2; exit 75; }
 
 # Which workflow owns this artifact_root? Resolved once, so a caller needs no
 # bead id to get a truthful answer.
@@ -22,6 +30,27 @@ for b in bs:
     if md.get('gc.kind') == 'workflow' and md.get('gc.var.artifact_root') == q:
         print(b.get('id') or ''); break
 " 2>/dev/null)
+fi
+# An empty answer here means "I found no run", and it must not be reported as
+# "the run has done nothing". Those look identical on screen and they are not
+# the same fact.
+if [ -z "${ROOT_BEAD:-}" ]; then
+  echo "No workflow in this rig names $Q as its artifact_root." >&2
+  echo "Either nothing has been slung for it, or this is not the path the run was given." >&2
+  echo "What this rig does hold:" >&2
+  gc bd list --json 2>/dev/null | python3 -c "
+import json, sys
+try: bs = json.load(sys.stdin)
+except Exception: raise SystemExit
+n = 0
+for b in bs:
+    md = b.get('metadata') or {}
+    if md.get('gc.kind') != 'workflow': continue
+    n += 1
+    print('   ', b.get('id'), '->', md.get('gc.var.artifact_root') or '(no artifact_root)')
+if not n: print('    no workflows at all.')
+" >&2
+  exit 75
 fi
 export ROOT_BEAD
 

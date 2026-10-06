@@ -537,3 +537,74 @@ whose check script is missing, one layer up.
 
 A city that fails any of these is a city whose capability surface you cannot see, and formulas
 written against it may be written for commands it does not have.
+
+## 13. The interview: what a person is actually asked
+
+`design-authoring` stops twice for a person, not once. The second stop is the acceptance gate
+and has been there from the start. The first is new, and it is earlier than anything else a
+person touches:
+
+```
+intake -> questions -> answers -> answered -> author -> ... -> accept-design
+                       ^^^^^^^                                 ^^^^^^^^^^^^
+                       a person                                a person
+```
+
+**Why it is first and not a refinement pass.** `@sources` cannot be written before the schema
+is known, and no gate can reference a field before `@sources` exists. Asking afterwards means
+asking about a design already built on the guess.
+
+### The three answers, and why there are three
+
+A run that accepts only answers stalls on the first thing nobody knows, and then somebody edits
+the file by hand to get moving again. So:
+
+| they say | written as | what it leaves behind |
+|---|---|---|
+| the answer | `stated` | *the owner stated this* |
+| "I don't know" | `unanswered --by <who owes it>` | a minor finding naming them |
+| "you pick it" | `delegated --value <chosen>` | the value, and the fact that they asked |
+
+Delegation produces the same value a silent assumption would. The difference is entirely in the
+provenance, and the provenance is the whole point: *the owner was asked and chose to let the
+system decide* survives an audit, and *the system decided and mentioned it afterwards* does not.
+
+A delegated **structural** answer — the unit of work, the judgment, the sources, who signs —
+becomes a major finding, so the owner sees the choice at the acceptance gate. Delegation defers
+the decision rather than removing it. That is what makes "you pick it" always safe to say.
+
+### Write answers with the tool
+
+```bash
+tooling/questions.sh answer <QUESTIONS.md> Q3 stated \
+  --by "Buzz, process owner" --value "one patient appointment"
+
+tooling/questions.sh open   <QUESTIONS.md>     # what is left
+tooling/questions.sh status <QUESTIONS.md>     # the ratio
+```
+
+Never by hand. A hand-edited artifact is a control that is declared, reported and absent, and
+the tool is the only thing that knows the format.
+
+### `--synthetic`
+
+An answer you supplied on the owner's behalf — a rehearsal, a dry run, a test — carries
+`--synthetic`. It is counted, reported at the gate, and raised as a major finding. A design
+whose interview was answered by the system is not a design anybody confirmed, and that fact
+must not be recoverable only by reading a transcript.
+
+### Two more vars on the sling
+
+```bash
+  --var questions_path=$HOME/cities/ptl-rig/processes/<name>/QUESTIONS.md \
+  --var interview_path=$HOME/software/process-to-loop/tooling/method/INTERVIEW.md
+```
+
+Both are required. Preflight refuses without them, which is the right place to find out.
+
+### The step that a person closes is not the step that checks
+
+`answers` is a gate bead a person closes. `answered` is a separate step that runs
+`questions-answered.sh`. They are separate because the formula rules refuse a step carrying both
+a gate and a check (F6), and that rule is correct: somebody closing the answers step is not the
+same event as the answers being present, and only one of those two is checkable.

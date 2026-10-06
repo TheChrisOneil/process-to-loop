@@ -51,3 +51,13 @@ chosen: 2026-10
 because: no server, durable, queryable by anything
 decided_by: Buzz, process owner
 review_by: 2027-10
+
+@tool eb-medication-service
+provides: patient_ref, drug_name, rxnorm, dose, unit, frequency, status, recorded_at
+via: tools/eb-medication-service
+data_class: phi
+may_not: leave the local boundary
+chosen: 2026-10, over reading the FHIR MedicationStatement endpoint directly
+because: carries rxnorm beside the free-text name, which is what makes two spellings of one drug comparable without a model
+decided_by: Buzz, process owner
+review_by: 2027-10

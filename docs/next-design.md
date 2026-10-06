@@ -1,6 +1,12 @@
 # The next design
 
-What the pipeline should become, decided in discussion on 2026-10-05. Nothing here is built.
+What the pipeline should become, decided in discussion on 2026-10-05.
+
+**Built since, and proven end to end:** sections 1 and 4 (`@sources`, `@tools`, the tool
+catalog, V27-V31, source-integrity) on 2026-10-05, and sections 2 and 3 (`QUESTIONS.md`, the
+three answers, the reordered pipeline, V32-V34, the interview script) on 2026-10-06. Section 5
+and the MCP half of section 4 are not built. The order of work at the foot of this file is
+annotated with what remains.
 
 The current system turns a described process into a validated, audited, signed design and a
 scaffold. Three gaps surfaced while running it against two real processes, and each has a
@@ -363,12 +369,22 @@ choice.
 
 ## Order of work
 
-1. `@sources` alone, and see whether a real design can state its data contract honestly.
-2. The tool catalog as a versioned file, seeded from `maxwell-k8s/charts`, with no server yet.
-3. `QUESTIONS.md` and the blocking/deferrable split, reading the catalog to ask
-   confirm-or-deviate rather than open questions.
-4. The interview, tested on a process neither of us has seen.
-5. The catalog over MCP, once there is a second consumer that justifies a server.
-6. `@tools` and permissions, which are only useful once the ledger records them.
+1. ~~`@sources` alone, and see whether a real design can state its data contract honestly.~~
+   **Done 2026-10-05.** V27-V31; the clinical run logged source, tool and data class per read.
+2. ~~The tool catalog as a versioned file, seeded from `maxwell-k8s/charts`, with no server yet.~~
+   **Done 2026-10-05**, though seeded by hand rather than from the charts. Seeding it from the
+   43 deployed services is still worth doing and is a separate job.
+3. ~~`QUESTIONS.md` and the blocking/deferrable split, reading the catalog to ask
+   confirm-or-deviate rather than open questions.~~ **Done 2026-10-06.** I1-I8, A1-A7, V32-V34.
+4. ~~The interview, tested on a process neither of us has seen.~~ **Done 2026-10-06** on
+   pre-visit medication reconciliation, with the answers given synthetically and marked as such.
+   Still untested with a real person on the other end, which is the thing it is for.
+5. The catalog over MCP, once there is a second consumer that justifies a server. **Not built.**
+6. `@tools` permissions recorded in the ledger. **Not built.** The design-time half exists —
+   V31 refuses a PHI tool used by a model step — but the emitted bundle logs the data class
+   without logging the permission it exercised.
+7. Gate logic as DMN-style decision tables rather than bash conditionals (section 5, *The open
+   fork*). **Not built, and undecided.** It constrains the language question more than the
+   runtime does, and it is the more consequential choice of the two.
 
-Each is separable. None is worth starting before one run completes end to end.
+Each is separable.

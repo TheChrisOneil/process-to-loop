@@ -285,8 +285,15 @@ process at {{use_case_path}}. Read the catalog at {{catalog_path}} BEFORE you
 write a single question about where data comes from.
 
 Write {{questions_path}} and nothing else. The format is
-schema/QUESTIONS-FORMAT.md; `tooling/questions.sh validate` is the gate below and
-you can run it yourself first.
+{{tooling_root}}/../schema/QUESTIONS-FORMAT.md — read that one file and no other.
+`{{tooling_root}}/questions.sh validate {{questions_path}}` is the gate below and
+you can run it on your own draft first.
+
+**Do not read {{tooling_root}}/lib/questions.awk or questions-rules.awk.** The
+format document is their summary and is kept with them. Reading the parser to
+work out what the parser wants is how the 2026-10-02 authoring run spent
+twenty-six minutes and half a million output tokens arriving at what a document
+already said, and the questions step did the same thing on its first outing.
 
 **Transcribe; do not author.** You are not deciding anything here. If you can
 fill in an answer you did not get, the result is indistinguishable from the

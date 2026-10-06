@@ -1,0 +1,10 @@
+patient_ref,drug_name,rxnorm,dose,unit,frequency,status,recorded_at
+PT-4417,Lisinopril,29046,10,mg,daily,active,2026-07-14
+PT-4417,Atorvastatin,83367,20,mg,nightly,active,2026-07-14
+PT-4417,Metformin,6809,500,mg,twice daily,active,2026-03-02
+PT-9930,Levothyroxine,10582,75,mcg,daily,active,2026-08-21
+PT-9930,Sertraline,36437,50,mg,daily,active,2026-05-09
+PT-9930,Ibuprofen,5640,400,mg,as needed,stopped,2026-09-30
+PT-2250,Amlodipine,17767,5,mg,daily,active,2026-09-11
+PT-7781,Warfarin,11289,5,mg,daily,active,2026-06-18
+PT-7781,Omeprazole,7646,20,mg,daily,active,2026-06-18

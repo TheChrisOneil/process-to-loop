@@ -21,10 +21,19 @@ gates that are executable scripts rather than instructions an agent might ignore
 
 ```
 a described process            prose, in the process owner's own words
-  → a design                   25 rules judge it; a named person signs it
+  → questions                  what the description does not say, asked of a person
+  → a design                   34 rules judge it; a named person signs it
   → a formula + check scripts  17 rules judge those
   → gc                         compiles, cooks, and runs it
 ```
+
+The questions come **before** the design, not after it. A design cannot say where its data
+comes from before anybody has said where the data comes from, and a question asked afterwards is
+a question about a guess already built on. Three answers are legal — the owner states one, says
+they do not know and names who owes it, or asks the system to choose — so a run never stalls on
+the first thing nobody knows. The third is recorded as a delegation rather than smuggled in as
+an assumption, and when the choice is a structural one it comes back as a finding before the
+design is signed.
 
 **The design is the source. The formula is a build artifact.** Never hand-edit a formula, the
 same way you never hand-edit generated code. Edit the design and compile again.
@@ -104,7 +113,7 @@ hold for a person.
 
 | | writes | the cheap check | the audit asks |
 |---|---|---|---|
-| **`design-authoring`** | the design | 25 rules on its form | is the **unit of work** right? is the one judgment really judgment? |
+| **`design-authoring`** | the questions, then the design | 34 rules on its form | is the **unit of work** right? is the one judgment really judgment? |
 | **`check-authoring`** | a gate's condition | fixtures from the condition | polarity, boundary, source-of-truth, exit-75, refusal text |
 | **`step-authoring`** | a step's logic | properties from the declared type | type discipline, scope, ledger, side-effects, determinism |
 
