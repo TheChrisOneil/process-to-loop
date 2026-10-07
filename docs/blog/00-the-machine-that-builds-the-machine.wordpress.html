@@ -3,43 +3,39 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>In 2016 Elon Musk said, "The biggest epiphany I've had this year is that what really matters is the machine that builds the machine, the factory" [1]. Four years later he put a number on it. Building the Starlink production line was "a thousand percent harder than designing the satellite to begin with" [2].</p>
+<p>Software features are now cheap to copy. In January, an analyst used an AI coding agent to build a working Salesforce competitor in about three hours [1]. When features cost hours, the advantage moves to how fast a company ships the next improvement. Every software company must now operate as an app factory, and the way to get there is to build the machine that builds your machines.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Enterprise AI is stuck at the satellite.</p>
-<!-- /wp:paragraph -->
-
-<!-- wp:paragraph -->
-<p>Every organization I talk to has a prototype: a prompt that summarizes a chart, an agent that drafts a prior authorization, a demo that impressed the board. Almost none has a factory. The disclosure data agrees. In the second quarter of 2026, 69% of S&amp;P 500 companies pointed to a live AI deployment, and only 2% reported a metric tracked over time [3]. A prototype produces one good result. A factory produces the thousandth result to the same standard, records how, and reports what it cost and what it returned. I am building the factory.</p>
+<p>Speed alone can be rented. The durable advantage is a factory built for one deeply regulated vertical. Andreessen Horowitz reached the same conclusion in its State of Markets II report [10]. It names vertical AI the standout private category and says customers pay for how these products orchestrate their industry's workflows as much as for the model underneath [2]. It names the moat as context, integrations, security, evaluation, and domain workflow [2]. It notes that regulated markets favor founders who can execute factories and certifications, and that many of the best learned at Tesla or SpaceX, where "the factory is the product" [2].</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->
-<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">A prototype proves it can be done. A factory proves it can be done again, to standard, at a known cost.</div>
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">a16z: "Your moat is context, integrations, security, evaluation, and domain workflow" [2].</div>
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>Musk's point was about scale. The second half of the lesson is about regulation. Tesla and SpaceX alumni are prized as founders because they learned to scale complex production lines while satisfying strict regulators [4]. A car line answers to federal safety standards. A launch answers to federal licensing. Neither can ship a part that works only in the lab. Healthcare carries the same burden. HIPAA requires mechanisms that record and examine activity in systems holding protected health information [5]. An automated decision that cannot be traced, evidenced, and attributed is a defect, however clever the model behind it.</p>
+<p>Healthcare is that vertical. Automating regulated clinical workflows is an active research area, and EverBetter is participating in it. Our research is producing a factory that lets a clinician, a nurse, or a patient create a new workflow in their own space while every safety, security, and HIPAA obligation still holds. That is what makes the problem hard. HIPAA requires audit controls that record and examine system activity [3], a security evaluation after operational changes [4], and six-year retention of compliance documentation [5]. A new clinical workflow is an operational change.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>My product is the machine that builds auditable workflows. Claude supplies the harness. We own the proprietary context: a design format, a series of prompts, and a loop. A process owner describes a process in their own words. A model drafts one design artifact. Deterministic tooling validates it against 26 rules, a different model audits it, a named approver signs its SHA&#8209;256 hash, and a compiler emits one check script per gate. Every station on that line can refuse. Every refusal names the next human action.</p>
-<!-- /wp:paragraph -->
-
-<!-- wp:html -->
-<div style="clear:both;"></div>
-<!-- /wp:html -->
-
-<!-- wp:html -->
-<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">The workflow is the car. The loop is the factory. The proprietary context is the tooling.</div>
-<!-- /wp:html -->
-
-<!-- wp:paragraph -->
-<p>Factories are measured, and so is this one. A plant manager tracks yield, cost per unit, throughput, and escaped defects. I track Total Value Realized, cost per completed decision, review minutes per unit, and escaped defects. The vocabulary transfers because the discipline transfers. Most AI programs measure the prototype's cost and never measure the factory's yield. That gap is the subject of this series.</p>
+<p>The clinician who uses the workflow carries the liability for its decisions. The Federation of State Medical Boards states that "the physician is ultimately responsible for the use of AI and should be held accountable for any harms" [11]. It adds that "failure to apply human judgement to any output of AI is a violation of a physician's professional duties," and that a physician should be prepared to give a rationale for accepting or rejecting an AI recommendation [11]. Malpractice law points the same way. A physician who relies in good faith on an AI recommendation "may still face liability if the actions the physician takes fall below the standard of care" [12], [13].</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Part 1, Total Value Realized, argues that the misunderstood number is value, and that value must be defined before the first line of code. Part 2, The Seven-Layer Ledger, accounts for the full cost of ownership and the unit that ties it together. Part 3, Deterministic by Default, describes the design format that keeps rules in code and judgment in the model. Part 4, The Auditor Is a Different Model, covers quality control: the decorrelated audit and the signed acceptance. Each part reports measured numbers and names what remains unproven.</p>
+<p>Our research is producing a pipeline. A process owner's description goes in. An approved, executable workflow comes out. Every run of that workflow follows the same path. We drive thinking steps out of the process wherever we can, because each thinking step left in is a decision nobody can predict in advance. What remains is highly deterministic. That determinism lets us expose every decision the workflow made and the approved rule behind it, which makes the workflow auditable.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>We call the engine a deterministic control loop. Code owns every path through the process. A model is called only at declared thinking steps, and each output must pass a gate before the workflow can progress. That makes every use repeatable and every decision auditable. Anthropic classifies this design as a workflow: models orchestrated "through predefined code paths" [14].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>We build that pipeline in layers.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The first layer is process modeling. We apply the concepts of Business Process Model and Notation (BPMN) [6] and Decision Model and Notation (DMN) [7] to workflows that a model drafts. Every step is one of five kinds: coordination, mechanical, thinking, test, or gate. Every decision that can be written as a rule is written as a decision table, with a hit policy the tooling proves. A case that matches no rule is refused; the workflow never invents a default.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->
@@ -47,15 +43,59 @@
 <!-- /wp:html -->
 
 <!-- wp:html -->
-<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">Anyone can rent the model. The factory is the intellectual property.</div>
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">Every step is one of five kinds: coordination, mechanical, thinking, test, or gate.</div>
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>One part is missing on purpose. The factory has not yet completed a full production run from described process to compiled, running workflow. When it does, I will publish the result, including the defects. Musk built the Starlink line before the satellite design was final [2]. I am doing the same, in public.</p>
+<p>The second layer is determinism. We refactor the business process itself to remove thinking points wherever two competent people would give the same answer. Each unit of work keeps at most one judgment, and the design must name what checks it. Everything else runs as code. The result is predictable, testable, and auditable.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>Anyone can build the prototype. Build the factory.</p>
+<p>The third layer is accountability. We identify every interaction point where a person touches the process. Gates and checks record who made each decision and on what evidence. Evidence is written by code, never by the model that made the claim. A named clinician or administrator approves the design by signing a cryptographic hash of its exact contents. Because judgment is isolated, the approver knows which decisions, and which liabilities, they are accepting. The ledger holds the rationale the FSMB expects a physician to produce [11].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">PHI reaches a model step only under a recorded, current business associate agreement.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>The fourth layer is execution. An accepted design compiles into a Gas City formula, a reusable method the orchestrator runs [8]. Every gate becomes an executable script, so downstream work blocks until the check passes. Each run appends to a ledger with a declared retention period.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The fifth layer is regulatory boundary enforcement. Every data source comes from a catalog that declares its data class. A design may narrow a tool's permissions and may never widen them. A source carrying protected health information may feed a model step only when the catalog records a business associate agreement covering that model provider [15], with a current attestation date. A lapsed attestation refuses the design. A different model audits each design for defects the deterministic rules cannot catch.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Each layer encodes knowledge of clinical operations and health regulation. That knowledge is the moat. A competitor can rent the same model in an afternoon. Building the layers, and proving them against real clinical processes, takes domain depth that cannot be rented. Claude supplies the harness. EverBetter supplies the proprietary context: the process models, the rules, the prompts, and the loop.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Our research is also generalizing the engine. We have separated the verification rules from the engine itself. The engine's core rules apply to any process: a named approver, a measurable condition on every gate, evidence written by code, and a signed hash of the approved design. Domain policy lives in a catalog, a versioned file the organization reviews the way it reviews a contract. Our healthcare catalog records where protected health information may go and on what legal basis. A catalog for a bank, a payer, or a manufacturer records its own data classes and obligations, down to the sub-industry. The same engine has already produced and audited designs for financial processes such as invoice matching and the monthly close.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>That separation is what turns one factory into a factory of factories. One engine, paired with a verification catalog specific to each industry, produces customized workflows across regulated domains of all kinds.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">69% of S&amp;P 500 companies deploy AI. 2% track a metric over time [9].</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Every design must also state its expected Total Value Realized and its cost before anyone signs it. a16z makes the same point: most customers already have AI, few track its impact, and the opportunity is moving a customer from pilot to tracked, recurring workflow [2], [10]. In the second quarter of 2026, 69% of S&amp;P 500 companies reported a live AI deployment, and only 2% reported a metric tracked over time [9].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>This series explains how EverBetter is advancing medical AI on this foundation. Part 1 defines Total Value Realized and why it must be measured from the start. Part 2 lays out the full cost of ownership. Part 3 covers the design format and its process models. Part 4 covers the independent audit and the signed approval.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->
@@ -63,5 +103,5 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph {"fontSize":"small"} -->
-<p class="has-small-font-size">[1] D. Reisinger, "Elon Musk reveals his 'biggest epiphany' of the year," <em>Fortune</em>, Sep. 16, 2016. [Online]. Available: https://fortune.com/2016/09/16/elon-musk-epiphany/<br>[2] E. Lofgren, "Production can be 1,000% harder than design, says Elon Musk," <em>Acquisition Talk</em>, Mar. 2020. [Online]. Available: https://acquisitiontalk.com/2020/03/production-can-be-1000-harder-than-design-says-elon-musk/<br>[3] T. Slok, "From who is deploying AI to who can prove the ROI," <em>Apollo Daily Spark</em>, Sep. 11, 2026. [Online]. Available: https://www.apollo.com/wealth/insights-news/insights/daily-spark/from-who-is-deploying-ai-to-who-can-prove-the-roi<br>[4] SOURCE PENDING: the partners' commentary on Tesla and SpaceX alumni.<br>[5] Technical safeguards, 45 C.F.R. &#167; 164.312(b). [Online]. Available: https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312</p>
+<p class="has-small-font-size">[1] J. Hwang, "Do software moats still exist? (ft. Claude Code)," <em>Enterprise AI Trends</em>, Jan. 10, 2026. [Online]. Available: https://nextword.substack.com/p/do-software-moats-still-exist-ft<br>[2] L. Beliūnas, "a16z's State of Markets 2026: The AI playbook for founders and investors," <em>Linas's Newsletter</em>, Oct. 6, 2026, summarizing [10]. [Online]. Available: https://linas.substack.com/p/a16z-state-of-markets-2026<br>[3] Technical safeguards, 45 C.F.R. &#167; 164.312(b).<br>[4] Administrative safeguards, 45 C.F.R. &#167; 164.308(a)(8).<br>[5] Policies and procedures and documentation requirements, 45 C.F.R. &#167; 164.316(b)(2)(i).<br>[6] Object Management Group, <em>Business Process Model and Notation (BPMN)</em>, Version 2.0.2, Dec. 2013.<br>[7] Object Management Group, <em>Decision Model and Notation (DMN)</em>, Version 1.5, formal/24-01-01, Aug. 2024.<br>[8] Gas City, "Formula specification v2." [Online]. Available: https://docs.gascity.com/reference/specs/formula-spec-v2<br>[9] T. Slok, "From who is deploying AI to who can prove the ROI," <em>Apollo Daily Spark</em>, Sep. 11, 2026. [Online]. Available: https://www.apollo.com/wealth/insights-news/insights/daily-spark/from-who-is-deploying-ai-to-who-can-prove-the-roi<br>[10] D. George, "State of Markets II: 100+ charts on the state of markets (1H'26)," <em>a16z News</em>, Sep. 30, 2026. [Online]. Available: https://www.a16z.news/p/state-of-markets-ii; full deck: https://a16z.com/state-of-markets-report-2<br>[11] Federation of State Medical Boards, "Navigating the responsible and ethical incorporation of artificial intelligence into clinical practice," adopted by the FSMB House of Delegates, Apr. 2024. [Online]. Available: https://www.fsmb.org/siteassets/advocacy/policies/incorporation-of-ai-into-practice.pdf<br>[12] G. Maliha, S. Gerke, I. G. Cohen, and R. B. Parikh, "Artificial intelligence and liability in medicine: Balancing safety and innovation," <em>Milbank Q.</em>, vol. 99, no. 3, pp. 629&#8211;647, Sep. 2021, doi: 10.1111/1468-0009.12504.<br>[13] W. N. Price II, S. Gerke, and I. G. Cohen, "Potential liability for physicians using artificial intelligence," <em>JAMA</em>, vol. 322, no. 18, pp. 1765&#8211;1766, Nov. 2019, doi: 10.1001/jama.2019.15064.<br>[14] E. Schluntz and B. Zhang, "Building effective agents," <em>Anthropic Engineering</em>, Dec. 19, 2024. [Online]. Available: https://www.anthropic.com/engineering/building-effective-agents<br>[15] Uses and disclosures of protected health information: General rules, 45 C.F.R. &#167; 164.502(e).</p>
 <!-- /wp:paragraph -->

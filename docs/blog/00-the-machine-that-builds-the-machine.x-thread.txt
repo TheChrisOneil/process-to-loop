@@ -1,11 +1,15 @@
-1/ Musk: what really matters is the machine that builds the machine. Enterprise AI has the prototype. Almost nobody has the factory. #HealthIT #AIGovernance #Manufacturing
+1/ Features are cheap to copy. Speed can be rented. The moat is a factory built for one deeply regulated vertical. a16z agrees. #HealthIT #HIPAA #VerticalAI
 
-2/ 69% of the S&P 500 deploy AI. 2% track a metric over time. That is a prototype economy.
+2/ a16z State of Markets 2026: the moat is context, integrations, security, evaluation, and domain workflow. Regulated markets reward founders who run factories.
 
-3/ Tesla and SpaceX alumni learned to scale under strict regulators. Healthcare has the same burden: an untraceable automated decision is a defect.
+3/ EverBetter's research is producing a factory where a clinician, nurse, or patient creates their own workflow, and every HIPAA, safety, and security obligation still holds.
 
-4/ I am building the factory: a loop that turns a described process into an auditable workflow. Model drafts; code validates; a second model audits; a named human signs.
+4/ The engine is a deterministic control loop. Code owns every path. A model runs only at declared thinking steps, and each output must pass a gate before the workflow can progress.
 
-5/ The workflow is the car. The loop is the factory. Claude supplies the harness; the proprietary context is ours.
+5/ Our layers: BPMN and DMN process models. Thinking points refactored out. Gates that record who decided. Compiled, executable checks. PHI reaches a model only under a current BAA.
 
-6/ Four parts: TVR, the cost ledger, deterministic design, the independent audit. Anyone can build the prototype. Build the factory. [link]
+6/ FSMB: "the physician is ultimately responsible for the use of AI." So a named clinician signs the exact design and knows which liabilities they accept.
+
+7/ We separated the verification rules from the engine. Each industry gets its own catalog; one engine serves all of them. A factory of factories.
+
+8/ That domain knowledge is the moat. Four-part series on how EverBetter is advancing medical AI: [link]

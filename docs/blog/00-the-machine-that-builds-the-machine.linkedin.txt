@@ -1,21 +1,29 @@
-In 2016 Elon Musk called it his biggest epiphany: what really matters is the machine that builds the machine, the factory.
+Software features are now cheap to copy. An analyst recently used an AI coding agent to build a working Salesforce competitor in about three hours. Every software company now has to operate as an app factory: build the machine that builds your machines.
 
-In 2020 he said building the Starlink production line was a thousand percent harder than designing the satellite.
+Speed alone can be rented. The durable advantage is a factory built for one deeply regulated vertical. a16z's State of Markets 2026 reaches the same conclusion: vertical AI is the standout category, and the moat is context, integrations, security, evaluation, and domain workflow. Regulated markets favor founders who can run factories and certifications.
 
-Enterprise AI is stuck at the satellite.
+Healthcare is that vertical. Automating regulated clinical workflows is an active research area, and EverBetter is participating in it. Our research is producing a factory that lets a clinician, a nurse, or a patient create a new workflow in their own space while every safety, security, and HIPAA obligation still holds. The clinician carries the liability. The Federation of State Medical Boards states that "the physician is ultimately responsible for the use of AI and should be held accountable for any harms."
 
-Every organization has a prototype. Almost none has a factory. 69% of the S&P 500 deploy AI; 2% track a metric over time.
+Our research is producing a pipeline. A process owner's description goes in; an approved, executable workflow comes out; every run follows the same path. We drive thinking steps out wherever we can. What remains is highly deterministic, so every decision the workflow makes is exposed and auditable.
 
-Tesla and SpaceX alumni are prized because they learned to scale production under strict regulators. Healthcare carries the same burden. An automated decision that cannot be traced, evidenced, and attributed is a defect.
+We call the engine a deterministic control loop. Code owns every path through the process. A model is called only at declared thinking steps, and each output must pass a gate before the workflow can progress. That makes every use repeatable and every decision auditable.
 
-I am building the factory: the machine that builds auditable workflows.
+We build that pipeline in layers.
 
-Claude supplies the harness. We own the proprietary context: a design format, a series of prompts, and a loop. A model drafts the design. Code validates it. A different model audits it. A named approver signs its hash. A compiler emits the gates.
+Process modeling: we apply BPMN and DMN concepts to AI-drafted workflows. Every step is one of five kinds. Rule decisions become decision tables.
 
-The workflow is the car. The loop is the factory.
+Determinism: we refactor the process to remove thinking points. At most one judgment per unit of work. Everything else runs as code.
 
-Four parts follow: Total Value Realized, the full cost ledger, deterministic design, and the independent audit. Each reports measured numbers and names what remains unproven.
+Accountability: every interaction point is gated. Gates record who decided and on what evidence. A named clinician signs the exact design and knows which liabilities they accept.
 
-Anyone can build the prototype. Build the factory.
+Execution: designs compile into formulas the orchestrator runs, with executable gates and an append-only ledger.
 
-#HealthIT #AIGovernance #Manufacturing
+Regulatory boundaries: PHI reaches a model step only under a recorded, current business associate agreement. A second model audits every design.
+
+Our research is also generalizing the engine. We have separated the verification rules from the engine. Core rules apply to any process; domain policy lives in a versioned catalog specific to each industry and sub-industry. Healthcare is the first catalog. The same engine has already produced and audited designs for financial processes. One engine plus an industry-specific catalog is a factory of factories: customized workflows across regulated domains of all kinds.
+
+Each layer encodes knowledge of clinical operations and health regulation. That knowledge is the moat.
+
+Four-part series on how EverBetter is advancing medical AI. Link in comments.
+
+#HealthIT #HIPAA #VerticalAI

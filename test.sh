@@ -769,6 +769,34 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "THE DISCOVERIES LOG"
+# A surprise leaves nothing unless somebody writes it down the day it happens.
+# The tool exists so the shape cannot drift, and so nothing lands without the
+# belief that made it a surprise.
+DS=$(mktemp -d); cp "$HERE/docs/DISCOVERIES.md" "$DS/D.md"
+DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" check >/dev/null 2>&1 \
+  && ok "every entry in the discoveries log carries all four required fields" \
+  || no "an entry is incomplete — run tooling/discovery.sh check"
+DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" add --title t --believed b \
+  --happened h --changed c --generalizes g --cost "an afternoon" >/dev/null 2>&1 \
+  && ok "a complete discovery appends" || no "a complete discovery was refused"
+DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" add --title t --happened h \
+  --changed c --generalizes g >/dev/null 2>&1 \
+  && no "an entry with no stated belief was accepted — that is a changelog line" \
+  || ok "an entry that does not say what was BELIEVED is refused"
+NID=$(DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" list | awk '/^D[0-9]+ /{last=$1} END{print last}')
+[ "$NID" = "D23" ] \
+  && ok "ids continue from the highest, never reuse" \
+  || no "the new entry did not take the next id (got ${NID:-none})"
+DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" add --title t --believed b \
+  --happened h --changed c --generalizes g --date "oct 7" >/dev/null 2>&1 \
+  && no "a free-text date was accepted" || ok "a date that is not ISO is refused"
+grep -q 'DISCOVERIES.md' "$HERE/docs/loop-engineering-in-a-regulated-space.md" \
+  && ok "the design doc points at the log, so neither is read without the other" \
+  || no "the discoveries log is not referenced from the design document"
+rm -rf "$DS"
+
+echo
 echo "WHERE PHI MAY GO"
 # Whether PHI may reach a model is a BUSINESS AGREEMENT, not a property of the
 # data. It lives in the catalog so a contract change is a dated, reviewable diff

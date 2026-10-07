@@ -6,6 +6,6 @@
 
 4/ Decision tables replace prose. A case matching no rule is a refusal, never a default.
 
-5/ A tool carrying PHI cannot feed a model step. The validator enforces it before anyone signs.
+5/ PHI may feed a model step only under a recorded, current BAA. A lapsed attestation refuses the design before anyone signs.
 
 6/ Every design declares a TVR KPI. An unmeasured baseline is written "unmeasured," never estimated. Part 3 of 4: [link]

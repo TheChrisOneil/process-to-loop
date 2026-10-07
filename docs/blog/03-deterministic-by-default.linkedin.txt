@@ -12,7 +12,7 @@ Every gate condition must contain a number, a comparison, or the word "never." E
 
 Decision tables replace prose. A case that matches no rule is a refusal, never a default.
 
-A tool carrying PHI cannot feed a model step. The validator enforces it before anyone signs.
+PHI may feed a model step only when the catalog records a current business associate agreement. A lapsed attestation refuses the design before anyone signs.
 
 Every design must declare a Total Value Realized KPI with a baseline. A baseline nobody measured is written "unmeasured." It is never estimated.
 
