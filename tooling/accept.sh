@@ -192,15 +192,38 @@ fi
 # run was closed without a person, the register says so on the row, so no later
 # reader can take the acceptance for more than it was.
 DETAIL="$TYPED"
-REH="$(cd "$(dirname "$F")" && pwd)/REHEARSAL"
+MARKS=""
+DIR="$(cd "$(dirname "$F")" && pwd)"
+
+# A gate closed without a person.
+REH="$DIR/REHEARSAL"
 if [ -f "$REH" ]; then
   NREH=$(grep -c . "$REH" 2>/dev/null || echo 0)
-  DETAIL="$TYPED [REHEARSAL: $NREH gate(s) on this run were closed without a person]"
+  MARKS="$NREH gate(s) closed without a person"
   echo
   echo "NOTE: $NREH gate(s) on this run were closed as a rehearsal, not by a person."
-  echo "      The register will record this acceptance AS a rehearsal, and compile"
-  echo "      will refuse to build from it."
+  echo "      compile will refuse to build from it unless somebody names themselves."
 fi
+
+# An interview answered on somebody's behalf. A DIFFERENT claim from the above,
+# and the one that matters most to a signature: a design can pass every gate with
+# a person at each one and still rest entirely on answers nobody gave.
+QF="$DIR/QUESTIONS.md"
+if [ -f "$QF" ] && [ -x "$HERE/questions.sh" ]; then
+  QT=$("$HERE/questions.sh" tsv "$QF" 2>/dev/null)
+  NSYN=$(printf '%s\n' "$QT" | awk -F'\t' '$7=="synthetic"{n++} END{print n+0}')
+  NQ=$(printf '%s\n' "$QT" | grep -c . || true)
+  if [ "$NSYN" -gt 0 ]; then
+    [ -z "$MARKS" ] || MARKS="$MARKS; "
+    MARKS="$MARKS$NSYN of $NQ interview answer(s) supplied on the approver's behalf"
+    echo
+    echo "NOTE: $NSYN of $NQ answers in this design's interview are SYNTHETIC — supplied"
+    echo "      on behalf of the approver rather than by them. The register will say so"
+    echo "      on this row, permanently, so no later reader takes this signature for"
+    echo "      more than it was."
+  fi
+fi
+[ -z "$MARKS" ] || DETAIL="$TYPED [REHEARSAL: $MARKS]"
 append accept "$(relpath "$F")" "$SHA" "$BY" "$DETAIL"
 echo
 echo "Accepted by $BY."

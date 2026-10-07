@@ -1,0 +1,11 @@
+1/ Musk: what really matters is the machine that builds the machine. Enterprise AI has the prototype. Almost nobody has the factory. #HealthIT #AIGovernance #Manufacturing
+
+2/ 69% of the S&P 500 deploy AI. 2% track a metric over time. That is a prototype economy.
+
+3/ Tesla and SpaceX alumni learned to scale under strict regulators. Healthcare has the same burden: an untraceable automated decision is a defect.
+
+4/ I am building the factory: a loop that turns a described process into an auditable workflow. Model drafts; code validates; a second model audits; a named human signs.
+
+5/ The workflow is the car. The loop is the factory. Claude supplies the harness; the proprietary context is ours.
+
+6/ Four parts: TVR, the cost ledger, deterministic design, the independent audit. Anyone can build the prototype. Build the factory. [link]

@@ -1,0 +1,21 @@
+In 2016 Elon Musk called it his biggest epiphany: what really matters is the machine that builds the machine, the factory.
+
+In 2020 he said building the Starlink production line was a thousand percent harder than designing the satellite.
+
+Enterprise AI is stuck at the satellite.
+
+Every organization has a prototype. Almost none has a factory. 69% of the S&P 500 deploy AI; 2% track a metric over time.
+
+Tesla and SpaceX alumni are prized because they learned to scale production under strict regulators. Healthcare carries the same burden. An automated decision that cannot be traced, evidenced, and attributed is a defect.
+
+I am building the factory: the machine that builds auditable workflows.
+
+Claude supplies the harness. We own the proprietary context: a design format, a series of prompts, and a loop. A model drafts the design. Code validates it. A different model audits it. A named approver signs its hash. A compiler emits the gates.
+
+The workflow is the car. The loop is the factory.
+
+Four parts follow: Total Value Realized, the full cost ledger, deterministic design, and the independent audit. Each reports measured numbers and names what remains unproven.
+
+Anyone can build the prototype. Build the factory.
+
+#HealthIT #AIGovernance #Manufacturing
