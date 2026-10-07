@@ -136,6 +136,10 @@ default = ""
 description = "Optional. The design those findings were written about, from the same archive directory. Required when prior_findings_path is set."
 default = ""
 
+[vars.allow_rehearsal]
+description = "Empty by default. Set to the NAME of whoever permits this run to compile although one or more of its gates was closed without a person. Not a flag: an override with no name on it is an unexplained pass, and this one is recorded on the workflow where an auditor reads it rather than in an environment nobody can see afterwards."
+default = ""
+
 [vars.approver]
 description = "Who signs for this design. A named person or role, never a team."
 required = true
@@ -770,7 +774,11 @@ Deterministic work only.
 1. Copy the accepted design to {{artifact_root}} and report its SHA-256. That
    digest is what was accepted, and nothing downstream may be built from
    anything else.
-2. Compile it to a Gas City formula and its check scripts.
+2. Compile it to a Gas City formula and its check scripts. If any gate on this
+   run was closed without a person, compile refuses; pass
+   `ALLOW_REHEARSAL="{{allow_rehearsal}}"` so the name of whoever permitted it is
+   carried into the output rather than left in an environment nobody can read
+   afterwards. Empty is the default and means refuse.
 3. Compile it to a standalone bundle and its launchd job.
 4. Emit the bundle to **{{artifact_root}}/bundle** and nowhere else. That path
    is bound into the records gate at the start of the run, so a bundle written

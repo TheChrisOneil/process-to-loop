@@ -35,12 +35,27 @@ case "$INTERVAL" in ''|*[!0-9]*) echo "REFUSED: --interval must be whole seconds
 # a control that is declared, reported and absent, which is the defect this
 # whole project exists to catch.
 REHEARSAL="$(cd "$(dirname "$DESIGN")" && pwd)/REHEARSAL"
-if [ -f "$REHEARSAL" ] && [ -z "${ALLOW_REHEARSAL:-}" ]; then
-  echo "REFUSED: this run is a REHEARSAL. $(grep -c . "$REHEARSAL") gate(s) were closed without a person:" >&2
-  awk -F'\t' '{printf "           %s  %s  by %s — %s\n", $1, $2, $4, $5}' "$REHEARSAL" >&2
-  echo "         You may rehearse the whole pipeline. You may not build out of one." >&2
-  echo "         Next human action: re-run it and have $(awk -F': *' '/^approver:/{print $2; exit}' "$DESIGN") close the gates." >&2
-  exit 1
+if [ -f "$REHEARSAL" ]; then
+  # ALLOW_REHEARSAL is not a flag. It names WHO permitted a build out of a
+  # rehearsal, because an override with no name on it is the thing this project
+  # exists to catch wearing an environment variable. The name is written beside
+  # the output, so the next reader finds it without being told to look.
+  WHO=${ALLOW_REHEARSAL:-}
+  case "$WHO" in ""|1|true|yes|y|on)
+    [ -z "$WHO" ] || { echo "REFUSED: ALLOW_REHEARSAL=$WHO says nothing. Set it to who is permitting this." >&2; exit 1; } ;;
+  esac
+  if [ -z "$WHO" ]; then
+    echo "REFUSED: this run is a REHEARSAL. $(grep -c . "$REHEARSAL") gate(s) were closed without a person:" >&2
+    awk -F'\t' '{printf "           %s  %s  by %s — %s\n", $1, $2, $4, $5}' "$REHEARSAL" >&2
+    echo "         You may rehearse the whole pipeline. You may not build out of one." >&2
+    echo "         Next human action: re-run it and have $(awk -F': *' '/^approver:/{print $2; exit}' "$DESIGN") close the gates." >&2
+    echo "         To build anyway, name who is permitting it:" >&2
+    echo "             ALLOW_REHEARSAL=\"Name, Role\" ..." >&2
+    exit 1
+  fi
+  echo "  BUILDING OUT OF A REHEARSAL, permitted by: $WHO"
+  echo "  $(grep -c . "$REHEARSAL") gate(s) on this run were closed without a person."
+  echo "  This bundle is not approved by anybody. Do not run it on real data."
 fi
 
 echo "  validating the design …"

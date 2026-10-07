@@ -931,6 +931,19 @@ printf '2026-10-06T00:00:00Z\twk-x\tgate\tthe assistant\ttesting\n' > "$RH/REHEA
 "$HERE/tooling/compile.sh" "$RH/d.design" --name rh-dirty --out "$RH/o" >"$RH/c" 2>&1 \
   && no "a bundle was compiled out of a rehearsal" \
   || ok "compile refuses a run whose gates were closed without a person"
+# The override names WHO. A bare flag is an unexplained pass.
+ALLOW_REHEARSAL=1 "$HERE/tooling/compile.sh" "$RH/d.design" --name rh-flag --out "$RH/o" >"$RH/f" 2>&1 \
+  && no "ALLOW_REHEARSAL=1 built a bundle, with nobody named" \
+  || ok "a bare ALLOW_REHEARSAL=1 is refused — an override with no name is an unexplained pass"
+ALLOW_REHEARSAL="Buzz, process owner" "$HERE/tooling/compile.sh" "$RH/d.design" --name rh-ok --out "$RH/o" >"$RH/n" 2>&1 \
+  && ok "a NAMED override builds, which is the only way out of a rehearsal" \
+  || no "a named override could not build"
+grep -q 'permitted by: Buzz, process owner' "$RH/n" \
+  && ok "the output says who permitted it, where the next reader finds it" \
+  || no "the override left no name in the output"
+grep -q 'not approved by anybody' "$RH/n" \
+  && ok "the build says plainly that nobody approved this bundle" \
+  || no "a bundle built out of a rehearsal reads like an approved one"
 grep -q 'may not build out of one' "$RH/c" \
   && ok "the refusal says what a rehearsal is for, and what it is not" \
   || no "the refusal does not explain itself"
