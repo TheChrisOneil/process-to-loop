@@ -1,0 +1,21 @@
+A rule written into a prompt costs tokens on every run, for the life of the workflow.
+
+The same rule in code costs nothing after it ships, and returns the same answer every time.
+
+Most teams still write their business rules as prompts.
+
+I built a design format that makes that mistake hard to commit. A model drafts the design. Code validates, renders, and compiles it.
+
+The two people test: if two competent people, unable to confer, give the same answer, it is a rule and belongs in code. One judgment per unit of work. Everything else is a rule.
+
+Every gate condition must contain a number, a comparison, or the word "never." Every refusal must name the next human action. "Needs review" is rejected.
+
+Decision tables replace prose. A case that matches no rule is a refusal, never a default.
+
+A tool carrying PHI cannot feed a model step. The validator enforces it before anyone signs.
+
+Every design must declare a Total Value Realized KPI with a baseline. A baseline nobody measured is written "unmeasured." It is never estimated.
+
+Part 3 of 4: Auditable Workflows in a Regulated Environment. Link in comments.
+
+#HealthIT #DeterministicAI #AIGovernance

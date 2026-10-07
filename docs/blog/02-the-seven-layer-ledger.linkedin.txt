@@ -1,0 +1,25 @@
+Nine transactions entered a nightly run in my September workshop.
+
+A business rule refused three. Arithmetic resolved two. Four reached a model.
+
+Five of nine cost nothing.
+
+That ratio is the TCO strategy.
+
+Most business cases price the model calls and stop. I account for seven layers: design and build, inference, human review, platform, assurance, quality safeguards, and lifecycle upgrades. Two are one-time capital. Five recur.
+
+In healthcare, platform and assurance carry the HIPAA audit control burden. Omit them and you have priced a workflow nobody can deploy.
+
+Tokens are the small, falling half of OpEx. Review minutes are the expensive, stubborn half. Throughput is bounded by review capacity; exceed it and the workflow builds a queue.
+
+My measured numbers: $0.2557 average to generate a workflow design across 29 runs. About $1.06 to author and independently audit one gate.
+
+The real first-week cost was eight integration defects. Each passed by hand and failed in production. Integration labor belongs on the ledger.
+
+Write the exit threshold down before launch, while everyone is still optimistic.
+
+TCO protects the spread. TVR sets its width.
+
+Part 2 of 4: Auditable Workflows in a Regulated Environment. Link in comments.
+
+#HealthIT #TotalCostOfOwnership #AIGovernance

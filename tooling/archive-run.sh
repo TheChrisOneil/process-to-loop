@@ -53,7 +53,19 @@ fi
 # Only ever reused by a later step, so only ever dangerous to leave behind.
 DERIVED="design-audit-verdict.json FINDINGS.md"
 # Worth keeping a copy of, but harmless if left.
-KEEP="BRIEF.md diagrams"
+#
+# QUESTIONS.md is on this list and NOT on DERIVED, and the distinction cost a
+# run. It was on neither on 2026-10-06: the revision re-ran the interview, wrote
+# sixteen fresh open questions over the fifteen answered ones, and the only
+# record of what a person was asked and what they said was gone. In a system
+# whose entire claim is auditable provenance, destroying the interview is the
+# worst thing this script could do.
+#
+# It is copied, and it is LEFT. A revision builds on the answers it already has;
+# it does not start the conversation again. The verdict and the findings are
+# deleted because a later step reads them BY NAME and cannot tell which design
+# they describe. Nothing reads QUESTIONS.md by name expecting it to be absent.
+KEEP="BRIEF.md diagrams QUESTIONS.md"
 
 # A revision run is HANDED the previous findings and design by path. If either
 # names something in this directory, archiving would delete the input before the

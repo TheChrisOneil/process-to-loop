@@ -1,5 +1,5 @@
 <!-- wp:paragraph -->
-<p><em>Auditable Workflows in a Regulated Environment, Part 1 of a series.</em></p>
+<p><em>Auditable Workflows in a Regulated Environment, Part 1 of 4.</em></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -12,6 +12,10 @@
 
 <!-- wp:paragraph -->
 <p>I build automated workflows for healthcare, where every automated decision must survive an auditor. I start every design with one question: what is the Total Value Realized? I answer it before I write a prompt, a rule, or a line of code. This series explains why, and how I built that question into the development loop itself.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A word on vocabulary. Much of the automation market sells software that operates the user interface of other systems the way a human would, leaving those systems unchanged [3]. What I build is a workflow in the original sense: the automation of a business process according to a set of procedural rules [4]. I add one qualifier. An auditable workflow traces every decision to an approved rule, keeps evidence written by a mechanical step, and records who changed what, when, and against which review.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->
@@ -51,7 +55,7 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>The unit of measure matters. I measure cost per completed decision, never cost per request. The formula has three terms: token compute, plus review minutes times the loaded labor rate, plus the quality assurance rate times the exception cost. The first term is architecture. The second is where productivity is won. The third compounds, because defect-free execution earns the trust to delegate more autonomy. And I capture today's manual baseline before the workflow ships. Without a baseline the yield cannot be proven.</p>
+<p>The unit of measure matters. I measure cost per completed decision, never cost per request. The formula has three terms: token compute, plus review minutes times the loaded labor rate, plus the quality assurance rate times the exception cost. The first term is architecture. The second is where productivity is won. The third compounds, because defect free execution earns the trust to delegate more autonomy. I capture today's manual baseline before the workflow ships. Without a baseline the yield cannot be proven.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -67,7 +71,7 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>People ask where the intellectual property sits. Claude supplies the harness. Anyone can rent it. What we own is the proprietary context: a design format, a series of prompts, and a loop that turns a process described in its owner's words into an auditable workflow. The model authors one artifact. Everything downstream derives from it deterministically: 26 validation rules with no model involved, an adversarial audit by a different model on a different provider, a named approver who signs the design's SHA-256 hash rather than its filename, and a compiler that emits one check script per gate. Each gate can refuse. Each refusal names the next human action.</p>
+<p>People ask where the intellectual property sits. Claude supplies the harness. Anyone can rent it. What we own is the proprietary context: a design format, a series of prompts, and a loop that turns a process described in its owner's words into an auditable workflow. The model authors one artifact. Everything downstream derives from it deterministically: 26 validation rules with no model involved, an adversarial audit by a different model, a named approver who signs the design's SHA&#8209;256 hash rather than its filename, and a compiler that emits one check script per gate. Each gate can refuse. Each refusal names the next human action.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -79,7 +83,7 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>I will publish the costs and the failures alongside the wins. The first week's real cost was eight defects at the boundary between the orchestration and the scripts it calls. The business logic was never the hard part. The next post covers the full TCO ledger. After that: the design format, the decorrelated audit, and the first end-to-end run.</p>
+<p>I will publish the costs and the failures alongside the wins. The first week's real cost was eight defects at the boundary between the orchestration and the scripts it calls. The business logic was never the hard part. Part 2 covers the full TCO ledger. Part 3 covers the design format that keeps rules out of prompts. Part 4 covers the decorrelated audit.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -87,5 +91,5 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"fontSize":"small"} -->
-<p class="has-small-font-size">[1] T. Slok, "From who is deploying AI to who can prove the ROI," <em>Apollo Daily Spark</em>, Sep. 11, 2026. [Online]. Available: https://www.apollo.com/wealth/insights-news/insights/daily-spark/from-who-is-deploying-ai-to-who-can-prove-the-roi<br>[2] C. Murray, "Nearly 70% of S&amp;P 500 companies deploy AI, but few track metrics over time," <em>Forbes</em>, Sep. 11, 2026. [Online]. Available: https://www.forbes.com/sites/conormurray/2026/09/11/nearly-70-of-sp-500-companies-deploy-ai-but-few-track-metrics-over-time/</p>
+<p class="has-small-font-size">[1] T. Slok, "From who is deploying AI to who can prove the ROI," <em>Apollo Daily Spark</em>, Sep. 11, 2026. [Online]. Available: https://www.apollo.com/wealth/insights-news/insights/daily-spark/from-who-is-deploying-ai-to-who-can-prove-the-roi<br>[2] C. Murray, "Nearly 70% of S&amp;P 500 companies deploy AI, but few track metrics over time," <em>Forbes</em>, Sep. 11, 2026. [Online]. Available: https://www.forbes.com/sites/conormurray/2026/09/11/nearly-70-of-sp-500-companies-deploy-ai-but-few-track-metrics-over-time/<br>[3] W. M. P. van der Aalst, M. Bichler, and A. Heinzl, "Robotic process automation," <em>Bus. Inf. Syst. Eng.</em>, vol. 60, no. 4, pp. 269&#8211;272, Aug. 2018, doi: 10.1007/s12599-018-0542-4.<br>[4] Workflow Management Coalition, "Terminology &amp; Glossary," WFMC-TC-1011, Issue 2.0, Jun. 1996. [Online]. Available: https://www.aiai.ed.ac.uk/project/wfmc/ARCHIVE/DOCS/glossary/glossary.html</p>
 <!-- /wp:paragraph -->

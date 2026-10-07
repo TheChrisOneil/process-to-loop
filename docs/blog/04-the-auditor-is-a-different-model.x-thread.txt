@@ -1,0 +1,11 @@
+1/ A model wrote a gate. It printed "purchase order is on file" and passed a $500 invoice. It never checked. A second model caught it for $0.44. #HealthIT #HIPAA #AIGovernance
+
+2/ The PO clause ran only when one environment variable was set. Missing it, a three-clause control became one clause. No fixture would catch it.
+
+3/ So every design is audited by a model other than its author. Same model is refused. A different provider is stronger.
+
+4/ The audit found a gate refusing 100% of partial receipts and a close process that deadlocked on its own exceptions. Both read as correct prose.
+
+5/ The approver signs the design's SHA-256 hash. A vendor's model update is a logic change: log it and rerun verification.
+
+6/ Unproven: no compiled bundle yet; nobody but me has driven it. I will report the result either way. Part 4 of 4: [link]

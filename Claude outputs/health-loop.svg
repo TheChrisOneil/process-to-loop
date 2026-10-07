@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" font-family="Inter, DejaVu Sans, sans-serif">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker></defs>
+<rect width="1400" height="1000" fill="#FFFFFF"/>
+<circle cx="700" cy="500" r="330" fill="none" stroke="#E2E8F0" stroke-width="2"/>
+<path d="M849.8,206.0 A330,330 0 0 1 912.1,247.2" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<path d="M1021.5,425.8 A330,330 0 0 1 1025.0,557.3" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<path d="M925.1,741.3 A330,330 0 0 1 865.0,785.8" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<path d="M550.2,794.0 A330,330 0 0 1 487.9,752.8" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<path d="M378.5,574.2 A330,330 0 0 1 375.0,442.7" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<path d="M474.9,258.7 A330,330 0 0 1 535.0,214.2" fill="none" stroke="#64748B" stroke-width="4" marker-end="url(#ah)"/>
+<rect x="575.0" y="122.0" width="250" height="96" rx="18" fill="#0F766E"/>
+<text x="700.0" y="164.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Wearables</text>
+<text x="700.0" y="196.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">MED app captures health</text>
+<rect x="860.8" y="287.0" width="250" height="96" rx="18" fill="#0F766E"/>
+<text x="985.8" y="329.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Pre-visit notes</text>
+<text x="985.8" y="361.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">Briefed by role</text>
+<rect x="860.8" y="617.0" width="250" height="96" rx="18" fill="#3730A3"/>
+<text x="985.8" y="659.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Encounter</text>
+<text x="985.8" y="691.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">35 bespoke protocols</text>
+<rect x="575.0" y="782.0" width="250" height="96" rx="18" fill="#3730A3"/>
+<text x="700.0" y="824.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Post-visit notes</text>
+<text x="700.0" y="856.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">Reviewed by clinician</text>
+<rect x="289.2" y="617.0" width="250" height="96" rx="18" fill="#15803D"/>
+<text x="414.2" y="659.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Care plan</text>
+<text x="414.2" y="691.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">Zero re-entry</text>
+<rect x="289.2" y="287.0" width="250" height="96" rx="18" fill="#B45309"/>
+<text x="414.2" y="329.0" text-anchor="middle" font-size="27" font-weight="700" fill="#FFFFFF">Patient pod</text>
+<text x="414.2" y="361.0" text-anchor="middle" font-size="19" fill="#FFFFFF" fill-opacity="0.92">Owned by the patient</text>
+<text x="700" y="486" text-anchor="middle" font-size="52" font-weight="800" fill="#0F172A">The Health Loop</text>
+<text x="700" y="530" text-anchor="middle" font-size="24" fill="#475569">Continuity of care, by design</text>
+<rect x="375.0" y="912" width="18" height="18" rx="4" fill="#0F766E"/><text x="401.0" y="927" font-size="19" fill="#334155">Before the visit</text>
+<rect x="565.0" y="912" width="18" height="18" rx="4" fill="#3730A3"/><text x="591.0" y="927" font-size="19" fill="#334155">The visit</text>
+<rect x="695.0" y="912" width="18" height="18" rx="4" fill="#15803D"/><text x="721.0" y="927" font-size="19" fill="#334155">After the visit</text>
+<rect x="865.0" y="912" width="18" height="18" rx="4" fill="#B45309"/><text x="891.0" y="927" font-size="19" fill="#334155">Patient-owned</text>
+<text x="700" y="72" text-anchor="middle" font-size="30" font-weight="600" fill="#0F172A">From the patient's wrist to the patient's plan.</text>
+<text x="1370" y="976" text-anchor="end" font-size="16" fill="#94A3B8">EverBetter</text>
+</svg>

@@ -1,0 +1,11 @@
+1/ 9 transactions entered a nightly run. A rule refused 3. Arithmetic resolved 2. A model handled 4. Five of nine cost nothing. That ratio is the TCO strategy. #HealthIT #TCO #AIGovernance
+
+2/ Real TCO has seven layers: design, inference, review, platform, assurance, quality safeguards, lifecycle upgrades. Two are one-time. Five recur.
+
+3/ Tokens are the small, falling half of OpEx. Review minutes are the expensive half. Throughput is bounded by review capacity.
+
+4/ Measured: $0.2557 per workflow design across 29 runs. About $1.06 to author and independently audit one gate.
+
+5/ The real first-week cost: eight integration defects. Each passed by hand and failed in production. Put integration labor on the ledger.
+
+6/ Write the exit threshold before launch. TCO protects the spread; TVR sets its width. Part 2 of 4: [link]

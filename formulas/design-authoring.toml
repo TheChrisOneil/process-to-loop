@@ -284,7 +284,21 @@ Read the interview script at {{interview_path}} and follow it. Read the describe
 process at {{use_case_path}}. Read the catalog at {{catalog_path}} BEFORE you
 write a single question about where data comes from.
 
-Write {{questions_path}} and nothing else. The format is
+**Write {{questions_path}}.new, never {{questions_path}} itself.** Then fold it in:
+
+    {{tooling_root}}/questions.sh merge {{questions_path}} {{questions_path}}.new
+
+On a first run that is a move. On a revision it is the difference between
+building on an interview and destroying one: a question already answered keeps
+its id AND its answer, a question your proposal drops is kept anyway, and only
+genuinely new questions are appended with fresh ids. Ids are permanent because
+assumptions and findings cite [Qn] and a rule checks they still resolve.
+
+A revision that rewrote this file on 2026-10-06 put sixteen fresh open questions
+over fifteen answered ones, and the only record of what the owner was asked and
+what they said was gone. Write the .new file; let merge decide what survives.
+
+The format is
 {{tooling_root}}/../schema/QUESTIONS-FORMAT.md — read that one file and no other.
 `{{tooling_root}}/questions.sh validate {{questions_path}}` is the gate below and
 you can run it on your own draft first.

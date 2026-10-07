@@ -9,6 +9,7 @@
 #   questions.sh tsv       <QUESTIONS.md>                      one row per question
 #   questions.sh brief     <QUESTIONS.md>                      the same, as a markdown table
 #   questions.sh answer    <QUESTIONS.md> <Qn> <type> --by <who> [--value <v>] [--synthetic]
+#   questions.sh merge     <QUESTIONS.md> <proposed.md>   fold a revision in, keeping answers
 #
 # The conversation is the interface; this file is the record. An answer is
 # written by `answer`, never by hand: a hand-edited artifact is the control that
@@ -99,6 +100,101 @@ QAWK
   [ "$GOT" = "$TYPE" ] || { rm -f "$TMP"; echo "REFUSED: $QID has no answer: line to write to." >&2; exit 1; }
   cat "$TMP" > "$F" && rm -f "$TMP"
   echo "$QID answered $TYPE${VALUE:+ — $VALUE}${PROV:+ ($PROV)}"
+  exit 0
+fi
+
+# `merge` folds a fresh proposal into an existing, answered set.
+#
+# A revision must not restart the conversation. On 2026-10-06 one did: the
+# questions step wrote sixteen new open questions over fifteen answered ones and
+# the only record of what the owner was asked, and said, was gone.
+#
+# Two properties decide the whole implementation:
+#
+#   ANSWERS SURVIVE.  A question already answered keeps its answer. A question
+#                     the proposal drops is KEPT anyway — an answer that vanishes
+#                     because a model rephrased something is the same loss in
+#                     slower motion.
+#   IDS ARE STABLE.   An existing question keeps its id forever, because
+#                     assumptions and findings cite [Qn] and V33 checks they all
+#                     still resolve. New questions continue from the highest id.
+if [ "$CMD" = "merge" ]; then
+  NEWF=${1:-}
+  [ -n "$NEWF" ] && [ -f "$NEWF" ] || { echo "REFUSED: questions.sh merge <QUESTIONS.md> <proposed.md>" >&2; exit 64; }
+  if [ ! -f "$F" ]; then
+    cat "$NEWF" > "$F" && echo "no existing question set; the proposal is now $F"
+    exit 0
+  fi
+  command -v python3 >/dev/null || { echo "REFUSED: no python3 to merge." >&2; exit 75; }
+  TMP=$(mktemp)
+  OLD_TSV=$(mktemp); NEW_TSV=$(mktemp)
+  "$0" tsv "$F"    > "$OLD_TSV" 2>/dev/null
+  "$0" tsv "$NEWF" > "$NEW_TSV" 2>/dev/null
+  python3 - "$F" "$NEWF" "$OLD_TSV" "$NEW_TSV" "$TMP" <<'PYMERGE'
+import sys, re, pathlib
+oldp, newp, oldtsv, newtsv, out = sys.argv[1:6]
+
+def norm(s):
+    return re.sub(r'[^a-z0-9]+', ' ', (s or '').lower()).strip()
+
+def blocks(path):
+    """(header, [(id, text)]) — split on the question headings the parser uses."""
+    txt = pathlib.Path(path).read_text()
+    parts = re.split(r'(?m)^(##[ \t]+Q[0-9]+.*)$', txt)
+    header, out_b = parts[0], []
+    for i in range(1, len(parts), 2):
+        head, body = parts[i], parts[i+1] if i+1 < len(parts) else ""
+        qid = re.match(r'##[ \t]+(Q[0-9]+)', head).group(1)
+        out_b.append((qid, head + body))
+    return header, out_b
+
+def asks(tsv):
+    d = {}
+    for line in pathlib.Path(tsv).read_text().splitlines():
+        if not line.strip(): continue
+        f = (line.split("\t") + [""] * 8)[:8]
+        d[f[0]] = f[7]
+    return d
+
+old_header, old_blocks = blocks(oldp)
+new_header, new_blocks = blocks(newp)
+old_asks, new_asks = asks(oldtsv), asks(newtsv)
+
+# An existing question is matched by TEXT, never by position: the proposal may
+# reorder freely and must not thereby re-point an id at a different question.
+seen = {norm(old_asks.get(qid, "")) for qid, _ in old_blocks}
+maxid = max((int(qid[1:]) for qid, _ in old_blocks), default=0)
+
+kept = [b for _, b in old_blocks]
+added, nxt = [], maxid
+for qid, body in new_blocks:
+    if norm(new_asks.get(qid, "")) in seen:
+        continue
+    nxt += 1
+    body = re.sub(r'(?m)^##[ \t]+Q[0-9]+', '## Q%d' % nxt, body, count=1)
+    added.append(body)
+
+# The header comes from the EXISTING set: it carries the use-case digest these
+# answers were given against, and a proposal written later must not silently
+# re-point them at a different description.
+pathlib.Path(out).write_text(old_header + "".join(kept) + "".join(added))
+print("kept %d answered question(s); added %d new" % (len(kept), len(added)), file=sys.stderr)
+PYMERGE
+  RC=$?
+  rm -f "$OLD_TSV" "$NEW_TSV"
+  [ "$RC" -eq 0 ] || { rm -f "$TMP"; echo "REFUSED: the merge failed; $F is unchanged." >&2; exit 1; }
+  # Prove it before replacing: a merge that dropped an answer is the defect this
+  # whole subcommand exists to prevent.
+  BEFORE=$("$0" tsv "$F"   | awk -F'\t' '$3!=""' | wc -l | tr -d ' ')
+  AFTER=$( "$0" tsv "$TMP" | awk -F'\t' '$3!=""' | wc -l | tr -d ' ')
+  if [ "$AFTER" -lt "$BEFORE" ]; then
+    rm -f "$TMP"
+    echo "REFUSED: the merge would drop $((BEFORE-AFTER)) answer(s). $F is unchanged." >&2
+    exit 1
+  fi
+  cat "$TMP" > "$F" && rm -f "$TMP"
+  echo "merged into $F"
+  "$0" status "$F"
   exit 0
 fi
 

@@ -1174,6 +1174,48 @@ grep -q 'questions_path' "$HERE/formulas/design-authoring.toml" \
   && grep -q 'brief.sh {{design_path}} --questions' "$HERE/formulas/design-authoring.toml" \
   && ok "the render step hands the brief its question set" \
   || no "the brief is written without the answers, so the acceptance screen is half a screen"
+# merge: a revision builds on the interview; it does not restart the conversation.
+MG=$(mktemp -d)
+cp "$IV/base.md" "$MG/old.md"
+"$HERE/tooling/questions.sh" answer "$MG/old.md" Q1 stated --by Buzz --value "one form" >/dev/null 2>&1
+"$HERE/tooling/questions.sh" answer "$MG/old.md" Q2 delegated --by Buzz --value "48 hours" --synthetic >/dev/null 2>&1
+# A proposal that REORDERS the same two questions and adds one.
+python3 - "$MG" <<'PYEOF'
+import sys, pathlib, re
+M = sys.argv[1]
+t = pathlib.Path(M + "/old.md").read_text()
+t = re.sub(r'(?m)^answer: .*$', 'answer:', t)
+parts = re.split(r'(?m)^(##[ \t]+Q[0-9]+.*)$', t)
+hdr = parts[0]
+b1 = parts[1] + parts[2]; b2 = parts[3] + parts[4]
+b1 = b1.replace("## Q1", "## Q2", 1); b2 = b2.replace("## Q2", "## Q1", 1)
+extra = "\n## Q3 — a new one\nclass: structural\nasks: Who owns the worklist the result is written to?\nwhy: No catalogued tool delivers to a clinician.\nanswer:\n"
+pathlib.Path(M + "/new.md").write_text(hdr + b2 + b1 + extra)
+PYEOF
+cp "$MG/old.md" "$MG/merged.md"
+"$HERE/tooling/questions.sh" merge "$MG/merged.md" "$MG/new.md" >/dev/null 2>&1
+MT=$("$HERE/tooling/questions.sh" tsv "$MG/merged.md")
+[ "$(printf '%s\n' "$MT" | awk -F'\t' '$3!=""' | wc -l | tr -d ' ')" = "2" ] \
+  && ok "a revision keeps every answer it already had" \
+  || no "merging a revision dropped an answer — the interview was destroyed"
+printf '%s\n' "$MT" | awk -F'\t' '$1=="Q1"{print $6}' | grep -q 'one form' \
+  && ok "an id still points at the question it always pointed at, after a reorder" \
+  || no "the proposal reordered the questions and an id moved with it"
+[ "$(printf '%s\n' "$MT" | wc -l | tr -d ' ')" = "3" ] \
+  && ok "a genuinely new question is appended with a fresh id" \
+  || no "the new question was lost, or an old one was duplicated"
+# And the guard: a merge that would lose an answer refuses rather than writing.
+grep -q 'would drop' "$HERE/tooling/questions.sh" \
+  && ok "the merge refuses rather than writing a set with fewer answers" \
+  || no "nothing stops a merge from silently losing answers"
+grep -q 'QUESTIONS.md' "$HERE/tooling/archive-run.sh" \
+  && ok "the archive keeps the interview, which it once did not" \
+  || no "a revision can destroy the only record of what a person was asked"
+grep -q 'questions.sh merge' "$HERE/formulas/design-authoring.toml" \
+  && ok "the questions step writes a proposal and merges it, never overwrites" \
+  || no "the questions step still writes straight over an answered set"
+rm -rf "$MG"
+
 # ask: the half that makes the interview a conversation rather than a file format.
 # base.md is the pristine copy: by this point Q.md is fully answered, and ask
 # would correctly report that there is nothing left to ask.

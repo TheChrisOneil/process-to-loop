@@ -1,0 +1,21 @@
+On September 29, a model wrote a gate for an invoice workflow.
+
+Given a $500 invoice, the gate printed "purchase order is on file" and passed it. It never checked.
+
+A second model found the defect for $0.44.
+
+The purchase order clause ran only when one environment variable was set. Missing it, a three-clause control became a one-clause control, silently. No test fixture would have caught it.
+
+That is why every design in my loop is audited by a model other than its author. Same model as author and auditor is refused. A different provider is the stronger form.
+
+The audit finds defects humans approve. A purchase order gate that refused 100% of partial receipts. A monthly close gate that deadlocked on its own exceptions. Both read as correct prose.
+
+A named approver then signs the design's SHA-256 hash, not its filename. Change one character and the signature no longer covers it.
+
+One new control: a vendor's model update is a logic change. Log the version. Rerun verification on every update.
+
+Unproven so far: no run has reached a compiled bundle, and nobody but me has operated it. I will report the result either way.
+
+Part 4 of 4: Auditable Workflows in a Regulated Environment. Link in comments.
+
+#HealthIT #HIPAA #AIGovernance

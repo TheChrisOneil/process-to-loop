@@ -1,0 +1,75 @@
+<!-- wp:paragraph -->
+<p><em>Auditable Workflows in a Regulated Environment, Part 4 of 4.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>On September 29, a model wrote a gate for an invoice workflow. Given a 500 dollar invoice, the gate printed "purchase order is on file" and let it pass. It had never checked for a purchase order [1].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A second model found the defect for $0.44.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The gate had three clauses. The purchase order clause ran only when a specific environment variable was present. One missing variable turned a three-clause control into a one-clause control, silently, while the output asserted the opposite. No test fixture would have caught it, because the fixtures drove the script through its value argument. The defect lived in what the script did when a different input was absent. I want that class of defect found before a human signs, which is why every design in my loop is audited by a model other than its author.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">Evidence a model can edit is not evidence.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Regulators already define what an audit trail must do. HIPAA requires mechanisms that "record and examine activity in information systems that contain or use electronic protected health information" [2]. FDA Part 11 requires "secure, computer-generated, time-stamped audit trails" whose "record changes shall not obscure previously recorded information" [3]. The traditional answer is a stack of review meetings that produce documents. My answer makes the review gates properties of the artifact. The audit trail is produced by running the workflow.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Decorrelation is the principle. A model reviewing its own work shares its own blind spots. My pipeline refuses to proceed when the author and the auditor are the same model; that is the floor. A different provider is the stronger form, because two labs share less training and tooling than two models from one lab. In full disclosure, the September 29 run met the floor: the auditor was a different model from the same provider [1].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">Both designs read as correct prose. Both were unrunnable.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>The audit covers six dimensions the deterministic rules cannot reach: whether the unit of work is right, whether judgment is truly isolated, whether the gates cover the risks, whether refusals are actionable, whether the evidence chain holds, and whether the exit criterion is measurable. Its findings are substantive. On a purchase order design, it found a gate comparing a shortfall quantity against a received line sum, which refused 100% of partial receipts. On a monthly close design, it found that a gate demanded zero reconciliation variance before exceptions were reviewed or journal entries posted: an execution deadlock. A reviewer skimming either design would likely have approved it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>After the audit, a named person accepts the design. The acceptance register records the SHA&#8209;256 hash of the design as it stood when signed. Change one character afterward and the signature no longer covers what is about to be built. The signer must match the approver the design itself names. Register entries are chained, so back-dating breaks verification. Revocations and corrections are appended, never edited.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">A vendor's model update is a logic change. Nobody sends you a letter about it.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>One control is new to most compliance programs. When a vendor updates a model, the behavior of every workflow that calls it can change. That is a change to the control environment. I log the model version beside the design and rerun the full verification suite on every update. I expect this to become a common audit finding for organizations that skip it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Here is the TVR connection. An automated outcome that fails audit carries the cost of the decision plus the cost of the finding. A second model at $0.44 per gate converts that liability into defensible value. That trade belongs in every regulated business case.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>I promised to publish failures with the wins. Here is what remains unproven. No run has yet reached a compiled bundle; the back half is proven by 147 test assertions, not live use. The loop has not yet revised a design in response to audit findings. Nobody who did not build the system has operated it. Three experiments will settle those questions: one run end to end through compile, one revision driven by findings, and one process owner driving it alone. Until the first succeeds, the auditable outcome is a design, not a result. I will report the outcome either way.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Total Value Realized starts with a number you can defend. Defending it starts with an auditor who did not write the work.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph {"fontSize":"small"} -->
+<p class="has-small-font-size">[1] C. O'Neil, "The first live run," process-to-loop project notes, Sep. 29, 2026.<br>[2] Technical safeguards, 45 C.F.R. &#167; 164.312(b). [Online]. Available: https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312<br>[3] Controls for closed systems, 21 C.F.R. &#167; 11.10(e). [Online]. Available: https://www.ecfr.gov/current/title-21/chapter-I/subchapter-A/part-11/subpart-B/section-11.10</p>
+<!-- /wp:paragraph -->

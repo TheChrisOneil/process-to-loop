@@ -1,0 +1,91 @@
+<!-- wp:paragraph -->
+<p><em>Auditable Workflows in a Regulated Environment, Part 3 of 4.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A rule written into a prompt costs tokens on every run, for the life of the workflow. The same rule written in code costs nothing after it ships. It also returns the same answer every time.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Most teams still write their business rules as prompts.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>I built a design format that makes that mistake hard to commit. It is the core of the proprietary context I described in Part 1. A model writes the design. Deterministic tooling validates it, renders it, and compiles it. This post explains the constraints that make the format work and how each one protects either TCO or TVR.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">Readable by a process owner. Parseable by a script. Writable by a model.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>The format is plain text, organized in sections that open with an @ name. I rejected JSON because the process owner must read and own the logic. A clinic manager can read a pipe-delimited table. Few can read nested braces.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Every design begins with the unit of work: the smallest thing that receives one decision. The design classifies that decision with the two people test. If two competent people, unable to confer, would produce the same answer, the decision is a rule and belongs in code. If they would differ, it is judgment, and the design must name what checks it. A design declares exactly one judgment per unit. Everything else is a rule.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Each step carries a type and an actor, and the validator forces them to agree. Coordination, mechanical, test, and gate steps always run as code. Only a thinking step may use a model or a human. That single constraint keeps the inference line on the TCO ledger small and visible.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">A condition without a number, a comparison, or the word "never" is a suggestion.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Gates are where a workflow refuses. Every gate condition must contain a number, a comparison, or the word "never." Every refusal message must name the next human action in at least 25 characters. The validator rejects placeholders such as "needs review" or "escalate." A refusal that tells nobody what to do is a stalled queue, and stalled queues destroy TVR.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A gate written in prose compiles to a stub somebody must implement. A gate backed by a decision table compiles to working logic. Tables answer three questions that conditionals hide: does any input fall through, do two rules claim the same input, and does any output never occur? Under the unique hit policy the validator proves no two rules overlap. A case that matches no rule is a refusal. The workflow never invents a default, because inventing an answer is the guess this system exists to prevent.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">A design may narrow a tool's permissions. It may never widen them.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Healthcare adds a boundary. Every data source comes from a catalog that declares its data class. A design inherits the catalog's permissions and may only narrow them. A tool carrying protected health information cannot be used by a step whose actor is a model, because a model call leaves the local boundary. The validator enforces that rule before anyone signs the design.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Assumptions carry provenance. Each one cites the interview question it answers and states how it was answered: stated by the process owner, unanswered and assumed, or delegated to the system by the owner. An auditor reading 44 assumptions must be able to separate a confirmed fact from a surviving guess. The validator refuses a design that flattens the three into one voice.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">A TVR baseline nobody measured is written "unmeasured." It is never estimated.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>This is where TVR enters the development loop. Every design must declare at least three KPIs with a baseline: one for cost, one for quality, and one for Total Value Realized. The TVR kinds map to four value vectors: velocity at the client touchpoint, throughput per existing reviewer, organizational speed, and margin recovered per unit net of compute. A baseline nobody has measured is written as unmeasured. The validator accepts it with a warning. It refuses an invented number.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Two more constraints close the loop. Evidence must be written by a mechanical step, so the component that makes a claim never writes its own proof. A record section declares where every state change is appended, where each unit's outcome lands, how long records are kept, and where the approval signature lives. A workflow that records nothing cannot be audited.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The format makes the model's job narrow. It drafts one artifact. Rules, refusals, permissions, and value targets are checked by code before a human signs. Part 4 covers what happens between the draft and the signature: an audit by a different model [1].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph {"fontSize":"small"} -->
+<p class="has-small-font-size">[1] C. O'Neil, "The design format," process-to-loop schema specification (DESIGN-FORMAT.md), 2026.</p>
+<!-- /wp:paragraph -->

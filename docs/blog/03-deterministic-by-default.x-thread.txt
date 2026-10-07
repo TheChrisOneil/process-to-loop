@@ -1,0 +1,11 @@
+1/ A rule in a prompt costs tokens every run, forever. The same rule in code costs nothing after it ships. Most teams still write rules as prompts. #HealthIT #DeterministicAI #AIGovernance
+
+2/ Two people test: if two competent people, unable to confer, give the same answer, it is a rule. Put it in code. One judgment per unit of work.
+
+3/ Every gate condition needs a number, a comparison, or "never." Every refusal names the next human action. "Needs review" is rejected.
+
+4/ Decision tables replace prose. A case matching no rule is a refusal, never a default.
+
+5/ A tool carrying PHI cannot feed a model step. The validator enforces it before anyone signs.
+
+6/ Every design declares a TVR KPI. An unmeasured baseline is written "unmeasured," never estimated. Part 3 of 4: [link]

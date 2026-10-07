@@ -1,0 +1,87 @@
+<!-- wp:paragraph -->
+<p><em>Auditable Workflows in a Regulated Environment, Part 2 of 4.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Nine transactions entered a nightly run during my September workshop. A business rule refused three of them. Arithmetic resolved two. Four reached a model. Five of the nine cost nothing [1].</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>That ratio is the TCO strategy.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Most business cases price the four model calls and stop. They miss the six other layers that decide whether the workflow pays. Part 1 argued that Total Value Realized is the misunderstood number. This post covers the denominator, because a TVR claim divided by a partial cost is fiction.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">Two layers are one-time capital. Five recur.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>I account for seven layers. Design and build is one-time NRE: process mapping, logic decomposition, and the guardrail harness. Inference is variable OpEx: input, output, reasoning, and cached prompt tokens. Human review is variable OpEx: oversight, approvals, and escalations. Platform is fixed OpEx: hosting, logging, evidence retention, and identity. Assurance is fixed OpEx: continuous sampling and regression tests on every model update. Quality safeguards are variable OpEx: exception handling and feedback loops. Lifecycle upgrades are periodic NRE: migration to the next model generation.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>In a regulated environment the platform and assurance layers carry the compliance burden. HIPAA requires mechanisms that "record and examine activity in information systems that contain or use electronic protected health information" [2]. That requirement is a line item. A business case that omits it has priced a workflow nobody can deploy.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">Throughput is bounded by review capacity. Exceed it and the workflow builds a queue.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Recurring cost reduces to one equation: units per period, times the sum of token cost and review minutes at the loaded rate, plus fixed platform, plus continuous assurance. Tokens are the small, falling half. Review minutes are the expensive, stubborn half. When automation makes a task far cheaper, demand for the task rises. That is a TVR opportunity and a capacity problem at once. I size every workflow's concurrency to what its named approver can read in a morning.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The metric that ties the layers together is cost per completed decision. It is token compute, plus review minutes times the loaded rate, plus the quality assurance rate times the exception cost. I require it of every vendor and every internal team. Cost per request measures the meter. Cost per completed decision measures the business.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:left;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 16px 12px 0;">Fund one stage at a time. Each stage has an exit gate.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>I fund NRE in four stages. Stage 1 maps the workflow and measures today's manual cost; it exits on an undisputed baseline. Stage 2 separates rules from judgment and embeds the guardrails; it exits on a validated design. Stage 3 builds the checks and the evidence store; it exits when the workflow runs and enforces its logic. Stage 4 moves from human review to autonomous execution; it exits at target throughput. A market change or a new model reopens stage 2 on purpose.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Here are my measured numbers. Generating a workflow design averaged $0.2557 across 29 metered runs [1]. In the first live run of the gate authoring loop, writing one gate's check script cost $0.619 and auditing it with a second model cost $0.440, about $1.06 per gate [3]. Every deterministic stage ran in seconds and spent zero tokens.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The tokens were never the real cost. The first week's real cost was eight defects at the boundary between the orchestrator and the scripts it invoked: checks installed where they did not resolve, a controller that exported no variables to a check, a user variable unset under the scheduler, and a validator that never returned. Each passed by hand. Each failed in the real environment. Each reported something other than its cause. Integration labor belongs on the ledger.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:html -->
+<div style="float:right;width:36%;background:#f2f2f2;padding:12px 16px;font-size:0.85em;margin:0 0 12px 16px;">Write the exit threshold down while everyone is still optimistic.</div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph -->
+<p>Every design I accept names an exit criterion containing a number, such as shutting down if review minutes per unit exceed four for two consecutive weeks. Writing that number before launch is the clearest signal a proposal is honest. Monthly, the business owner reviews cost per completed decision against target. Quarterly, the owner decides whether to raise the autonomy tier. On every model change, the verification suite reruns in full.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>TCO protects the spread. TVR sets its width. Part 3 shows the design format that moves rules out of prompts and drives the inference line toward zero.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:html -->
+<div style="clear:both;"></div>
+<!-- /wp:html -->
+
+<!-- wp:paragraph {"fontSize":"small"} -->
+<p class="has-small-font-size">[1] C. O'Neil, "The Agentic Harness: real-world unit economics," workshop slides, EDGE Academy, Wichita State Univ., Wichita, KS, Sep. 23, 2026.<br>[2] Technical safeguards, 45 C.F.R. &#167; 164.312(b). [Online]. Available: https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312<br>[3] C. O'Neil, "The first live run," process-to-loop project notes, Sep. 29, 2026.</p>
+<!-- /wp:paragraph -->
