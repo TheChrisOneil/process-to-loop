@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Stand-in for the pre-visit worklist the medical assistants read before a clinic
+# session, and the one place a reconciliation result is placed.
+#
+# Catalogued because an audit on 2026-10-06 found the design writing to a
+# "worklist" that existed in no source and no tool — a store the design depended
+# on and nothing had sanctioned. Either the organization has one or the design
+# may not write to it; inventing it in prose is how a dependency ships unowned.
+set -uo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+FIXTURE=${EB_WORKLIST_FIXTURE:-$HERE/fixtures/worklist.csv}
+
+case "${1:-}" in
+  health)
+    [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
+    echo "ok: eb-previsit-worklist, $(( $(wc -l < "$FIXTURE") - 1 )) entry(s)"; exit 0 ;;
+  schema)
+    printf 'entry_id\tstring\npatient_ref\tstring\nappointment_id\tstring\nstarts_at\ttimestamp\nclinician\tstring\nstate\tstring\nplaced_at\ttimestamp\n'; exit 0 ;;
+  fetch)
+    [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
+    awk -F, -v want="${2:-}" 'BEGIN { OFS="\t" }
+      NR==1 { $1=$1; print; next }
+      want=="" || $2==want { $1=$1; print }' "$FIXTURE"; exit 0 ;;
+  *) echo "usage: eb-previsit-worklist health|schema|fetch [patient_ref]" >&2; exit 64 ;;
+esac

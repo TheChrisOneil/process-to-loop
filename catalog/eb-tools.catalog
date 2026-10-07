@@ -94,3 +94,13 @@ chosen: 2026-10, over extending eb-form-builder-service to return submission bod
 because: the form service knows a submission exists and who made it, not what is inside one; a catalog entry claiming otherwise would assert a capability the service does not have
 decided_by: Buzz, process owner
 review_by: 2027-10
+
+@tool eb-previsit-worklist
+provides: entry_id, patient_ref, appointment_id, starts_at, clinician, state, placed_at
+via: tools/eb-previsit-worklist
+data_class: phi
+may_not: leave the covered boundary
+chosen: 2026-10, after an audit found a design writing to a worklist that existed in no source and no tool
+because: the medical assistants already work from a pre-visit list; a result placed somewhere nothing sanctioned is a dependency that ships unowned
+decided_by: Buzz, process owner
+review_by: 2027-10
