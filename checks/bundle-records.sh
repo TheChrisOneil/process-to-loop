@@ -86,6 +86,24 @@ if [ -f "$CATALOG" ] && [ -s "$B/memory/ledger.tsv" ]; then
   fi
 fi
 
+# A skill the design names must leave a row saying it was IN FORCE. The claim is
+# deliberately narrow — nothing can prove a document was read — but "which
+# version applied on that date" is the question an auditor asks, and a design
+# that names know-how and logs nothing has answered it with silence.
+SKILLS=$(awk '/^@skills/{f=1;next} /^@[a-z]/{f=0} f && NF && $0 !~ /^#/ {split($0,F," *\\| *"); print F[1]}' "$D" 2>/dev/null)
+if [ -n "$SKILLS" ] && [ -s "$B/memory/ledger.tsv" ]; then
+  smiss=""
+  for sid in $SKILLS; do
+    grep -q "	skill	$sid " "$B/memory/ledger.tsv" 2>/dev/null || smiss="$smiss $sid"
+  done
+  if [ -n "$smiss" ]; then
+    say "the design names skill(s) the ledger never records as in force:$smiss"
+    echo "         Know-how nothing records is know-how nobody can place in time." >&2
+  else
+    printf 'skills: %s in force and logged\n' "$(printf '%s\n' "$SKILLS" | grep -c .)"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "         Next human action: the design promised these records. Fix the emitter, not the design." >&2
   exit 1

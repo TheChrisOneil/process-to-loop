@@ -9,6 +9,10 @@
 #   ./validate.sh --rules                print the rule list and exit
 #
 # env: CATALOG    the tool catalog the design is checked against
+#      METHOD     the authoring method (GENERATE.md) this design was written
+#                 from. Versioned for the same reason INTERVIEW.md is: two
+#                 designs written by different methods are not comparable, and
+#                 nothing else records which one ran.
 #      QUESTIONS  the QUESTIONS.md this design was authored from. Supplying it
 #                 turns on V32-V34, which are what make an answered question
 #                 traceable into the design. Omitting it is reported, not silent.
@@ -64,6 +68,11 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V37  every rule has one cell per input and per output
 # V38  under a unique policy, no two rules claim the same input
 # V39  a gate naming a decision table names a real table and a real output
+# V40  every skill the design names is in the catalog
+# V41  every skill is used by a step that exists, and never by a gate step
+# V42  no gate condition depends on a skill — know-how that decides is a decision table
+# V43  no design names a skill whose review date has passed
+# V44  the design names the authoring method that wrote it, by digest
 # END RULES
 
 # The catalog, flattened so validate.awk can read it without a second parser.
@@ -79,6 +88,7 @@ if [ -f "$CATALOG" ]; then
   # inside the awk string literal and the query file stops parsing.
   cat > "$CATFILE.q" <<'CATQ'
 END{ for (k in CAT) { ck=k; sub(/^catalog\./,"",ck); printf "#catalog\t%s\t%s\n", ck, CAT[k] }
+     for(i=1;i<=ns;i++) printf "#skill\t%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".review_by"], SK[SKID[i] ".owner"]
      for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".data_class"], T[TID[i] ".provides"] }
 CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATFILE.q" "$CATALOG" > "$CATFILE" 2>/dev/null
@@ -89,6 +99,9 @@ fi
 # content, never by filename. Supplying no question set is legal and is WARNED
 # about rather than passed over — a rule that quietly does not run is the defect
 # this whole project is about.
+METHOD=${METHOD:-}
+MSHA=""
+[ -z "$METHOD" ] || [ ! -f "$METHOD" ] || MSHA=$(shasum -a 256 "$METHOD" | cut -d' ' -f1)
 QUESTIONS=${QUESTIONS:-}
 QFILE=""; QSHA=""
 if [ -n "$QUESTIONS" ] && [ -f "$QUESTIONS" ]; then
@@ -103,7 +116,7 @@ QQ
 fi
 trap '[ -n "$CATFILE" ] && rm -f "$CATFILE"; [ -n "$QFILE" ] && rm -f "$QFILE"' EXIT
 
-awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" -v TODAY="$(date +%F)" \
+awk -v mode="$MODE" -v CATFILE="$CATFILE" -v QFILE="$QFILE" -v QSHA="$QSHA" -v MSHA="$MSHA" -v TODAY="$(date +%F)" \
     -f "$(dirname "$0")/lib/parse.awk" -f "$(dirname "$0")/lib/dt-cell.awk" \
     -f "$(dirname "$0")/lib/decisions.awk" \
     -f "$(dirname "$0")/lib/validate.awk" "$FILE"

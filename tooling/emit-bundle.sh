@@ -86,7 +86,6 @@ CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATVIA.q" "$CATALOG" > "$CATVIA" 2>/dev/null
   rm -f "$CATVIA.q"
 fi
-trap 'rm -f "$CATVIA"' EXIT
 tool_via() { awk -F'\t' -v id="$1" '$1==id {print $2}' "$CATVIA"; }
 tool_class() { awk -F'\t' -v id="$1" '$1==id {print $3}' "$CATVIA"; }
 # The permission the catalog WITHHELD from this tool. A gate stops a violation;
@@ -95,6 +94,33 @@ tool_class() { awk -F'\t' -v id="$1" '$1==id {print $3}' "$CATVIA"; }
 # row rather than on a row of its own, because a separate row can be absent
 # while the reads still happen — declared, reported, absent.
 tool_maynot() { awk -F'\t' -v id="$1" '$1==id {print $4}' "$CATVIA"; }
+
+# The skills a step applies, resolved here for the same reason tools are: the
+# bundle must run with no catalog and no network.
+#
+# What the ledger can claim about a skill is narrower than what it claims about a
+# tool, and the wording matters. A read is PROVEN — the rows came back. A skill
+# is only ever IN FORCE: nothing can prove a document was read, so the row
+# records which version was in effect, by digest, and claims nothing further.
+# "Which version of the protocol applied on that date" is the question a regulator
+# actually asks, and it is answerable. "Was it followed" is answered by the
+# evidence trail, not by this row.
+CATSK=$(mktemp)
+if [ -f "$CATALOG" ]; then
+  cat > "$CATSK.q" <<'SKQ'
+END{ for(i=1;i<=ns;i++) printf "%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".owner"], SK[SKID[i] ".review_by"] }
+SKQ
+  awk -f "$HERE/lib/catalog.awk" -f "$CATSK.q" "$CATALOG" > "$CATSK" 2>/dev/null
+  rm -f "$CATSK.q"
+fi
+trap 'rm -f "$CATVIA" "$CATSK"' EXIT
+skill_owner() { awk -F'\t' -v id="$1" '$1==id {print $2}' "$CATSK"; }
+skill_known() { awk -F'\t' -v id="$1" '$1==id {print "y"; exit}' "$CATSK"; }
+skills_for()  { awk -f "$HERE/lib/parse.awk" -f "$HERE/lib/skills.awk" -v STEP="$1" "$DESIGN" 2>/dev/null; }
+# The catalog digest stands in for the skill's own version: the skills live in it,
+# so a change to any of them changes this. One number, computed once, written
+# into every row that cites a skill.
+CATSHA=$([ -f "$CATALOG" ] && shasum -a 256 "$CATALOG" | cut -c1-12 || echo "uncatalogued")
 tool_abs() { case "$1" in /*) printf '%s' "$1" ;; *) printf '%s' "$(cd "$HERE/.." && pwd)/$1" ;; esac; }
 # Which tools does step N use?
 tools_for() { printf '%s\n' "$PLAN" | awk -F'\t' -v sid="$1" '$1=="tool" { n=split($3,B," "); for(i=1;i<=n;i++) if (B[i]==sid) print $2 }'; }
@@ -162,6 +188,7 @@ while IFS=$'\t' read -r _ ID SLUG TYPE ACTOR DESC SCOPE; do
   GCOND=$(printf '%s\n' "$PLAN" | awk -F'\t' -v i="$ID" '$1=="gate" && $2==i {print $3; exit}')
   GREF=$(printf '%s\n'  "$PLAN" | awk -F'\t' -v i="$ID" '$1=="gate" && $2==i {print $4; exit}')
   GN=""
+
   if [ -n "$GCOND" ]; then
     GN=$(printf '%s\n' "$PLAN" | awk -F'\t' -v i="$ID" '$1=="gate"{n++; if($2==i){printf "%02d", n; exit}}')
   fi
@@ -244,6 +271,19 @@ SRC_ROWS=\$(( \$(grep -c . "\$SRC_OUT" 2>/dev/null || echo 1) - 1 ))
 # permission recorded separately can go missing while the reads continue.
 ledger "\$UNIT" "$SLUG" read "$SRC via $TL ($PERM): \$SRC_ROWS row(s)"
 step_say "$ID" "$SLUG" "$TYPE" "read \$SRC_ROWS row(s) from $SRC"
+EOF
+  done
+
+  for SKL in $(skills_for "$ID"); do
+    [ -n "$(skill_known "$SKL")" ] || continue
+    OWN=$(skill_owner "$SKL" | tr -d '"')
+    cat >> "$F" <<EOF
+
+# ---- skill: $SKL, owned by $OWN ----
+# IN FORCE, not applied. Nothing here proves the know-how was followed; it
+# records which version was in effect when this step ran. That is the question
+# an auditor asks, and the only one this row can answer honestly.
+ledger "\$UNIT" "$SLUG" skill "$SKL ($OWN) catalog $CATSHA: in force, not verified as applied"
 EOF
   done
 

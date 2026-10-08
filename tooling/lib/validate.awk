@@ -27,6 +27,7 @@ BEGIN {
     while ((getline cl < CATFILE) > 0) {
       n = split(cl, cf, "\t")
       if (n >= 1 && cf[1] == "#catalog") { CPOL[cf[2]] = cf[3]; continue }
+      if (n >= 1 && cf[1] == "#skill")   { CSKILL[cf[2]] = 1; CSKREV[cf[2]] = cf[3]; CSKOWN[cf[2]] = cf[4]; CSKN++; continue }
       if (n >= 1 && cf[1] != "") { CATN++; CTOOL[cf[1]] = 1; CCLASS[cf[1]] = cf[2]; CPROV[cf[1]] = cf[3] }
     }
     close(CATFILE)
@@ -309,6 +310,71 @@ END {
       else
         ok("V31","PHI reaches a model under " (CPOL["phi_model_basis"] != "" ? CPOL["phi_model_basis"] : "a catalogued agreement") ", attested to " byw)
     }
+  }
+
+  # V44 which method wrote this design. INTERVIEW.md is versioned because two
+  # interviews from different scripts produce use cases nobody can compare; the
+  # same is true of two designs from different authoring methods, and nothing
+  # else records which one ran.
+  if (MSHA != "") {
+    if (V["meta.method_sha256"] == "")
+      rec("WARN","V44","@meta.method_sha256 is not set","record the digest of the method that wrote this design, as it already records the question set")
+    else if (V["meta.method_sha256"] != MSHA)
+      rec("ERROR","V44","@meta.method_sha256 is " substr(V["meta.method_sha256"],1,12) "... and the method is " substr(MSHA,1,12) "...","this design was written by a different version of the method than the one in front of you")
+    else ok("V44","the design names the method that wrote it, by digest")
+  }
+
+  # ---- skills, V40-V43 ----
+  #
+  # A SKILL is know-how a step applies. It reaches nothing, and crucially it
+  # DECIDES nothing: know-how that decides is a decision table, where
+  # completeness and overlap are provable and a fall-through refuses.
+  #
+  # V42 is the load-bearing one and it shipped before @skills existed. You cannot
+  # prove a model read a document, so a gate resting on a skill is a control that
+  # is declared, reported and absent — and a skills section is exactly where
+  # unprovable things get put to look official. The constraint arrives first so
+  # the section can never be born loose.
+  #
+  # A THINKING step may be informed by a skill. That is the evaluator-optimizer
+  # shape: the skill frames the draft, and the gate checks the OUTPUT.
+  if (CSKN+0 > 0) {
+    cited=""
+    for (sg=1; sg<=g+0; sg++) {
+      for (sk in CSKILL) if (index(GCOND[sg], sk) > 0) cited = cited " gate" sg "(" sk ")"
+    }
+    if (cited=="") ok("V42","no gate condition depends on a skill")
+    else rec("ERROR","V42","gate condition(s) resting on a skill:" cited,
+             "nothing can prove a document was read, so a gate on a skill is a control that is declared, reported and absent — move the deciding part into a @decisions table, which is checkable")
+  }
+
+  if (n_skill+0 > 0) {
+    unc=""; nostep=""; ongate=""; stale=""
+    for (sz=1; sz<=n_skill; sz++) {
+      sid = SKL_ID[sz]
+      if (!(sid in CSKILL)) { unc = unc " " sid; continue }
+      byw = CSKREV[sid]
+      if (byw != "" && TODAY != "" && byw < TODAY) stale = stale " " sid "(" byw ")"
+      nsb = split(SKL_BY[sz], SKB, / +/)
+      for (sj=1; sj<=nsb; sj++) {
+        ssid = SKB[sj]; gsub(/^ +| +$/,"",ssid)
+        if (ssid=="" || ssid=="-") continue
+        found=0
+        for (sm=1; sm<=s; sm++) if (SID[sm]==ssid) {
+          found=1
+          if (tolower(STYPE[sm])=="gate") ongate = ongate " " sid "@step" ssid
+        }
+        if (!found) nostep = nostep " " sid "@" ssid
+      }
+    }
+    if (unc=="") ok("V40","every skill the design names is in the catalog")
+    else rec("ERROR","V40","skills nothing catalogued:" unc,"a design does not invent know-how — catalogue it, with an owner and a review date, or do not name it")
+    if (nostep=="" && ongate=="") ok("V41","every skill is used by a real step, and none by a gate step")
+    else { if (nostep!="") rec("ERROR","V41","skills used by steps that do not exist:" nostep,"name a real step id in used_by")
+           if (ongate!="") rec("ERROR","V41","skills used by GATE steps:" ongate,"a gate decides; a skill informs. Put the deciding part in a @decisions table") }
+    if (stale=="") ok("V43","every skill named is within its review date")
+    else rec("ERROR","V43","skills whose review date has passed:" stale,
+             "re-attest it in the catalog or stop naming it — a lapsed clinical lookup table is as dangerous as a lapsed agreement, because designs cite it and nothing at run time notices")
   }
 
   # ---- the interview, V32-V34 ----

@@ -14,5 +14,5 @@ D=${DESIGN_PATH:-}
 [ -x "$HERE/tooling/validate.sh" ] || { echo "the validator is not at $HERE/tooling/validate.sh." >&2; exit 75; }
 # The question set goes in, or V32-V34 do not run and nothing says so. A rule
 # that quietly does not run is the defect this pipeline exists to catch.
-exec env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
+exec env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${METHOD_PATH:+METHOD="$METHOD_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
      "$HERE/tooling/validate.sh" "$D"

@@ -325,3 +325,13 @@ on exactly the case it exists to catch.
 model's.
 **generalizes** Relaxing a constraint does not simplify a design. It opens paths
 the design was not written for, and the new paths are where the deadlocks are.
+
+---
+
+## D23 · 2026-10-08 · A design invented a skill, and a gate rested on it
+
+**believed** Know-how either fits in @tools, or it is detail a design can carry in prose.
+**happened** The med-rec design invented two clinical lookup tables inline, named Practice operations as their owner in an assumption line, and gate 19 then refused on them. A control was resting on know-how that existed nowhere but prose, and the next design would have re-derived it — possibly differently.
+**cost** Nothing yet. It was found by reading our own output, before it mattered.
+**changed** @skills on the design, @skill in the catalog, and V40-V43. The load-bearing rule shipped BEFORE the section: a gate may never depend on a skill, because nothing can prove a document was read.
+**generalizes** Know-how that DECIDES and know-how that FRAMES are different things and must not share a section. The first is a decision table, where completeness and overlap are provable. The second is a skill, and the only honest claim about it is which version was in force — never that it was applied.

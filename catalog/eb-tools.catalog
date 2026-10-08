@@ -104,3 +104,33 @@ chosen: 2026-10, after an audit found a design writing to a worklist that existe
 because: the medical assistants already work from a pre-visit list; a result placed somewhere nothing sanctioned is a dependency that ships unowned
 decided_by: Buzz, process owner
 review_by: 2027-10
+
+# ---- SKILLS ----------------------------------------------------------------
+#
+# Know-how a step applies. A skill reaches nothing and decides nothing: know-how
+# that DECIDES is a decision table, where completeness and overlap are provable.
+# A gate may never depend on a skill, and a rule refuses one that tries.
+#
+# Catalogued for the same reason tools are. The dose and frequency tables below
+# were invented inline by a design on 2026-10-07, named their owner in an
+# assumption line, and a gate then refused on them — know-how holding up a
+# control with nowhere to live. The next design would have re-derived them, and
+# possibly differently.
+
+@skill clinic-note-voice
+covers: how this practice words a note a clinician reads before a visit — what is said first, what is never abbreviated, what is never implied
+owner: Practice operations
+applies_to: thinking steps that draft wording for a person
+chosen: 2026-10, over leaving the wording to each author
+because: two designs drafting in two voices makes the worklist unreadable, and a clinician who stops reading it is the exit criterion
+decided_by: Buzz, process owner
+review_by: 2027-04
+
+@skill escalation-etiquette
+covers: who is told first when a process refuses, what is said to a patient and what is not, and what never goes in a message that leaves the practice
+owner: Practice operations
+applies_to: thinking steps whose output reaches a person outside the loop
+chosen: 2026-10
+because: every refusal in every design names a next human action, and the wording of that action is a practice decision rather than a design decision
+decided_by: Buzz, process owner
+review_by: 2027-04

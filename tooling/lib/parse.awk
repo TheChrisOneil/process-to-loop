@@ -5,6 +5,7 @@
 #            GAFT/GCOND/GREF[1..g] · KNAME/KKIND/KBASE[1..k]
 #            SRCID/SRCFROM/SRCPROV/SRCCON[1..n_src] · TLID/TLBY/TLPURP[1..n_tool]
 #            DTID[1..n_dt] · DTHIT/DTIN/DTOUT/DTNIN/DTNOUT[id] · DTR[id,1..DTNR[id]]
+#            SKL_ID/SKL_BY/SKL_WHY[1..n_skill]
 # Counter names are spelled out — n_src, n_tool — because a short one collides.
 # k was reused once for a keyed-section key and hung the validator forever.
 /^[[:space:]]*#/ { next }
@@ -44,6 +45,11 @@
       if (dcur=="") next
       if (dk=="inputs")  { DTIN[dcur]=dv;  DTNIN[dcur]=split(dv,DX," *\\| *") }
       if (dk=="outputs") { DTOUT[dcur]=dv; DTNOUT[dcur]=split(dv,DY," *\\| *") }
+      next
+  }
+  if (sec=="skills") {
+      cnt=split(line,F," *\\| *")
+      n_skill++; SKL_ID[n_skill]=F[1]; SKL_BY[n_skill]=F[2]; SKL_WHY[n_skill]=F[3]; SKL_F[n_skill]=cnt
       next
   }
   if (sec=="sources" || sec=="tools") {

@@ -21,7 +21,7 @@ D=${DESIGN_PATH:-}; V=${AUDIT_VERDICT:-}
 command -v python3 >/dev/null || { echo "no python3 to read the verdict." >&2; exit 75; }
 
 # 1. form first. A design that fails its rules is not worth auditing.
-if ! env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
+if ! env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${METHOD_PATH:+METHOD="$METHOD_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
      "$HERE/tooling/validate.sh" "$D" >/tmp/dr-val.$$ 2>&1; then
   sed 's/^/  /' /tmp/dr-val.$$ | grep -E "FAIL" | head -6 >&2
   rm -f /tmp/dr-val.$$

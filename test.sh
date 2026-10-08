@@ -769,6 +769,96 @@ grep -q 'CONTRACT.md' "$HERE/formulas/design-authoring.toml" \
   || no "the formula never mentions the contract it depends on"
 
 echo
+echo "SKILLS"
+# A skill is know-how a step APPLIES. It reaches nothing and decides nothing.
+# The constraint shipped before the section, because a skills section is exactly
+# where unprovable things get put to look official.
+SK=$(mktemp -d)
+cp "$HERE/examples/appointments-chase.design" "$SK/base.design"
+python3 - "$SK" <<'PYEOF'
+import sys, pathlib
+S = sys.argv[1]
+d = pathlib.Path(S + "/base.design").read_text()
+pathlib.Path(S + "/ok.design").write_text(d.replace(
+  "@evidence",
+  "@skills\nclinic-note-voice | 4 | the draft is read by a clinician, so it is written in the practice voice\n\n@evidence", 1))
+pathlib.Path(S + "/gatecite.design").write_text(d.replace(
+  "4 | the submission is flagged and 0 clinicians have read it |",
+  "4 | clinic-note-voice is not followed and 0 clinicians have read it |", 1))
+PYEOF
+sksay() { # <design> <verdict> <rule> <ok> <no> [catalog]
+  local o; o=$(CATALOG="${6:-$HERE/catalog/eb-tools.catalog}" "$HERE/tooling/validate.sh" "$1" 2>&1 || true)
+  case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+    *"$2  $3"*) ok "$4" ;; *) no "$5" ;;
+  esac
+}
+sksay "$SK/ok.design" PASS V42 "a thinking step may be informed by a skill" \
+                              "a skill informing a thinking step was refused"
+sksay "$SK/ok.design" PASS V40 "a catalogued skill passes" "a catalogued skill was refused"
+sksay "$SK/gatecite.design" FAIL V42 \
+  "a gate resting on a skill is refused — nothing can prove a document was read" \
+  "a gate was allowed to depend on know-how nothing can check"
+sed 's/^clinic-note-voice | 4 |/made-up-skill | 4 |/' "$SK/ok.design" > "$SK/uncat.design"
+sksay "$SK/uncat.design" FAIL V40 "a skill nothing catalogued is refused" \
+                                  "a design invented know-how and nothing stopped it"
+sed 's/^clinic-note-voice | 4 |/clinic-note-voice | 99 |/' "$SK/ok.design" > "$SK/nostep.design"
+sksay "$SK/nostep.design" FAIL V41 "a skill used by a step that does not exist is refused" \
+                                   "a skill pointed at nothing"
+sed 's/^review_by: 2027-04/review_by: 2026-01-01/' "$HERE/catalog/eb-tools.catalog" > "$SK/stale.catalog"
+sksay "$SK/ok.design" FAIL V43 "a lapsed skill is refused, as a lapsed agreement is" \
+                               "a design cited know-how nobody had re-attested" "$SK/stale.catalog"
+# A gate STEP may not carry a skill either — a gate decides, a skill informs.
+# invoices.design carries a gate-typed step. Named explicitly rather than
+# discovered, because a test that silently finds nothing to test is a test that
+# passes forever without running.
+# -F'[|]', not -F' *\| *': the backslash-pipe form is ambiguous in awk's regex
+# and matched nothing here, so the lookup came back empty and the assertion
+# below would have "passed" by never running.
+GS=$(awk -F'[|]' '/^@steps/,/^@gates/ { gsub(/^ +| +$/,"",$3)
+      if ($3=="gate") { gsub(/^ +| +$/,"",$1); print $1; exit } }' "$HERE/examples/invoices.design")
+[ -n "${GS:-}" ] || no "examples/invoices.design has no gate-typed step, so V41 cannot be tested"
+python3 - "$SK" "$GS" "$HERE" <<'PYEOF'
+import sys, pathlib
+S, g, H = sys.argv[1], sys.argv[2], sys.argv[3]
+d = pathlib.Path(H + "/examples/invoices.design").read_text()
+pathlib.Path(S + "/ongate.design").write_text(d.replace(
+  "@evidence", "@skills\nclinic-note-voice | %s | wrongly attached to a gate step\n\n@evidence" % g, 1))
+PYEOF
+sksay "$SK/ongate.design" FAIL V41 "a skill on a GATE step is refused" \
+                                   "a gate step carried know-how nothing can check"
+# The ledger claims IN FORCE, never applied.
+if "$HERE/tooling/emit-bundle.sh" "$SK/ok.design" --name sk-b --out "$SK/b" >/dev/null 2>&1; then
+  grep -qh 'ledger .* skill "clinic-note-voice' "$SK"/b/sk-b/steps/*.sh \
+    && ok "a step applying a skill logs which version was in force" \
+    || no "a skill left no row, so nobody can place it in time"
+  grep -qh 'in force, not verified as applied' "$SK"/b/sk-b/steps/*.sh \
+    && ok "the row claims in force, never applied — the only honest claim available" \
+    || no "the ledger overclaims what a skill row can prove"
+else
+  no "a design naming a skill did not emit a bundle"
+fi
+# V44: which method wrote this design.
+MS=$(shasum -a 256 "$HERE/tooling/method/GENERATE.md" | cut -d' ' -f1)
+python3 - "$SK" "$MS" <<'PYEOF'
+import sys, pathlib
+S, m = sys.argv[1], sys.argv[2]
+d = pathlib.Path(S + "/ok.design").read_text()
+pathlib.Path(S + "/meth.design").write_text(d.replace("@meta\n", "@meta\nmethod_sha256: %s\n" % m, 1))
+PYEOF
+o=$(METHOD="$HERE/tooling/method/GENERATE.md" "$HERE/tooling/validate.sh" "$SK/meth.design" 2>&1 || true)
+case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+  *"PASS  V44"*) ok "a design that names the method that wrote it passes" ;;
+  *) no "a correctly stamped method digest was refused" ;;
+esac
+sed 's/^method_sha256: .*/method_sha256: 0000/' "$SK/meth.design" > "$SK/meth2.design"
+o=$(METHOD="$HERE/tooling/method/GENERATE.md" "$HERE/tooling/validate.sh" "$SK/meth2.design" 2>&1 || true)
+case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+  *"FAIL  V44"*) ok "a design written by a different method version is refused" ;;
+  *) no "two designs from different methods compared as if they were the same" ;;
+esac
+rm -rf "$SK"
+
+echo
 echo "THE DISCOVERIES LOG"
 # A surprise leaves nothing unless somebody writes it down the day it happens.
 # The tool exists so the shape cannot drift, and so nothing lands without the
@@ -784,10 +874,13 @@ DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" add --title t --happened h \
   --changed c --generalizes g >/dev/null 2>&1 \
   && no "an entry with no stated belief was accepted — that is a changelog line" \
   || ok "an entry that does not say what was BELIEVED is refused"
+# Computed, never pinned: hard-coding the expected id made this fail the first
+# time a real discovery was written, which is the one moment it should not.
+WAS=$(awk '/^## D[0-9]+ /{ sub(/^## D/,""); sub(/ .*$/,""); if ($0+0>m) m=$0+0 } END{print m+0}' "$HERE/docs/DISCOVERIES.md")
 NID=$(DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" list | awk '/^D[0-9]+ /{last=$1} END{print last}')
-[ "$NID" = "D23" ] \
+[ "$NID" = "D$((WAS+1))" ] \
   && ok "ids continue from the highest, never reuse" \
-  || no "the new entry did not take the next id (got ${NID:-none})"
+  || no "the new entry took ${NID:-none}, wanted D$((WAS+1))"
 DISCOVERIES="$DS/D.md" "$HERE/tooling/discovery.sh" add --title t --believed b \
   --happened h --changed c --generalizes g --date "oct 7" >/dev/null 2>&1 \
   && no "a free-text date was accepted" || ok "a date that is not ISO is refused"

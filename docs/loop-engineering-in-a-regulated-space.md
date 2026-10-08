@@ -112,7 +112,7 @@ are the interesting part.
 |---|---|---|
 | **Automations** — the heartbeat | **the formula is the pipeline** | Every step that used to be a command somebody remembered to run is a step *inside the formula*, in order, with the gates between them. A step that is not in the flow is a step somebody can skip |
 | **Worktrees** — parallel without chaos | *(inherited from Gas City)* | Real, and not where our risk lives |
-| **Skills** — stop re-explaining | **the method files** (`GENERATE.md`, `INTERVIEW.md`, `CONTRACT.md`) | Same idea, one addition: `INTERVIEW.md` is **versioned**, because two interviews run from different scripts produce use cases nobody can compare |
+| **Skills** — stop re-explaining | **two kinds, deliberately split** | At L1 the method files (`GENERATE.md`, `INTERVIEW.md`, `CONTRACT.md`), all versioned, with the design recording which one wrote it. At L2 a catalogued `@skill`: know-how a step applies, owned by a named person, with a review date. The split that makes it safe is below |
 | **Connectors** — touch real tools | **the tool catalog** | The larger move. Not *"what can the agent reach"* but *"what has the organization sanctioned, for which data class, under whose decision, reviewed when"*. An entry is a **decision**, not an inventory row |
 | **Sub-agents** — maker and checker | **a different PROVIDER, not a different agent** | Two models from one lab share training and tooling. The verdict check refuses when author and auditor are the same model |
 | **State** — memory on disk | **beads, and a chained register** | A markdown file is enough for a dev loop. A regulated process needs a record that survives the working directory and cannot be edited without detection |
@@ -120,6 +120,31 @@ are the interesting part.
 | — | **the exit criterion** | The number on which you shut the loop down. The article's loops exit when done; ours must also say when to **stop running it at all** |
 
 ---
+
+### Why skills split in two
+
+A skill is prose, and **nothing can prove a model read it**. So a skills section is exactly where
+unprovable things get put to look official — which is why the constraint shipped before the section:
+
+| | example | lives in | may a gate depend on it? |
+|---|---|---|---|
+| know-how that **decides** | a dose-unit table, a flag bar | `@decisions` | **yes** — completeness and overlap are provable |
+| know-how that **frames** | house voice, escalation etiquette | `@skills` | **never** (V42) |
+
+The honest claim, and the only one available:
+
+> You can prove **which know-how was in force**. You can never prove it was applied.
+
+*Which version of the protocol applied on that date* is a standard regulatory question and it is
+answerable, by digest, in the ledger. *Was it followed* is answered by the evidence trail.
+
+A skill may inform a **thinking** step, whose output a gate then checks — the evaluator-optimizer
+shape. It may not inform a gate step at all.
+
+For EverBetter this is also where the moat is. The tool catalog can be seeded from 43 Helm charts and
+a competitor with the same charts gets the same catalog. The skill catalog is clinical judgment
+written down with a name and a review date on it, and it is the only artifact here a clinician can
+own in five minutes without learning the design format.
 
 ## The pipeline as it stands
 

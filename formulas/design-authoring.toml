@@ -175,6 +175,7 @@ So bind them here, once, while every value is already known:
       TOOLING_ROOT={{tooling_root}} \
       CATALOG={{catalog_path}} \
       QUESTIONS_PATH={{questions_path}} \
+      METHOD_PATH={{method_path}} \
       INTERVIEW_PATH={{interview_path}} \
       BUNDLE_PATH={{artifact_root}}/bundle
 
@@ -472,9 +473,22 @@ three into one voice. The reason is the whole point of having asked: an auditor
 reading the assumption list must be able to tell a confirmed fact from a
 surviving guess, and today they cannot.
 
-Set `@meta.questions_sha256` to the SHA-256 of {{questions_path}}. V32 refuses a
-design bound to a different set of answers. Acceptance is of content, never of a
-filename, and so is this.
+Set `@meta.questions_sha256` to the SHA-256 of {{questions_path}} and
+`@meta.method_sha256` to the SHA-256 of {{method_path}}. V32 refuses a design
+bound to a different set of answers; V44 refuses one that does not say which
+version of the method wrote it. Acceptance is of content, never of a filename,
+and so is both of these.
+
+**If the catalog holds a skill that applies to a step you are writing, name it in
+`@skills`** — `id | used_by | why`. A skill is know-how a step APPLIES: house
+voice, escalation etiquette, what a word means in this practice. It may inform a
+thinking step, whose output a gate then checks. It may NOT be what a gate rests
+on, and V42 refuses that: nothing can prove a document was read, so a gate on a
+skill is a control that is declared, reported and absent. Know-how that DECIDES
+belongs in `@decisions`, where completeness and overlap are provable.
+
+Do not invent a skill. If the know-how you need is not catalogued, that is a
+finding — the same procurement signal a missing tool is.
 
 **What the tooling will do with your bytes is written down.** Read
 {{tooling_root}}/method/CONTRACT.md: how the parser splits your file, the field

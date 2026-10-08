@@ -26,6 +26,7 @@ are why it is not JSON.
 | `approver` | **A named role or person.** Never "the system", "the agent", or "automatic" |
 | `exit_criterion` | The number on which this loop is shut down. Must contain a figure |
 | `questions_sha256` | The SHA-256 of the `QUESTIONS.md` this design was authored from. Required when a question set is supplied; see `QUESTIONS-FORMAT.md` |
+| `method_sha256` | The SHA-256 of the authoring method that wrote it. Two designs written by different methods are not comparable, and nothing else records which one ran |
 
 ### `@assumptions` — list, at least one
 
@@ -114,6 +115,42 @@ A design **inherits** the catalog's permissions and may only narrow them. It can
 a data class the catalog withheld. The rule that matters: a tool carrying `data_class: phi`
 cannot be `used_by` a step whose actor is `model`, because the catalog says that data may not
 leave the local boundary and a model call does.
+
+### `@skills` — optional, table, `id | used_by | why`
+
+Know-how a step **applies**. A skill reaches nothing and decides nothing.
+
+```
+@skills
+clinic-note-voice | 4 | the draft is read by a clinician, so it is written in the practice voice
+```
+
+| | |
+|---|---|
+| `id` | a skill in the catalog. A design never invents one |
+| `used_by` | the step ids that apply it, space separated |
+| `why` | what it is doing there |
+
+**A skill may inform a thinking step.** That is the evaluator-optimizer shape: the skill frames the
+draft, and the gate checks the *output*.
+
+**A gate may never rest on one.** Nothing can prove a document was read, so a gate on a skill is a
+control that is declared, reported and absent — the failure this project exists to catch. V42 refuses
+it. Know-how that **decides** belongs in `@decisions`, where completeness and overlap are provable.
+
+| | goes in | gate may depend on it? |
+|---|---|---|
+| know-how that **decides** — a dose-unit table, a flag bar | `@decisions` | **yes** |
+| know-how that **frames** — house voice, escalation etiquette | `@skills` | **never** |
+
+The emitted bundle logs one row per skill per step:
+
+```
+skill  clinic-note-voice (Practice operations) catalog fd1d69c9203b: in force, not verified as applied
+```
+
+**In force, never applied.** That is the only honest claim available, and it answers the question an
+auditor actually asks — *which version of the protocol was in effect on that date*.
 
 ### `@decisions` — optional, one or more tables
 
