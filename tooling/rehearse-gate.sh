@@ -70,6 +70,31 @@ gc bd update "$GATE" --set-metadata 'gc.outcome=pass' >/dev/null 2>&1
 gc bd update "$GATE" --set-metadata 'gc.rehearsed=true' >/dev/null 2>&1
 gc bd update "$GATE" --set-metadata "gc.rehearsed_by=$BY" >/dev/null 2>&1
 gc bd update "$GATE" --set-metadata "gc.rehearsed_at=$WHEN" >/dev/null 2>&1
-gc bd close "$GATE" --reason "REHEARSED — closed without a person by $BY at $WHEN. ${WHY:-No reason given.} This run is a rehearsal of the machinery, not an approval of the design. See $ART/REHEARSAL. Nothing may be compiled or shipped from it." 2>&1 | tail -1
+
+OUT=$(gc bd close "$GATE" --reason "REHEARSED — closed without a person by $BY at $WHEN. ${WHY:-No reason given.} This run is a rehearsal of the machinery, not an approval of the design. See $ART/REHEARSAL. Nothing may be compiled or shipped from it." 2>&1)
+RC=$?
+printf '%s\n' "$OUT" | tail -1
+
+# The mark is written BEFORE the close so a closed gate always has one. The
+# failure that completes the invariant is this one: a close that did not happen,
+# leaving a mark that says a rehearsal did. A record claiming something that
+# never occurred is worse than no record — it is the defect this whole project
+# exists to catch, inside the tool written to be honest about rehearsals.
+#
+# So the two are atomic: both present, or neither. On a failed close the line
+# just appended is removed and this refuses.
+if [ "$RC" -ne 0 ] || printf '%s' "$OUT" | grep -qi 'cannot close\|refus\|error'; then
+  TMPR=$(mktemp)
+  grep -vF "	$GATE	" "$ART/REHEARSAL" > "$TMPR" 2>/dev/null || :
+  if [ -s "$TMPR" ]; then cat "$TMPR" > "$ART/REHEARSAL"; else rm -f "$ART/REHEARSAL"; fi
+  rm -f "$TMPR"
+  gc bd update "$GATE" --set-metadata 'gc.rehearsed=' >/dev/null 2>&1
+  gc bd update "$GATE" --set-metadata 'gc.outcome=' >/dev/null 2>&1
+  echo "REFUSED: the gate did not close, so the mark was removed." >&2
+  echo "         A REHEARSAL record for a rehearsal that did not happen is a false" >&2
+  echo "         record, and worse than none. Nothing was changed." >&2
+  exit 1
+fi
+
 echo "marked: $ART/REHEARSAL"
 echo "compile will refuse this run. That is the point."

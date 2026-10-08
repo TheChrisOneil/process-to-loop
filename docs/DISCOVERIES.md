@@ -355,3 +355,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** One rule written the wrong way round, caught by reading it against the artifact that produced it.
 **changed** Each kind of knowledge now surfaces where it can: sources and tools in the interview, as confirm-or-deviate against the catalog; decisions and skills during authoring, as proposals routed to the catalog owner. A design PROPOSES know-how and DEPENDS only on know-how somebody owns.
 **generalizes** Knowledge has a moment at which it becomes askable, and a pipeline must put each question at its moment. Ask too early and nobody can answer; refuse too early and the question never gets asked. The test for any gate is not whether the thing is known, but whether it was KNOWABLE yet.
+
+---
+
+## D26 · 2026-10-08 · A failed close left a record saying it had succeeded
+
+**believed** Writing the rehearsal mark before closing the gate is the safe order: a closed gate then always has a mark beside it.
+**happened** The close failed — the bead was assigned to the agent session — and the mark stayed. A REHEARSAL file now claimed a gate had been closed without a person when no close had happened at all. The false record was produced by the tool written to be honest about rehearsals.
+**cost** Nothing. It failed loudly enough to notice, in a rehearsal, which is what rehearsals are for.
+**changed** The mark and the close are atomic: both present or neither. A failed close removes the line it just appended, clears the metadata, and refuses.
+**generalizes** Ordering two writes so the dangerous one comes second protects against the second failing. It does nothing about the FIRST succeeding alone. Any write-then-act pair needs the undo, not just the order.

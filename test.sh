@@ -1098,6 +1098,13 @@ awk '/>> "\$ART\/REHEARSAL"/{m=NR} /gc bd close/{c=NR} END{exit !(m>0 && c>0 && 
   "$HERE/tooling/rehearse-gate.sh" \
   && ok "the mark is written before the gate is closed, never after" \
   || no "a gate could close with no mark beside it if the write failed"
+# The mark and the close are atomic. A close that fails leaves a mark saying a
+# rehearsal happened when none did — a false record, inside the tool written to
+# be honest about rehearsals.
+awk '/gc bd close/{c=NR} /REFUSED: the gate did not close/{r=NR}
+     END{ exit !(c>0 && r>c) }' "$HERE/tooling/rehearse-gate.sh" \
+  && ok "a failed close removes the mark it wrote — both, or neither" \
+  || no "a failed close could leave a REHEARSAL record for a rehearsal that never happened"
 grep -q 'REHEARSAL' "$HERE/tooling/accept.sh" \
   && ok "the acceptance register records a rehearsed signature as rehearsed" \
   || no "a rehearsal could be signed and read back as a real acceptance"
