@@ -152,6 +152,22 @@ a competitor with the same charts gets the same catalog. The skill catalog is cl
 written down with a name and a review date on it, and it is the only artifact here a clinician can
 own in five minutes without learning the design format.
 
+### Each question at the moment it becomes askable
+
+The pipeline's shape follows from one observation, which is the sharpest thing we have learned:
+
+> **Tools are discoverable from the use case. Skills emerge from the design.**
+
+| what | when it becomes askable | how it surfaces |
+|---|---|---|
+| sources, tools | **the interview** — a person can answer before a design exists | confirm-or-deviate against the catalog |
+| the unit, the judgment, who signs | **the interview** — structural, and everything downstream rests on it | a blocking question |
+| thresholds, SLAs, retention | **the interview** — parametric; assume, declare, surface | a deferrable question |
+| decisions, skills | **authoring** — the need does not exist until the step does | a proposal routed to the catalog owner |
+
+Ask too early and nobody can answer. Refuse too early and the question is never asked at all. The
+test for any gate is not whether the thing is known, but whether it was **knowable yet**.
+
 ## The pipeline as it stands
 
 ```

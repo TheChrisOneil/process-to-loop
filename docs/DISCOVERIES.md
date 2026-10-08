@@ -345,3 +345,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing, because Buzz read the rule against the thing that produced it. It would have cost every future skill.
 **changed** used_by '-' is a PROPOSAL and routes to the catalog owner as a finding, exactly as a missing tool does. Naming a step is a DEPENDENCY and still requires somebody to own it first.
 **generalizes** Tools are discoverable from the use case; skills emerge from the design. For anything only visible at design time, a hard refusal at design time destroys the signal instead of routing it. Ask of any new rule: would it have refused the artifact that taught me I needed the rule?
+
+---
+
+## D25 · 2026-10-08 · Tools are discoverable from the use case; skills emerge from the design
+
+**believed** Everything an organization needs to supply can be settled in the interview, before authoring starts. The interview asks, the catalog answers or routes, and by the time a design is written the inputs are known.
+**happened** That holds for tools and sources and does not hold for know-how. A person can answer where appointment data comes from without seeing a design. Nobody can answer what counts as the same dosing frequency until somebody is writing the step that compares two. The need did not exist before the step did.
+**cost** One rule written the wrong way round, caught by reading it against the artifact that produced it.
+**changed** Each kind of knowledge now surfaces where it can: sources and tools in the interview, as confirm-or-deviate against the catalog; decisions and skills during authoring, as proposals routed to the catalog owner. A design PROPOSES know-how and DEPENDS only on know-how somebody owns.
+**generalizes** Knowledge has a moment at which it becomes askable, and a pipeline must put each question at its moment. Ask too early and nobody can answer; refuse too early and the question never gets asked. The test for any gate is not whether the thing is known, but whether it was KNOWABLE yet.
