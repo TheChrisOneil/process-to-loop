@@ -92,10 +92,26 @@ for b in beads:
     seen.add(key)
     print("    %s%s" % (label, t))
 ' 
-  gc bd list 2>/dev/null | grep '◐' | grep -vE 'design-authoring|^Status:|^Priority:' \
-    | sed 's/^.*P2 /    NOW    /'
-  gc bd ready 2>/dev/null | grep '○' | grep -vE 'Step spec|^Status:|^Priority:' \
-    | sed 's/^.*P2 /    next   /' | head -3
+  # Scoped by ROOT_BEAD, exactly as the closed list above is. The closed list was
+  # fixed on 2026-10-05 and these two were not, so the first time two runs shared
+  # a rig — 2026-10-08 — each showed the other's in-progress step, and one showed
+  # the same step as both NOW and next. A filter applied to one of three places
+  # is a filter that reads as working.
+  # in_progress from the bead list; "next" from `bd ready`, which respects the
+  # dependency graph. --status open does NOT: it lists every unstarted step in
+  # the formula, blocked or not, so "next" named steps that cannot run for hours.
+  # in_progress from the bead list; "next" from `bd ready`, which respects the
+  # dependency graph. --status open does not: it lists every unstarted step in
+  # the formula, blocked or not.
+  #
+  # Both are scoped by ROOT_BEAD, exactly as the closed list above is. The closed
+  # list was scoped on 2026-10-05 and these two were not, so the first time two
+  # runs shared a rig each showed the other's steps. A filter applied to one of
+  # three places is a filter that reads as working.
+  gc bd list --status in_progress --json 2>/dev/null \
+    | LBL="    NOW    " python3 "$HERE_T/lib/run-steps.py"
+  gc bd ready --json 2>/dev/null \
+    | LBL="    next   " python3 "$HERE_T/lib/run-steps.py"
 
   # An open GATE bead is the run waiting for a person, and it is the one state
   # the step list cannot show: every step before it reads "done", so the run

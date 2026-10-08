@@ -365,3 +365,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. It failed loudly enough to notice, in a rehearsal, which is what rehearsals are for.
 **changed** The mark and the close are atomic: both present or neither. A failed close removes the line it just appended, clears the metadata, and refuses.
 **generalizes** Ordering two writes so the dangerous one comes second protects against the second failing. It does nothing about the FIRST succeeding alone. Any write-then-act pair needs the undo, not just the order.
+
+---
+
+## D27 · 2026-10-08 · A filter applied to one of three lists reads as working
+
+**believed** run-status was scoped to one run. The closed-steps list was fixed on 2026-10-05 to filter by root bead, and the screen reported correctly every time it was checked.
+**happened** Two runs shared a rig for the first time on 2026-10-08. The in-progress and ready lists had never been scoped, so each run's screen carried the other's steps, and one step appeared as both NOW and next. The fix had been applied to one of the three places that needed it, and nothing distinguished that from all three for three days.
+**cost** Nothing, because it surfaced the first time the condition occurred. It was invisible until then by construction.
+**changed** All three lists go through one scoped lister in its own file. A test feeds it two beads from different runs and asserts the foreign one is dropped.
+**generalizes** A partial fix to a repeated pattern is indistinguishable from a complete one until the untouched copy is exercised. When fixing something that appears N times, the test should be against the PROPERTY, not against the instance you noticed.

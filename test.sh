@@ -1416,6 +1416,25 @@ QC=$(awk -f "$HERE/tooling/lib/questions.awk" -f "$HERE/tooling/lib/questions-co
 printf '%s' "$QC" | grep -q 'SYNTHETIC' \
   && ok "a rehearsal interview is called one on the status screen" \
   || no "a synthetic interview is indistinguishable from a real one at a glance"
+# One rig can hold several runs at once. Every list the screen prints must be
+# scoped by ROOT_BEAD, not just the closed one — scoping one of three reads as
+# working until the day two runs share a rig.
+RSPY="$HERE/tooling/lib/run-steps.py"
+[ -f "$RSPY" ] && grep -q 'ROOT_BEAD' "$RSPY" \
+  && ok "the step lister filters by the run it was asked about" \
+  || no "the step lister shows every workflow in the rig"
+for SRC in 'status in_progress' 'bd ready'; do
+  grep -q "run-steps.py" "$RS" \
+    && ok "the $SRC list goes through the scoped lister" \
+    || no "the $SRC list is unscoped, so two concurrent runs bleed into each other"
+done
+# And the scoping must actually drop a foreign bead, not merely mention ROOT_BEAD.
+RSOUT=$(printf '%s' '[{"title":"Step A","metadata":{"gc.root_bead_id":"wk-mine"}},
+                     {"title":"Step B","metadata":{"gc.root_bead_id":"wk-theirs"}}]' \
+        | ROOT_BEAD=wk-mine LBL="x " python3 "$RSPY" 2>/dev/null)
+[ "$RSOUT" = "x Step A" ] \
+  && ok "a step belonging to another run is dropped, not relabelled" \
+  || no "the lister kept a foreign run's step (got: ${RSOUT:-nothing})"
 grep -q 'cd "$Q"' "$RS" \
   && ok "run-status stands in the rig before asking gc anything" \
   || no "run-status asks whatever city the caller happened to be standing in"
