@@ -42,7 +42,8 @@ same way you never hand-edit generated code. Edit the design and compile again.
 
 | | |
 |---|---|
-| [`docs/loop-engineering-in-a-regulated-space.md`](docs/loop-engineering-in-a-regulated-space.md) | **start here.** What this is, why it is shaped this way, and the two loops — only one of which is regulated |
+| [`docs/regulated-workflows.md`](docs/regulated-workflows.md) | **start here.** The approach, what is proven, what it costs — and §9, a send-ready abstract |
+| [`docs/loop-engineering-in-a-regulated-space.md`](docs/loop-engineering-in-a-regulated-space.md) | the frame: why ordinary loop engineering excludes this, and the two loops — only one of which is regulated |
 | [`docs/DISCOVERIES.md`](docs/DISCOVERIES.md) | what surprised us, dated, with what it cost |
 | [`docs/next-design.md`](docs/next-design.md) | what we decided and what is still open |
 | [`docs/standing-up-a-city.md`](docs/standing-up-a-city.md) | the runbook |
