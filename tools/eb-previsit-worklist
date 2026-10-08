@@ -15,11 +15,25 @@ case "${1:-}" in
     [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
     echo "ok: eb-previsit-worklist, $(( $(wc -l < "$FIXTURE") - 1 )) entry(s)"; exit 0 ;;
   schema)
-    printf 'entry_id\tstring\npatient_ref\tstring\nappointment_id\tstring\nstarts_at\ttimestamp\nclinician\tstring\nstate\tstring\nplaced_at\ttimestamp\n'; exit 0 ;;
+    printf 'entry_id\tstring\npatient_ref\tstring\nappointment_id\tstring\nstarts_at\ttimestamp\nclinician\tstring\nstate\tstring\nplaced_at\ttimestamp\ndetail_ref\tstring\n'; exit 0 ;;
   fetch)
     [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
     awk -F, -v want="${2:-}" 'BEGIN { OFS="\t" }
       NR==1 { $1=$1; print; next }
       want=="" || $2==want { $1=$1; print }' "$FIXTURE"; exit 0 ;;
-  *) echo "usage: eb-previsit-worklist health|schema|fetch [patient_ref]" >&2; exit 64 ;;
+  place)
+    # An interview on 2026-10-08 asked what would place an entry, given the tool
+    # offered only health, schema and fetch. Nothing would have. A design that
+    # writes to a store the store cannot be written to is a dependency that
+    # fails on its first real tick, and the question found it at design time.
+    [ -w "$FIXTURE" ] || { echo "worklist not writable at $FIXTURE" >&2; exit 75; }
+    PT=${2:-}; APPT=${3:-}; STARTS=${4:-}; CLIN=${5:-}; STATE=${6:-}; DETAIL=${7:-}
+    [ -n "$PT" ] && [ -n "$APPT" ] && [ -n "$STATE" ] || {
+      echo "usage: eb-previsit-worklist place <patient_ref> <appointment_id> <starts_at> <clinician> <state> [detail_ref]" >&2; exit 64; }
+    case "$STATE" in flagged|clear|unresolved|not-reconciled) ;;
+      *) echo "REFUSED: state is flagged, clear, unresolved or not-reconciled — not \"$STATE\"." >&2; exit 1 ;; esac
+    ID="WL-$(date -u +%s)-$$"
+    printf '%s,%s,%s,%s,%s,%s,%s,%s\n' "$ID" "$PT" "$APPT" "$STARTS" "$CLIN" "$STATE" "$(date -u +%FT%TZ)" "$DETAIL" >> "$FIXTURE"
+    echo "$ID"; exit 0 ;;
+  *) echo "usage: eb-previsit-worklist health|schema|fetch|place [...]" >&2; exit 64 ;;
 esac

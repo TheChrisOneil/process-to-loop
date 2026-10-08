@@ -96,7 +96,8 @@ decided_by: Buzz, process owner
 review_by: 2027-10
 
 @tool eb-previsit-worklist
-provides: entry_id, patient_ref, appointment_id, starts_at, clinician, state, placed_at
+provides: entry_id, patient_ref, appointment_id, starts_at, clinician, state, placed_at, detail_ref
+places: an entry, with its state and a reference to where the side-by-side detail lives
 via: tools/eb-previsit-worklist
 data_class: phi
 may_not: leave the covered boundary
