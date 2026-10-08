@@ -68,11 +68,12 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V37  every rule has one cell per input and per output
 # V38  under a unique policy, no two rules claim the same input
 # V39  a gate naming a decision table names a real table and a real output
-# V40  every skill the design names is in the catalog
+# V40  every skill a step DEPENDS on is in the catalog; a proposal needs nobody
 # V41  every skill is used by a step that exists, and never by a gate step
 # V42  no gate condition depends on a skill — know-how that decides is a decision table
 # V43  no design names a skill whose review date has passed
 # V44  the design names the authoring method that wrote it, by digest
+# V45  know-how the design needs and the catalog lacks is reported, not refused
 # END RULES
 
 # The catalog, flattened so validate.awk can read it without a second parser.

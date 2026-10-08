@@ -335,3 +335,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing yet. It was found by reading our own output, before it mattered.
 **changed** @skills on the design, @skill in the catalog, and V40-V43. The load-bearing rule shipped BEFORE the section: a gate may never depend on a skill, because nothing can prove a document was read.
 **generalizes** Know-how that DECIDES and know-how that FRAMES are different things and must not share a section. The first is a decision table, where completeness and overlap are provable. The second is a skill, and the only honest claim about it is which version was in force — never that it was applied.
+
+---
+
+## D24 · 2026-10-08 · The rule against inventing know-how would have refused the design that revealed it
+
+**believed** A design must never name know-how the catalog does not hold. Symmetric with tools, where V27 refuses an uncatalogued one.
+**happened** The med-rec design invented two clinical lookup tables and ended the assumption with 'proposed, confirm with Practice operations'. It knew it was proposing and named the owner. V40 as first written would have refused that design — destroying the only signal that told us skills were needed at all.
+**cost** Nothing, because Buzz read the rule against the thing that produced it. It would have cost every future skill.
+**changed** used_by '-' is a PROPOSAL and routes to the catalog owner as a finding, exactly as a missing tool does. Naming a step is a DEPENDENCY and still requires somebody to own it first.
+**generalizes** Tools are discoverable from the use case; skills emerge from the design. For anything only visible at design time, a hard refusal at design time destroys the signal instead of routing it. Ask of any new rule: would it have refused the artifact that taught me I needed the rule?

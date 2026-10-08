@@ -130,6 +130,33 @@ if os.path.exists(reh):
                                  f" — {(r+['']*5)[4]}" for r in rows)
                     + "\n\nTo make it real: run it again and have the named approver close each gate."),
         })
+# Know-how the design needs and the catalog does not have. The same procurement
+# signal a missing tool is, and it reaches a person the same way — because this
+# is the ONLY moment it can surface. An interview can ask where appointment data
+# comes from; it cannot know a dose-phrase convention is needed until somebody is
+# writing the step that compares frequencies.
+import re as _re
+try:
+    _d = open(design).read()
+    _sk = _re.search(r'(?ms)^@skills\s*$(.*?)(?=^@[a-z]|\Z)', _d)
+except Exception:
+    _sk = None
+if _sk:
+    for _line in _sk.group(1).splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#"): continue
+        _f = [c.strip() for c in _line.split("|")]
+        if len(_f) < 2 or _f[1] not in ("", "-"): continue
+        interview.append({
+            "severity": "major", "fixable": "needs_a_person", "source": "catalog",
+            "what": f"The design needs know-how the catalog does not have: {_f[0]}",
+            "why": (f"{(_f[2] if len(_f) > 2 else '') or 'No reason given.'}\n\n"
+                    f"This is not a defect in the design. It is a request to whoever owns the "
+                    f"catalog: somebody must own **{_f[0]}**, write it down, and give it a review "
+                    f"date — after which a step may depend on it. Until then no step does, and the "
+                    f"design says so.\n\nThe same signal a missing tool is, raised at design time "
+                    f"rather than at implementation."),
+        })
 defects = defects + interview
 order = {"critical": 0, "major": 1, "minor": 2}
 defects.sort(key=lambda x: order.get(x.get("severity", "minor"), 3))
@@ -154,7 +181,9 @@ else:
     L.append("")
     for i, x in enumerate(defects, 1):
         src = x.get("source")
-        tag = " · from the interview" if src == "interview" else (" · HOW THIS RUN WAS CLOSED" if src == "rehearsal" else "")
+        tag = {"interview": " · from the interview",
+               "rehearsal": " · HOW THIS RUN WAS CLOSED",
+               "catalog": " · FOR THE CATALOG OWNER"}.get(src, "")
         L.append(f"## {i}. {x.get('severity','?').upper()}{tag} — {x.get('what','')}")
         L.append("")
         L.append(x.get("why", ""))

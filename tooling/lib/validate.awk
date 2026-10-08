@@ -348,10 +348,33 @@ END {
              "nothing can prove a document was read, so a gate on a skill is a control that is declared, reported and absent — move the deciding part into a @decisions table, which is checkable")
   }
 
+  # A design may PROPOSE know-how; it may not DEPEND on know-how nobody owns.
+  #
+  # The first version of this rule refused any uncatalogued skill, and would have
+  # refused the design that taught us skills were needed. That design invented
+  # two clinical lookup tables, named their owner, and wrote "proposed, confirm
+  # with Practice operations" — it knew exactly what it was doing and had
+  # nowhere to put it.
+  #
+  # You can ask where appointment data comes from before a design exists. You
+  # cannot know you need a dose-phrase convention until you are writing the step
+  # that compares frequencies. Tools are discoverable from the use case; skills
+  # emerge from the design, which makes design time the only moment they surface.
+  #
+  # So: used_by "-" is a PROPOSAL. It routes to the catalog owner as a finding,
+  # exactly as a missing tool does. Naming a step is a DEPENDENCY, and that still
+  # requires somebody to own the thing first.
   if (n_skill+0 > 0) {
-    unc=""; nostep=""; ongate=""; stale=""
+    unc=""; nostep=""; ongate=""; stale=""; prop=""; pointless=""
     for (sz=1; sz<=n_skill; sz++) {
       sid = SKL_ID[sz]
+      ub = SKL_BY[sz]; gsub(/^ +| +$/,"",ub)
+      proposed = (ub == "" || ub == "-")
+      if (proposed) {
+        if (sid in CSKILL) pointless = pointless " " sid
+        else { prop = prop " " sid }
+        continue
+      }
       if (!(sid in CSKILL)) { unc = unc " " sid; continue }
       byw = CSKREV[sid]
       if (byw != "" && TODAY != "" && byw < TODAY) stale = stale " " sid "(" byw ")"
@@ -367,8 +390,12 @@ END {
         if (!found) nostep = nostep " " sid "@" ssid
       }
     }
-    if (unc=="") ok("V40","every skill the design names is in the catalog")
-    else rec("ERROR","V40","skills nothing catalogued:" unc,"a design does not invent know-how — catalogue it, with an owner and a review date, or do not name it")
+    if (unc=="") ok("V40","every skill a step DEPENDS on is in the catalog")
+    else rec("ERROR","V40","steps depending on skills nothing catalogued:" unc,
+             "a design may propose know-how and may not depend on know-how nobody owns — write used_by as - to propose it, and it routes to the catalog owner as a finding")
+    if (prop!="") rec("WARN","V45","know-how this design needs and the catalog does not have:" prop,
+                      "this is a finding for whoever owns the catalog, not a defect in the design — the same procurement signal a missing tool is")
+    if (pointless!="") rec("WARN","V45","proposed but already catalogued:" pointless,"name the steps that use it instead of proposing it again")
     if (nostep=="" && ongate=="") ok("V41","every skill is used by a real step, and none by a gate step")
     else { if (nostep!="") rec("ERROR","V41","skills used by steps that do not exist:" nostep,"name a real step id in used_by")
            if (ongate!="") rec("ERROR","V41","skills used by GATE steps:" ongate,"a gate decides; a skill informs. Put the deciding part in a @decisions table") }

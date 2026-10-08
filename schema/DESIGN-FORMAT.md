@@ -128,8 +128,23 @@ clinic-note-voice | 4 | the draft is read by a clinician, so it is written in th
 | | |
 |---|---|
 | `id` | a skill in the catalog. A design never invents one |
-| `used_by` | the step ids that apply it, space separated |
+| `used_by` | the step ids that apply it, space separated — or `-` to **propose** it |
 | `why` | what it is doing there |
+
+**A design may propose know-how; it may not depend on know-how nobody owns.**
+
+```
+dose-phrase-conventions | - | the frequency comparison needs a fixed phrase table: daily and at bedtime are one dose a day
+```
+
+`used_by: -` is a proposal. It routes to whoever owns the catalog as a finding — the same procurement
+signal a missing tool is — and no step depends on it until somebody owns it and gives it a review
+date. Naming a step is a dependency, and that requires the catalog entry first.
+
+This asymmetry is deliberate. You can ask where appointment data comes from before a design exists.
+You cannot know you need a dose-phrase convention until you are writing the step that compares
+frequencies. **Tools are discoverable from the use case; skills emerge from the design** — so design
+time is the only moment they can surface, and a rule that refuses them there destroys the signal.
 
 **A skill may inform a thinking step.** That is the evaluator-optimizer shape: the skill frames the
 draft, and the gate checks the *output*.

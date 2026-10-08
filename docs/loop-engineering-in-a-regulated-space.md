@@ -141,6 +141,12 @@ answerable, by digest, in the ledger. *Was it followed* is answered by the evide
 A skill may inform a **thinking** step, whose output a gate then checks — the evaluator-optimizer
 shape. It may not inform a gate step at all.
 
+And a design may **propose** know-how the catalog lacks, which routes to the catalog owner as a
+finding. The first version of that rule refused any uncatalogued skill, and would have refused the
+very design that taught us skills were needed — one that invented two clinical lookup tables, named
+their owner, and wrote *"proposed, confirm with Practice operations."* Tools are discoverable from
+the use case; **skills emerge from the design**, so design time is the only moment they surface.
+
 For EverBetter this is also where the moat is. The tool catalog can be seeded from 43 Helm charts and
 a competitor with the same charts gets the same catalog. The skill catalog is clinical judgment
 written down with a name and a review date on it, and it is the only artifact here a clinician can

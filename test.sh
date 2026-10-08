@@ -799,8 +799,26 @@ sksay "$SK/gatecite.design" FAIL V42 \
   "a gate resting on a skill is refused — nothing can prove a document was read" \
   "a gate was allowed to depend on know-how nothing can check"
 sed 's/^clinic-note-voice | 4 |/made-up-skill | 4 |/' "$SK/ok.design" > "$SK/uncat.design"
-sksay "$SK/uncat.design" FAIL V40 "a skill nothing catalogued is refused" \
-                                  "a design invented know-how and nothing stopped it"
+sksay "$SK/uncat.design" FAIL V40 "a step DEPENDING on uncatalogued know-how is refused" \
+                                  "a step depended on know-how nobody owns"
+# ...but PROPOSING it is legal, and must be: the design that taught us skills
+# were needed invented two lookup tables and wrote "proposed, confirm with
+# Practice operations". A rule that refuses that destroys the only signal.
+sed 's/^clinic-note-voice | 4 |/dose-phrase-conventions | - |/' "$SK/ok.design" > "$SK/prop.design"
+sksay "$SK/prop.design" PASS V40 "a design may PROPOSE know-how the catalog lacks" \
+                                 "proposing know-how was refused, which is the signal being destroyed"
+sksay "$SK/prop.design" WARN V45 "a proposal is reported, not refused" \
+                                 "a proposal passed silently and reached nobody"
+cat > "$SK/pv.json" <<'PVEOF'
+{"author_model":"m1","audit_model":"m2","verdict":"sound","confidence":"high","checked":["unit-of-work"],"defects":[]}
+PVEOF
+"$HERE/tooling/findings.sh" "$SK/pv.json" "$SK/prop.design" >/dev/null 2>&1
+grep -q 'FOR THE CATALOG OWNER' "$SK/FINDINGS.md" 2>/dev/null \
+  && ok "a proposal reaches whoever owns the catalog, as a missing tool does" \
+  || no "proposed know-how never reached a person"
+grep -q 'not a defect in the design' "$SK/FINDINGS.md" 2>/dev/null \
+  && ok "the finding says plainly it is a request, not a defect" \
+  || no "a procurement signal reads as a design error"
 sed 's/^clinic-note-voice | 4 |/clinic-note-voice | 99 |/' "$SK/ok.design" > "$SK/nostep.design"
 sksay "$SK/nostep.design" FAIL V41 "a skill used by a step that does not exist is refused" \
                                    "a skill pointed at nothing"
