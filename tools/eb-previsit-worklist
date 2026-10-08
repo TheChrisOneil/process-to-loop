@@ -30,8 +30,12 @@ case "${1:-}" in
     PT=${2:-}; APPT=${3:-}; STARTS=${4:-}; CLIN=${5:-}; STATE=${6:-}; DETAIL=${7:-}
     [ -n "$PT" ] && [ -n "$APPT" ] && [ -n "$STATE" ] || {
       echo "usage: eb-previsit-worklist place <patient_ref> <appointment_id> <starts_at> <clinician> <state> [detail_ref]" >&2; exit 64; }
-    case "$STATE" in flagged|clear|unresolved|not-reconciled) ;;
-      *) echo "REFUSED: state is flagged, clear, unresolved or not-reconciled — not \"$STATE\"." >&2; exit 1 ;; esac
+    # awaiting-approval, approved and declined were added 2026-10-08, after an
+    # interview asked where a clinician sees a draft and found no state meant
+    # "waiting for them". A state vocabulary that cannot express a process's own
+    # intermediate step forces the design to encode it somewhere nothing checks.
+    case "$STATE" in flagged|clear|unresolved|not-reconciled|awaiting-approval|approved|declined) ;;
+      *) echo "REFUSED: state is flagged, clear, unresolved, not-reconciled, awaiting-approval, approved or declined — not \"$STATE\"." >&2; exit 1 ;; esac
     ID="WL-$(date -u +%s)-$$"
     printf '%s,%s,%s,%s,%s,%s,%s,%s\n' "$ID" "$PT" "$APPT" "$STARTS" "$CLIN" "$STATE" "$(date -u +%FT%TZ)" "$DETAIL" >> "$FIXTURE"
     echo "$ID"; exit 0 ;;
