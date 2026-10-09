@@ -226,6 +226,16 @@ case "$REGOUT" in *"somebody else"*) ok "a signature from anyone but the named a
 
 echo
 echo "PACK COMPATIBILITY"
+if diff <("$HERE/tooling/pack-capability.sh" "$HERE/pack" 2>&1) \
+        <("$HERE/pack/lib/pack-capability.sh" "$HERE/pack" 2>&1) >/dev/null \
+   && "$HERE/pack/lib/pack-capability.sh" "$HERE/pack" | grep -q "^MANDATES"
+then ok "the shipped pack/lib copy computes the same manifest as tooling/"
+else no "the pack/lib copy of pack-capability lost properties the tooling copy finds"; fi
+LT=$(mktemp -d); cp "$HERE/pack/lib/pack-capability.sh" "$LT/"
+if "$LT/pack-capability.sh" "$HERE/pack" >/dev/null 2>&1
+then no "pack-capability ran without its awk helper and reported a partial manifest"
+else ok "pack-capability without its awk helper is refused, not silently partial"; fi
+rm -rf "$LT"
 PA=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | head -1)
 PB=$(find ~/.gc/cache/repos -maxdepth 2 -type d -name gascity 2>/dev/null | sed -n 2p)
 if [ -n "$PA" ] && [ -d "$PA" ]; then
