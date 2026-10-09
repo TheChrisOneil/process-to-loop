@@ -1,0 +1,71 @@
+classDiagram
+    class UseCase {
+        +prose text
+        +sha256
+    }
+    class QuestionSet {
+        +Q1..Qn
+        +class: structural|parametric
+        +answer: stated|unanswered|delegated
+        +provenance: real|synthetic
+        +use_case_sha256
+    }
+    class Catalog {
+        +owner
+        +phi_may_reach_models
+        +phi_model_review_by
+    }
+    class Tool {
+        +provides
+        +data_class
+        +may_not
+        +review_by
+    }
+    class Skill {
+        +covers
+        +applies_to
+        +owner
+        +review_by
+    }
+    class Design {
+        +meta.approver
+        +meta.questions_sha256
+        +meta.method_sha256
+        +unit, steps, gates
+        +sources, tools, skills
+        +decisions, evidence, record, kpis
+    }
+    class DecisionTable {
+        +hit: unique|first
+        +inputs, outputs
+        +rules
+    }
+    class Verdict {
+        +author_model
+        +audit_model
+        +subject_sha256
+        +defects[]
+    }
+    class Acceptance {
+        +design_sha256
+        +signer
+        +chain
+    }
+    class Bundle {
+        +run.sh
+        +steps/
+        +checks/
+        +ledger
+    }
+
+    UseCase "1" --> "1" QuestionSet : use_case_sha256
+    QuestionSet "1" --> "1" Design : questions_sha256
+    Catalog "1" *-- "n" Tool
+    Catalog "1" *-- "n" Skill
+    Tool "n" <-- "n" Design : names, narrows
+    Skill "n" <-- "n" Design : applies, never gates on
+    Design "1" *-- "n" DecisionTable
+    Design "1" <-- "1" Verdict : subject_sha256
+    Design "1" <-- "1" Acceptance : design_sha256 + signer == meta.approver
+    Acceptance "1" --> "1" Bundle : compiled only after
+    DecisionTable "n" --> "n" Bundle : emitted as TSV + evaluator

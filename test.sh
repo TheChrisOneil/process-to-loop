@@ -877,6 +877,35 @@ esac
 rm -rf "$SK"
 
 echo
+echo "THE ARCHITECTURE DIAGRAMS"
+# A diagram that does not compile is a diagram nobody checked. Two of the seven
+# did not, and both were the sequence diagrams — the ones most asked for.
+A4="$HERE/docs/architecture/4plus1.md"
+if [ -f "$A4" ]; then
+  NB=$(grep -c '^```mermaid' "$A4")
+  [ "$NB" -ge 7 ] && ok "the 4+1 document carries all five views ($NB diagrams)" \
+                  || no "the 4+1 document has only $NB diagrams"
+  # Angle brackets and semicolons are arrow tokens and statement separators to
+  # the sequence lexer. Legal in flowchart labels, fatal in a message.
+  BAD=$(awk '/^```mermaid/{inb=1;seq=0;buf="";next} /^```/{inb=0;next}
+             inb && /sequenceDiagram/{seq=1}
+             inb && seq && (/->>/ || /-->>/ || /^[ \t]*Note/) && (/</ || /;/) {print NR}' "$A4")
+  [ -z "$BAD" ] && ok "no sequence message carries a token the lexer reads as an arrow" \
+                || no "sequence diagram would not render — line(s): $BAD"
+  MISS=""
+  for s in logical process-L1 process-L2 development physical scenario-L1-scripts scenario-L2-tick; do
+    [ -s "$HERE/docs/architecture/$s.svg" ] || MISS="$MISS $s"
+  done
+  [ -z "$MISS" ] && ok "every view is rendered beside the document" \
+                 || no "views with no rendered SVG:$MISS"
+  grep -q 'scenario' "$A4" && grep -q 'bind-checks.sh' "$A4" \
+    && ok "the scenario view names the tooling scripts, not abstractions" \
+    || no "the scenario view does not name the scripts it sequences"
+else
+  no "docs/architecture/4plus1.md is missing"
+fi
+
+echo
 echo "THE DISCOVERIES LOG"
 # A surprise leaves nothing unless somebody writes it down the day it happens.
 # The tool exists so the shape cannot drift, and so nothing lands without the

@@ -1,0 +1,59 @@
+stateDiagram-v2
+    direction TB
+    [*] --> bind_checks
+
+    state "DETERMINISTIC (code)" as det1 {
+        bind_checks : bind-checks · values bound once, at cook time
+        archive_prior : archive-prior · last run beyond reach
+        bind_checks --> archive_prior
+    }
+    det1 --> intake
+
+    state "MODEL (author provider)" as m1 {
+        intake : intake · read and screen the description
+        questions : questions · ask what it does not say
+        intake --> questions
+    }
+    m1 --> answers
+
+    state "PERSON" as p1 {
+        answers : answers · stated | unanswered | delegated
+    }
+    p1 --> answered
+
+    answered : GATE answered · every block has an answer
+    answered --> author
+
+    state "THE LOOP (max 5 attempts)" as loop {
+        author : author-design · write it
+        validate_i : validate 45 rules
+        audit_i : audit on a DIFFERENT provider
+        classify : classify by_revision | needs_a_person
+        author --> validate_i
+        validate_i --> audit_i : passes form
+        validate_i --> author : fails form
+        audit_i --> classify
+        classify --> author : a revision can fix it
+        classify --> [*] : only a person can
+    }
+    loop --> validate_g
+
+    validate_g : GATE validate · the design passes its rules
+    validate_g --> audited
+    audited : GATE audited · real, different model, THIS design
+    audited --> render
+    render : render · diagrams and the brief
+    render --> diagrams
+    diagrams : GATE diagrams · the views carry every control
+    diagrams --> findings
+    findings : findings · what is left for a person
+    findings --> accept
+
+    state "PERSON" as p2 {
+        accept : accept-design · signs the SHA-256
+    }
+    accept --> compile
+    compile : compile · formula, checks, bundle
+    compile --> records
+    records : GATE records · runs a tick, reads the ledger
+    records --> [*]

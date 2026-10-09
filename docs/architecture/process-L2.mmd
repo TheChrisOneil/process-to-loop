@@ -1,0 +1,28 @@
+stateDiagram-v2
+    direction LR
+    [*] --> batch
+    state batch {
+        direction TB
+        reads : read each @source through its @tool
+        reads --> logged : ledger row per read, with its permission
+        logged --> batch_gate
+        batch_gate : batch gates
+        batch_gate --> units : permit
+        batch_gate --> stop : REFUSE whole run
+    }
+    units --> per_unit
+    state per_unit {
+        direction TB
+        work : mechanical steps
+        work --> judge
+        judge : thinking step · skill rows logged IN FORCE
+        judge --> test
+        test : test step recomputes the claim
+        test --> gate
+        gate : unit gate
+        gate --> record : permit
+        gate --> refuse : REFUSE this unit only
+    }
+    per_unit --> [*]
+    stop --> [*]
+    refuse --> [*]

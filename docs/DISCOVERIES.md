@@ -375,3 +375,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing, because it surfaced the first time the condition occurred. It was invisible until then by construction.
 **changed** All three lists go through one scoped lister in its own file. A test feeds it two beads from different runs and asserts the foreign one is dropped.
 **generalizes** A partial fix to a repeated pattern is indistinguishable from a complete one until the untouched copy is exercised. When fixing something that appears N times, the test should be against the PROPERTY, not against the instance you noticed.
+
+---
+
+## D28 · 2026-10-09 · Two of seven diagrams did not compile, and they were the ones asked for
+
+**believed** A Mermaid diagram written carefully is a Mermaid diagram that renders. The repo already renders diagrams by rule, so the format was understood.
+**happened** Five of seven rendered. The two that failed were the sequence diagrams, which were the specific thing requested. In a sequence diagram the lexer reads < as an arrow token and ; as a statement separator, so <br/> and a semicolon in message text are both fatal — and both are legal in the flowchart and class labels that rendered fine.
+**cost** Nothing, because they were rendered before being published. Everything, had they not been.
+**changed** Every diagram is rendered to SVG and committed beside the document, and a test refuses a sequence message carrying either token.
+**generalizes** A document is not verified by being written carefully. The same notation can have different lexers per diagram type, and the subset that works in one is not the subset that works in another. Render it, or do not claim it.

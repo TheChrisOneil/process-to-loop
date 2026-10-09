@@ -47,6 +47,7 @@ same way you never hand-edit generated code. Edit the design and compile again.
 | [`docs/DISCOVERIES.md`](docs/DISCOVERIES.md) | what surprised us, dated, with what it cost |
 | [`docs/next-design.md`](docs/next-design.md) | what we decided and what is still open |
 | [`docs/standing-up-a-city.md`](docs/standing-up-a-city.md) | the runbook |
+| [`docs/architecture/4plus1.md`](docs/architecture/4plus1.md) | the five architecture views, UML, with the tooling scripts in sequence |
 | [`docs/for-gas-city.md`](docs/for-gas-city.md) | what this is worth to the platform it runs on, and what we would ask of it |
 
 ## Why the gates matter

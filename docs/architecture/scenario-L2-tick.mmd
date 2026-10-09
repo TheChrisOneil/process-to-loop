@@ -1,0 +1,39 @@
+sequenceDiagram
+    autonumber
+    participant LD as launchd
+    participant RUN as run.sh
+    participant ST as steps/N-*.sh
+    participant TL as a catalogued tool
+    participant CK as checks/NAME-gNN.sh
+    participant DEC as lib/decide.awk
+    participant LG as memory/ledger.tsv
+
+    LD->>RUN: tick
+    RUN->>ST: batch steps, in order
+    ST->>TL: fetch
+    alt the tool is not installed
+        TL-->>ST: exit 75
+        ST->>LG: deferred
+        ST-->>RUN: 75 — infrastructure, never a business failure
+    else it answers
+        TL-->>ST: rows
+        ST->>LG: read "SOURCE via TOOL (CLASS — may not CONSTRAINT): N row(s)"
+    end
+    ST->>CK: gate condition
+    alt the check is not installed
+        CK-->>ST: absent
+        ST->>LG: refused "check script missing"
+        ST-->>RUN: stop — a control that does not exist does not permit
+    else a decision table backs it
+        CK->>DEC: inputs
+        alt no rule matches
+            DEC-->>CK: exit 1
+            CK-->>ST: REFUSE — a fall-through is a refusal, never a default
+        else a rule matches
+            DEC-->>CK: outputs
+            CK-->>ST: permit or refuse on the gated value
+        end
+    end
+    RUN->>ST: unit steps, per unit
+    ST->>LG: skill "ID (OWNER) catalog SHA: in force, not verified as applied"
+    ST->>LG: unit row — references and outcomes only, never PHI in clear

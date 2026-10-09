@@ -1,0 +1,66 @@
+flowchart TB
+    subgraph parsers["lib/ — parsers, one per format"]
+        parse["parse.awk<br/>the design"]
+        qawk["questions.awk<br/>the question set"]
+        cawk["catalog.awk<br/>tools and skills"]
+        dtcell["dt-cell.awk<br/>what a CELL means"]
+    end
+
+    subgraph rules["lib/ — rules, read after a parser"]
+        vawk["validate.awk<br/>V1..V45"]
+        qrules["questions-rules.awk<br/>I1..I8, A1..A7"]
+        vfawk["validate-formula.awk<br/>F1..F17"]
+    end
+
+    subgraph emit["lib/ — emitters, deterministic"]
+        eform["emit-formula.awk"]
+        echeck["emit-check.awk"]
+        edec["emit-decision.awk"]
+        rseq["render-seq.awk"]
+        rflow["render-flow.awk"]
+    end
+
+    subgraph entry["tooling/ — one job each"]
+        vsh["validate.sh"]
+        qsh["questions.sh"]
+        csh["compile.sh"]
+        esh["emit-bundle.sh"]
+        bsh["brief.sh"]
+        dsh["decide.sh"]
+        ash["accept.sh"]
+        aush["audit-design.sh"]
+    end
+
+    subgraph gates["checks/ — one job each, exit 0/1/75"]
+        cb["checks-bound.sh"]
+        dr["design-reviewed.sh"]
+        dv["design-validate.sh"]
+        da["design-audited.sh"]
+        qa["questions-asked.sh"]
+        qan["questions-answered.sh"]
+        br["bundle-records.sh"]
+    end
+
+    parse --> vawk
+    dtcell --> vawk
+    qawk --> qrules
+    cawk -.->|flattened| vawk
+    parse --> emit
+    dtcell --> edec
+
+    vawk --> vsh
+    qrules --> qsh
+    emit --> csh
+    emit --> esh
+    emit --> bsh
+    dtcell --> dsh
+
+    vsh --> dv
+    vsh --> dr
+    aush --> dr
+    qsh --> qa
+    qsh --> qan
+    esh -.->|runs one tick| br
+
+    classDef shared fill:#fef3c7,stroke:#b45309
+    class dtcell,parse,cawk,qawk shared

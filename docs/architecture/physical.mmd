@@ -1,0 +1,47 @@
+flowchart TB
+    subgraph mac["one macOS host"]
+        subgraph city["~/cities/ptl-city — the CITY"]
+            sup["launchd: com.gascity.supervisor"]
+            disp["core.control-dispatcher"]
+            form["formulas/design-authoring.toml"]
+            beads[("bead store<br/>Dolt")]
+        end
+
+        subgraph rig["~/cities/ptl-rig — the RIG, cwd for every check"]
+            chk["checks/ · tooling/ · lib/ · catalog/ · tools/"]
+            subgraph art["processes/&lt;name&gt; — artifact_root"]
+                bound["checks/ — wrappers bound at cook time"]
+                arts["QUESTIONS.md · design · verdict<br/>FINDINGS.md · BRIEF.md · diagrams/"]
+                bundle["bundle/ — THE L2 ARTIFACT"]
+            end
+        end
+
+        subgraph agents["tmux — agent sessions"]
+            op["gc.run-operator<br/>provider: claude"]
+            aud["audit lane<br/>provider: gemini"]
+        end
+
+        repo["~/software/process-to-loop<br/>the source of truth"]
+    end
+
+    subgraph ext["outside the host"]
+        anth["Anthropic API"]
+        goog["Google API"]
+    end
+
+    sup --> disp
+    disp --> op
+    form -.->|cooked into| beads
+    beads --> op
+    op -->|runs| bound
+    bound -->|execs| chk
+    op --> arts
+    op -->|compile| bundle
+    aud --> goog
+    op --> anth
+    repo -.->|make install-rig| chk
+    repo -.->|make install-city| form
+    bundle -.->|launchd job, once deployed| mac
+
+    classDef regulated fill:#fee2e2,stroke:#b91c1c
+    class bundle regulated

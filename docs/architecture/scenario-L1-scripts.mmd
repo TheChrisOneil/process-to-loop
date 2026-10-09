@@ -1,0 +1,75 @@
+sequenceDiagram
+    autonumber
+    actor P as Process owner
+    participant OP as gc.run-operator
+    participant BC as bind-checks.sh
+    participant AR as archive-run.sh
+    participant QS as questions.sh
+    participant QA as questions-asked.sh
+    participant QN as questions-answered.sh
+    participant VA as validate.sh
+    participant AU as audit-design.sh
+    participant DR as design-reviewed.sh
+    participant BR as brief.sh
+    participant FI as findings.sh
+    participant AC as accept.sh
+    participant CO as compile.sh
+    participant EB as emit-bundle.sh
+    participant BRC as bundle-records.sh
+
+    Note over OP,BC: bind-checks — every value known at cook time
+    OP->>BC: artifact_root, checks_root, DESIGN_PATH, QUESTIONS_PATH, — CATALOG, METHOD_PATH, BUNDLE_PATH
+    BC-->>OP: one wrapper per check, values bound literally
+
+    Note over OP,AR: archive-prior — the last run beyond reach
+    OP->>AR: artifact_root
+    AR-->>OP: prior/TIMESTAMP/ copied — verdict and findings REMOVED, — QUESTIONS.md kept
+
+    Note over OP,QA: intake, then the interview
+    OP->>OP: read use-case.txt, screen for text addressing the system
+    OP->>QS: write QUESTIONS.md.new, then merge
+    QS-->>OP: answers survive, ids stable, refuses losing one
+    OP->>QA: questions-asked.sh
+    QA->>QS: validate (I1..I8)
+    QA-->>OP: 0 askable · 1 malformed · 75 absent
+
+    P->>QS: answer Qn stated|unanswered|delegated --by --synthetic
+    OP->>QN: questions-answered.sh
+    QN->>QS: answered (A1..A7) + status
+    QN-->>OP: 0 every block answered, with the ratio
+
+    rect rgb(245,245,245)
+    Note over OP,DR: THE LOOP — up to 5 attempts
+    OP->>OP: author the design (author provider)
+    OP->>DR: design-reviewed.sh
+    DR->>VA: validate.sh (QUESTIONS, CATALOG, METHOD)
+    VA-->>DR: 45 rules
+    DR->>AU: audit-design.sh, only if the design is stale
+    AU->>AU: credential.sh, then the AUDIT provider
+    AU-->>DR: verdict stamped subject_sha256
+    DR-->>OP: 1 = a revision can fix it · 0 = only a person can
+    end
+
+    OP->>VA: design-validate.sh (the durable record)
+    OP->>OP: design-audited.sh — real, different model, THIS design
+    OP->>BR: brief.sh --questions
+    BR-->>OP: BRIEF.md with the interview table, both diagrams
+    OP->>OP: diagrams-complete.sh — every control is drawn
+    OP->>FI: findings.sh --questions
+    FI-->>OP: FINDINGS.md: audit + delegated structural + — unanswered + synthetic + rehearsal
+
+    Note over P,AC: ACCEPTANCE — a person, over content
+    P->>AC: accept.sh DESIGN --by "Name, Role"
+    AC->>AC: signer == meta.approver? rules pass? rehearsal?
+    AC-->>P: chained register row, with any REHEARSAL note
+
+    Note over OP,BRC: compile — only after the signature
+    OP->>CO: compile.sh
+    CO->>CO: refuse if REHEARSAL and ALLOW_REHEARSAL unnamed
+    CO-->>OP: formula + one check per gate + decision tables
+    OP->>EB: emit-bundle.sh
+    EB->>EB: resolve tools and skills through the catalog, once
+    EB-->>OP: run.sh, steps/, lib/dt-cell.awk, launchd job
+    OP->>BRC: bundle-records.sh
+    BRC->>BRC: RUN ONE TICK, then read the ledger
+    BRC-->>OP: provenance, permissions, skills in force
