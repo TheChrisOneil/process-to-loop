@@ -46,7 +46,10 @@ might contribute:
 whether capability diffing is wanted, or whether the release-gate check is considered sufficient.
 A comment costs nothing and does not ask maintainers to triage an opinion.
 
-**Status:** parked. Not raised with anyone.
+**Status:** offered, 2026-10-09, as draft PR **#7416** (`contrib/pack-capability/`), which asks
+whether capability diffing is wanted as an input to the #4071 release gate. Draft, so nobody is
+asked to triage it. The contributed copy fixes the `pack/lib` path bug below and widens NORMS to
+`agents/`, where upstream packs keep role prompts.
 
 ---
 
@@ -125,8 +128,10 @@ command that pins correctly pins to a range that guarantees nothing. Same root c
 **Searched upstream, three ways, nothing found.** Distinct from #4071, which is about the
 *bundled* pin; this is about *user-declared* imports.
 
-**Status:** parked, pending a second reproduction on a different machine. One machine's evidence
-has been wrong enough times in this project to want two.
+**Status:** fixed upstream in **#7382** (`665e2a04e`, merged 2026-10-09), whose commit message
+cites this entry. `--include` now resolves a version through the same helper as `gc import add`,
+and `--include gc=<url>` sets the import name. Not yet in a release: v1.4.2 does not have it.
+The aside about `^0.4` on a `0.x` version is not addressed and stays with PARKED-1.
 
 ---
 
@@ -265,4 +270,27 @@ across cities, so setting it would reach a production city too.
 
 **What would help:** `opt_effort` honored at session creation the way `opt_model`
 is, or an `effort` key on an agent definition.
+
+**Status:** fixed upstream in **#7378** (`a776d2e4c`, merged 2026-10-09; closes #5710), whose
+commit message cites this entry. The cause was broader than effort: no `opt_*` pin reached a
+pooled session, because options were read only from a bead already claimed, and a pool session
+claims after it launches. `opt_model` landed on the bead and did not reach the session either.
+`opt_effort` now applies at launch. For a whole agent, `option_defaults = { effort = "low" }` in
+its `agent.toml` already existed. Accepted values are `low`, `medium`, `high`, `xhigh`, `max`.
+Not yet in a release: v1.4.2 does not have it.
+
+## RESOLVED-5 · a check that cannot launch let its step close
+
+Raised by email 2026-10-08, not parked first. A step check that the dispatcher could not launch
+was quarantined, produced no exit code, and the step closed: the gate failed open.
+
+**Status:** fixed upstream in **#7377** (`42b11ccbd`, merged 2026-10-09). A missing, dangling,
+non-regular or non-executable check script now holds the step open with
+`gc.control_pending_reason` set, and the next sweep heals it once the script is launchable.
+Exit 75 and exec errors re-run up to 20 times without burning an attempt.
+
+**What remains.** Once those 20 retries are spent the step closes `fail`, and a failed step still
+releases its dependents (upstream #6246; proposed fixes #7174 and #5672). For a regulated
+control, that is the follow-up to watch. Keep the per-gate step and the path preflight until it
+lands.
 

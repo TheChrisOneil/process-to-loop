@@ -10,6 +10,9 @@ P=${1:-}
 [ -n "$P" ] || { echo "pack-capability.sh <pack-dir>" >&2; exit 64; }
 [ -d "$P" ] || { echo "REFUSED: no pack directory at $P." >&2; exit 1; }
 P=$(cd "$P" && pwd)
+# The helper sits in lib/ beside tooling/, and beside the script in pack/lib/.
+AWK="$HERE/lib/capability.awk"; [ -f "$AWK" ] || AWK="$HERE/capability.awk"
+[ -f "$AWK" ] || { echo "REFUSED: no capability.awk beside $HERE." >&2; exit 1; }
 
 {
   # PROVIDES — what the pack ships, by name
@@ -24,7 +27,7 @@ P=$(cd "$P" && pwd)
   # the rest, from the prose and the toml
   find "$P" -type f \( -name "*.md" -o -name "*.toml" \) 2>/dev/null | sort | while read -r f; do
     rel=${f#"$P"/}
-    awk -v REL="$rel" -f "$HERE/lib/capability.awk" "$f" 2>/dev/null
+    awk -v REL="$rel" -f "$AWK" "$f"
   done
 
   # OPAQUE — a digest per prose file. This is the half that cannot be computed.
