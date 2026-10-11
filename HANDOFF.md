@@ -55,7 +55,6 @@ Claude Code's memory and several docs assume these exact paths. Use the same mac
 ```
 ~/software/
   process-to-loop/                      git: TheChrisOneil/process-to-loop        (this repo)
-  gascity/                              git: TheChrisOneil/gascity (private city, separate project)
   Github/
     gascity-upstream/                   git: TheChrisOneil/gascity-upstream (fork of gastownhall/gascity)
     wt-contrib-pack-capability-diff/    git worktree, branch feat/contrib-pack-capability-diff (#7416)
@@ -99,7 +98,6 @@ gemini               # sign in
 ```bash
 mkdir -p ~/software/Github ~/cities
 git clone https://github.com/TheChrisOneil/process-to-loop.git ~/software/process-to-loop
-git clone git@github.com:TheChrisOneil/gascity.git ~/software/gascity
 git clone git@github.com:TheChrisOneil/gascity-upstream.git ~/software/Github/gascity-upstream
 cd ~/software/Github/gascity-upstream
 git remote add upstream git@github.com:gastownhall/gascity.git
@@ -169,7 +167,7 @@ cd ~/software/Github/wt-doctor-capability && go build -o /tmp/gc-7439 ./cmd/gc
 
   The rig's run data uses tokenized patient references (`PT-4417`) and no names or dates of birth. Treat that as a working assumption that it is synthetic. Keep real patient data out of this repo.
 
-- **Never move a running city.** Run `gc stop` in `~/cities/ptl-city` before leaving a machine. The supervisor registry (`~/.gc/cities.toml`) is per machine. It also lists `~/software/gascity` and `~/software/eb-city`, which are separate projects.
+- **Never move a running city.** Run `gc stop` in `~/cities/ptl-city` before leaving a machine. The supervisor registry (`~/.gc/cities.toml`) is per machine. It also lists the cities `~/software/gascity` and `~/software/eb-city`. Those are separate projects, not part of this work, and this handoff does not cover them.
 
 ### 3.5 Claude Code memory
 
@@ -191,7 +189,6 @@ It currently holds one memory, `gascity-maintainers-want-solved-prs`: ship compl
 2. Commit and push every repo you changed:
    - `process-to-loop`
    - both `wt-*` worktrees: push to `origin`, never force-push
-   - `~/software/gascity`: it was 3 commits ahead of `origin/main` at handoff
    - `~/cities/ptl-rig`: commit `processes/` and push
 3. Copy the Claude memory folder across. It is the only thing git does not carry.
 
