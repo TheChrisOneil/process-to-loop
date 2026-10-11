@@ -62,7 +62,7 @@ Claude Code's memory and several docs assume these exact paths. Use the same mac
     wt-doctor-capability/               git worktree, branch feat/doctor-pack-capability-checks (#7439)
 ~/cities/                               must NOT be inside any git checkout
   ptl-city/                             Gas City city, not a git repo, rebuilt per machine
-  ptl-rig/                              rig, local git repo with no remote; processes/ holds run data
+  ptl-rig/                              git: TheChrisOneil/ptl-rig (PRIVATE), branch master; processes/ holds run data
 ~/.claude/projects/-Users-thechrisoneil-cities/memory/   Claude Code memory for sessions started in ~/cities
 ```
 
@@ -147,13 +147,27 @@ cd ~/software/Github/wt-doctor-capability && go build -o /tmp/gc-7439 ./cmd/gc
     - keep `suspended_on_start = true`
   - The city also defines a `gemini` provider (`base = "builtin:gemini"`) for the audit lane.
 
-- **Rig data:** `~/cities/ptl-rig/processes/` holds run data for five processes: `appointment-chase`, `chase`, `med-rec`, `monthly-close` and `po-reconciliation`. It is untracked and exists only on the old machine. Copy it across:
+- **Rig:** `~/cities/ptl-rig` is the private repo `TheChrisOneil/ptl-rig`. Its `processes/` folder holds run data for five processes: `appointment-chase`, `chase`, `med-rec`, `monthly-close` and `po-reconciliation`. It also tracks the `checks/`, `tooling/`, `catalog/` and `tools/` that `make install-rig` puts there. Per-machine state (`.gc/`, `.claude/`, `.gemini/` and the bead database) is ignored and never pushed.
+
+  **The rig now has a git remote, so the trap in `docs/standing-up-a-city.md` step 1 applies.** `gc rig add` runs `bd init`, which copies a dolt `sync.remote` from the rig's git origin. That would push the bead database to GitHub. On a new machine, take the remote off before `gc rig add` and put it back afterwards:
 
   ```bash
-  rsync -a old-mac:~/cities/ptl-rig/processes/ ~/cities/ptl-rig/processes/
+  git clone git@github.com:TheChrisOneil/ptl-rig.git ~/cities/ptl-rig
+  cd ~/cities/ptl-rig && git remote remove origin && git remote -v      # must print nothing
+  cd ~/cities/ptl-city && gc rig add ~/cities/ptl-rig --name work --prefix wk --start-suspended
+  cd ~/cities/ptl-rig && bd config get sync.remote                      # must say "not set"
+  git remote add origin git@github.com:TheChrisOneil/ptl-rig.git && git fetch -q origin && git branch -u origin/master
   ```
 
-  The rig's `checks/`, `tooling/`, `catalog/` and `tools/` come from `make install-rig` and do not need copying.
+  After `gc rig add`, fix the rig import exactly as `docs/standing-up-a-city.md` step 3 describes, and pin it as listed above.
+
+  **Check `sync.remote` whenever `gc` re-initializes beads.** If it ever names a URL, unset it before starting the city:
+
+  ```bash
+  cd ~/cities/ptl-rig && bd config get sync.remote
+  ```
+
+  The rig's run data uses tokenized patient references (`PT-4417`) and no names or dates of birth. Treat that as a working assumption that it is synthetic. Keep real patient data out of this repo.
 
 - **Never move a running city.** Run `gc stop` in `~/cities/ptl-city` before leaving a machine. The supervisor registry (`~/.gc/cities.toml`) is per machine. It also lists `~/software/gascity` and `~/software/eb-city`, which are separate projects.
 
@@ -178,19 +192,17 @@ It currently holds one memory, `gascity-maintainers-want-solved-prs`: ship compl
    - `process-to-loop`
    - both `wt-*` worktrees: push to `origin`, never force-push
    - `~/software/gascity`: it was 3 commits ahead of `origin/main` at handoff
-3. Copy across the files git does not carry:
-   - `~/cities/ptl-rig/processes/`
-   - the Claude memory folder
+   - `~/cities/ptl-rig`: commit `processes/` and push
+3. Copy the Claude memory folder across. It is the only thing git does not carry.
 
 **When you arrive:**
 
-1. Run `git pull` in each repo.
+1. Run `git pull` in each repo, including `~/cities/ptl-rig`.
 2. Run `git fetch upstream` in `gascity-upstream`.
-3. Copy `processes/` and memory if the other machine changed them.
+3. Copy the memory folder if the other machine changed it.
 4. Re-run the four `make install-*`/`city-preflight` commands in 3.4 if `process-to-loop` changed.
 5. Run `gc start`.
 
-To make this nearly free, give the rig a private remote so `processes/` travels with git. That is a decision for you; it has not been done.
 
 ---
 
@@ -233,6 +245,8 @@ Try `--fix` only on a throwaway city, never on `ptl-city`.
 - **New `gc` command:** register it in `cmd/gc/productmetrics_command_census.json`, then run `go run ./cmd/gen-command-census`. Otherwise `TestProductMetricsLifecycle*` fails.
 - **Changed command help:** run `go run ./cmd/genschema` to regenerate `docs/reference/cli.md`, then `CGO_ENABLED=0 go test ./test/docsync/`.
 - **New files:** run `python3.13 tools/bazel/repo_tree.py` and hand-edit `BUILD.bazel`, because Bazel is not installed.
+- **Full suite:** `go test ./cmd/gc/ ./internal/...` on this machine fails some tests even on unmodified upstream `main` (`b22698474`). Examples are `TestCascadeNudgeAbsorbsDuplicateCloseEvents`, `TestStopManagedCityBoundsForcedShutdownWhenRuntimeHangs` and `TestSessionScriptStart*` in `internal/runtime/k8s`. Several more are 5-second timeouts that pass when run alone. Before blaming a branch, re-run a failure by itself and on the base commit.
+- **CI on the PRs:** Auto-fix is on in the Claude Code desktop app for this session, so CI failures and review comments on #7416 and #7439 come back as events. On a new machine or session, turn it on again from the PR bar.
 - **Before building anything upstream,** search history with `git log --grep` and `gh pr list -R gastownhall/gascity --search ...`. Three of four reported issues were fixed upstream before work began.
 
 ---
