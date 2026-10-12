@@ -105,10 +105,11 @@ tool_maynot() { awk -F'\t' -v id="$1" '$1==id {print $4}' "$CATVIA"; }
 # "Which version of the protocol applied on that date" is the question a regulator
 # actually asks, and it is answerable. "Was it followed" is answered by the
 # evidence trail, not by this row.
+# A proposed skill is left out: the row says "in force", and a proposal is not.
 CATSK=$(mktemp)
 if [ -f "$CATALOG" ]; then
   cat > "$CATSK.q" <<'SKQ'
-END{ for(i=1;i<=ns;i++) printf "%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".owner"], SK[SKID[i] ".review_by"] }
+END{ for(i=1;i<=ns;i++) if (SK[SKID[i] ".status"] != "proposed") printf "%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".owner"], SK[SKID[i] ".review_by"] }
 SKQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATSK.q" "$CATALOG" > "$CATSK" 2>/dev/null
   rm -f "$CATSK.q"

@@ -929,6 +929,172 @@ esac
 rm -rf "$SK"
 
 echo
+echo "REVIEWING SKILLS"
+# A skill's owner reviews it and refines it with tooling/skills.sh; the catalog
+# is never hand-edited. Every write names who made it, touches only the field it
+# was asked to, and a refusal leaves the catalog byte-identical. The day is
+# fixed so a review date cannot drift a test from passing to failing.
+RS=$(mktemp -d)
+SKS() { SKILLS_TODAY=2026-10-11 "$HERE/tooling/skills.sh" "$@"; }
+cp "$HERE/catalog/eb-tools.catalog" "$RS/c"
+mkdir -p "$RS/d/p1" "$RS/d/p1/prior/old"
+awk '/^@evidence/ && !d { print "@skills"
+       print "clinic-note-voice | 4 | the draft is read by a clinician, so it is written in the practice voice"
+       print "dose-phrase-conventions | - | the comparison needs a fixed phrase table, confirm with Practice operations"
+       print ""; d = 1 } { print }' "$HERE/examples/appointments-chase.design" > "$RS/d/p1/p1.design"
+# A prior copy is history: counting it would report a use nobody can run.
+cp "$RS/d/p1/p1.design" "$RS/d/p1/prior/old/p1.design"
+printf '# Findings on p1.design\n\n## 1. MAJOR · FOR THE CATALOG OWNER — The design needs know-how the catalog does not have: tone-table\n\nthe chase wording needs a tone table\n' > "$RS/d/p1/FINDINGS.md"
+
+o=$(SKS list --catalog "$RS/c" --designs "$RS/d" 2>&1)
+printf '%s\n' "$o" | grep -Eq '^clinic-note-voice +Practice operations +2027-04 +in force +1 +1$' \
+  && ok "list: one line per skill with owner, review date, state, designs and steps" \
+  || no "list did not report clinic-note-voice as used by 1 design, 1 step" "$(printf '%s' "$o" | head -3)"
+printf '%s\n' "$o" | grep -Eq '^escalation-etiquette .* 0 +0$' \
+  && ok "list: a skill no step names is counted as unused, and still listed" \
+  || no "an unused skill was miscounted or dropped"
+sed 's/^review_by: 2027-04/review_by: 2026-09/' "$RS/c" > "$RS/lapsed.c"
+SKS list --catalog "$RS/lapsed.c" --designs "$RS/d" 2>&1 | grep -q '^clinic-note-voice .*lapsed' \
+  && ok "list: a review date that has passed reads as lapsed" || no "a lapsed skill was listed as in force"
+sed 's/^review_by: 2027-04/review_by: 2026-12/' "$RS/c" > "$RS/due.c"
+SKS list --catalog "$RS/due.c" --designs "$RS/d" 2>&1 | grep -q '^clinic-note-voice .*due within 60 days' \
+  && ok "list: a review date within 60 days reads as due" || no "a skill due for review was listed as plainly in force"
+# The lapse rule is V43's, to the character: "2026-10" is lapsed from 2026-10-01.
+sed 's/^review_by: 2027-04/review_by: 2026-10/' "$RS/c" > "$RS/edge.c"
+SKS list --catalog "$RS/edge.c" --designs "$RS/d" 2>&1 | grep -q '^clinic-note-voice .*lapsed' \
+  && ok "list agrees with V43: a skill is lapsed from the first day of its review month" \
+  || no "the review page and V43 disagree about when a skill lapses"
+
+o=$(SKS show clinic-note-voice --catalog "$RS/c" --designs "$RS/d" 2>&1)
+miss=""
+for want in "covers:" "owner:" "applies_to:" "because:" "decided_by:" "review_by:" \
+            "p1  step 4 draft chase wording (thinking)" \
+            "step: from the redacted fields alone, draft what the chase note should say" \
+            "why:  the draft is read by a clinician"; do
+  case "$o" in *"$want"*) : ;; *) miss="$miss [$want]" ;; esac
+done
+[ -z "$miss" ] && ok "show: every field, and each step that uses it with the step's own text and the design's why" \
+               || no "show is missing:$miss"
+case "$o" in *"dose-phrase-conventions  proposed by p1 (design @skills); owner named: Practice operations"*)
+  ok "show: a design's proposal appears with the design and the owner it names" ;;
+  *) no "show dropped a proposal, or the owner it named" ;; esac
+case "$o" in *"tone-table  proposed by p1 (FINDINGS.md)"*)
+  ok "show: a proposal routed through FINDINGS.md appears too" ;;
+  *) no "a finding for the catalog owner never reached the review" ;; esac
+SKS show no-such-skill --catalog "$RS/c" --designs "$RS/d" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "show: an unknown skill is refused (1)" || no "show answered for a skill that does not exist"
+SKS show clinic-note-voice --catalog "$RS/c" --designs "$RS/nowhere" >/dev/null 2>&1
+[ $? -eq 75 ] && ok "a designs directory that is not there is 75, never an empty Used by" \
+              || no "a missing designs directory reported a skill as unused"
+
+# set: exactly one field, plus who and when.
+cp "$RS/c" "$RS/before.c"
+SKS set clinic-note-voice covers "what is said first; it's never abbreviated" --by "Practice operations" --catalog "$RS/c" >/dev/null 2>&1
+[ $? -eq 0 ] && ok "set: a refinement with a value and an author is written" || no "a valid refinement was refused"
+D=$(diff "$RS/before.c" "$RS/c")
+[ "$(printf '%s\n' "$D" | grep -c '^>')" = 3 ] && [ "$(printf '%s\n' "$D" | grep -c '^<')" = 2 ] \
+  && printf '%s\n' "$D" | grep -q "^> covers: what is said first; it's never abbreviated$" \
+  && printf '%s\n' "$D" | grep -q '^> decided_by: Practice operations$' \
+  && printf '%s\n' "$D" | grep -q '^> refined: 2026-10-11 by Practice operations: covers$' \
+  && ok "set changes the field, decided_by and one refined: line — nothing else in the file" \
+  || no "set touched more, or less, than it was asked to" "$(printf '%s' "$D" | head -8)"
+printf 'END{ print SK["clinic-note-voice.covers"] }\n' > "$RS/q.awk"
+[ "$(awk -f "$HERE/tooling/lib/catalog.awk" -f "$RS/q.awk" "$RS/c")" = "what is said first; it's never abbreviated" ] \
+  && ok "the catalog parser reads the refined value back" || no "set wrote something the catalog parser does not read"
+
+refuses() { # <label> <want-rc> <args...> : refused, and the catalog is byte-identical
+  local label=$1 want=$2; shift 2
+  cp "$RS/c" "$RS/pre.c"
+  SKS "$@" --catalog "$RS/c" >/dev/null 2>&1; local rc=$?
+  if [ "$rc" = "$want" ] && cmp -s "$RS/pre.c" "$RS/c"; then ok "$label is refused ($want) and the catalog is byte-identical"
+  else no "$label: exit $rc, wanted $want$(cmp -s "$RS/pre.c" "$RS/c" || echo ', and the catalog CHANGED')"; fi
+}
+refuses "set on an unknown skill"        1  set no-such-skill covers x --by Me
+refuses "set on an unknown field"        1  set clinic-note-voice chosen x --by Me
+refuses "set on decided_by"              1  set clinic-note-voice decided_by Me --by Me
+refuses "a review_by that is not YYYY-MM" 1 set clinic-note-voice review_by 2027-4 --by Me
+refuses "a review_by of month 13"        1  set clinic-note-voice review_by 2027-13 --by Me
+refuses "a review_by already lapsed under V43" 1 set clinic-note-voice review_by 2026-10 --by Me
+refuses "an empty value"                 1  set clinic-note-voice owner "  " --by Me
+refuses "a two-line value"               1  set clinic-note-voice owner "$(printf 'a\nb')" --by Me
+refuses "a value that changes nothing"   1  set clinic-note-voice owner "Practice operations" --by Me
+refuses "a refinement with no author"    64 set clinic-note-voice owner Someone
+
+# propose: a block the parser reads, marked proposed, routed to its owner.
+SKS propose dose-phrase-conventions --owner "Practice operations" --covers "how a dosing frequency is phrased" \
+  --applies-to "thinking steps that compare frequencies" --because "two designs counted bid differently" \
+  --by "Buzz, process owner" --catalog "$RS/c" >/dev/null 2>&1 \
+  && ok "propose: a new skill is written" || no "a complete proposal was refused"
+printf 'END{ print SK["dose-phrase-conventions.status"] "|" SK["dose-phrase-conventions.owner"] "|" ns }\n' > "$RS/q.awk"
+[ "$(awk -f "$HERE/tooling/lib/catalog.awk" -f "$RS/q.awk" "$RS/c")" = "proposed|Practice operations|3" ] \
+  && ok "the catalog parser reads the proposal as a third skill, status proposed" \
+  || no "the proposed block did not parse as a proposed skill"
+SKS check --catalog "$RS/c" >/dev/null 2>&1 && ok "the catalog still passes its own check" || no "propose left the catalog malformed"
+refuses "proposing a skill already catalogued" 1 propose clinic-note-voice --owner a --covers b --applies-to c --because d --by e
+refuses "proposing an id that is not a slug"   1 propose "Dose Table" --owner a --covers b --applies-to c --because d --by e
+refuses "a proposal naming no owner"           64 propose new-one --covers b --applies-to c --because d --by e
+
+# A proposed skill is catalogued and NOT in force. A design may still propose
+# it, and may not depend on it — the rule 413ab86 set for uncatalogued know-how.
+awk '/^@evidence/ && !d { print "@skills"; print "dose-phrase-conventions | 4 | depends on it"; print ""; d = 1 } { print }' \
+  "$HERE/examples/appointments-chase.design" > "$RS/dep.design"
+awk '/^@evidence/ && !d { print "@skills"; print "dose-phrase-conventions | - | needs it"; print ""; d = 1 } { print }' \
+  "$HERE/examples/appointments-chase.design" > "$RS/prop.design"
+sksay "$RS/dep.design" FAIL V40 "a step depending on a PROPOSED skill is refused — nobody has accepted it" \
+                                "a step depended on know-how its owner has not accepted" "$RS/c"
+sksay "$RS/prop.design" PASS V40 "a design may still propose a skill that is catalogued as proposed" \
+                                 "proposing a pending skill was refused" "$RS/c"
+o=$(CATALOG="$RS/c" "$HERE/tooling/validate.sh" "$RS/prop.design" 2>&1 | sed 's/\x1b\[[0-9;]*m//g')
+case "$o" in *"already catalogued"*) no "a pending proposal was called pointless, as if it were in force" ;;
+  *"WARN  V45"*"already proposed to Practice operations"*) ok "V45 says it is already proposed, and to whom" ;;
+  *) no "a proposal of a pending skill was not reported" ;; esac
+sed 's/^4 | the submission is flagged and 0 clinicians have read it |/4 | dose-phrase-conventions is not followed and 0 clinicians have read it |/' \
+  "$RS/prop.design" > "$RS/gate.design"
+sksay "$RS/gate.design" FAIL V42 "a gate resting on a proposed skill is refused, as on any skill" \
+                                 "a gate leaned on a proposal" "$RS/c"
+refuses "accepting with no review date" 64 accept dose-phrase-conventions --by "Practice operations"
+SKS accept dose-phrase-conventions --review-by 2027-06 --by "Practice operations" --catalog "$RS/c" >/dev/null 2>&1
+sksay "$RS/dep.design" PASS V40 "once its owner accepts it with a review date, a step may depend on it" \
+                                "an accepted skill was still refused" "$RS/c"
+refuses "accepting a skill already in force" 1 accept dose-phrase-conventions --review-by 2027-06 --by Me
+
+# review: one self-contained page, and it composes the commands.
+SKS review --catalog "$RS/c" --designs "$RS/d" --out "$RS/r.html" >/dev/null 2>&1
+if [ -s "$RS/r.html" ]; then
+  miss=""
+  for want in 'id="sk-clinic-note-voice"' 'id="sk-escalation-etiquette"' 'id="sk-dose-phrase-conventions"' \
+              'from the redacted fields alone, draft what the chase note should say' \
+              'the draft is read by a clinician, so it is written in the practice voice' \
+              "tooling/skills.sh set clinic-note-voice review_by '2027-04' --by" \
+              "tooling/skills.sh set escalation-etiquette covers '" \
+              'tooling/skills.sh propose ' 'tone-table' \
+              'in force, not verified as applied' 'V42' \
+              "$(shasum -a 256 "$RS/c" | cut -c1-12)" 'Generated by'; do
+    grep -qF -- "$want" "$RS/r.html" || miss="$miss [$want]"
+  done
+  [ -z "$miss" ] && ok "review: every skill, its used-by rows, the ledger wording and copyable set/propose commands" \
+                 || no "the review page is missing:$miss"
+  grep -Eiq '<(script|link|img|iframe)[^>]*(src|href)=' "$RS/r.html" \
+    && no "the review page loads something from outside itself" \
+    || ok "review: no script, stylesheet or image is loaded from anywhere — it works offline"
+  grep -Eiq 'https?://' "$RS/r.html" && no "the review page names an http(s) URL" \
+                                     || ok "review: no http(s) URL anywhere in the page"
+  grep -q 'prefers-color-scheme: dark' "$RS/r.html" && ok "review: light and dark, by the reader's setting" \
+                                                    || no "the review page has no dark scheme"
+else
+  no "review wrote no page"
+fi
+# The shell quoting the page composes must survive a real shell: run the exact
+# command the page shows for a value holding an apostrophe and a semicolon. Set
+# to what it already is, it must be refused as a no-op — any change in quoting
+# would make it a different value, and the write would go through.
+cmdline=$(grep -o "tooling/skills.sh set clinic-note-voice covers '[^<]*" "$RS/r.html" | head -1)
+cmdline=${cmdline%% --by*}
+o=$(cd "$HERE" && eval "SKILLS_TODAY=2026-10-11 $cmdline --by Tester --catalog '$RS/c'" 2>&1)
+case "$o" in *"is already that"*) ok "the page's command, run as written, carries an apostrophe and a semicolon exactly" ;;
+  *) no "the page's shell quoting changed the value" "$o" ;; esac
+rm -rf "$RS"
+echo
 echo "THE ARCHITECTURE DIAGRAMS"
 # A diagram that does not compile is a diagram nobody checked. Two of the seven
 # did not, and both were the sequence diagrams — the ones most asked for.
