@@ -9,27 +9,49 @@
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 FIXTURE=${EB_WORKLIST_FIXTURE:-$HERE/fixtures/worklist.csv}
+# Note text lives beside the list, inside the same covered boundary, so the
+# clinician reads the draft and writes the approved text in the system they
+# work from, never in a file inside the loop's bundle.
+NOTES=${EB_WORKLIST_NOTES:-$(dirname "$FIXTURE")/worklist-notes}
+HEADER=entry_id,patient_ref,appointment_id,starts_at,clinician,state,placed_at,detail_ref,decision,decided_by,decided_at
+NF=11
+
+now() { echo "${EB_WORKLIST_NOW:-$(date -u +%FT%TZ)}"; }
+readable() { [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }; }
+writable() { [ -w "$FIXTURE" ] || { echo "worklist not writable at $FIXTURE" >&2; exit 75; }
+             mkdir -p "$NOTES" 2>/dev/null && [ -w "$NOTES" ] || { echo "worklist notes not writable at $NOTES" >&2; exit 75; }; }
+nocomma() { case "$2" in *,*|*$'\n'*) echo "REFUSED: $1 may not contain a comma or a newline." >&2; exit 1 ;; esac; }
+field() {   # field <entry_id> <column number>: one column of one entry, empty if absent
+  awk -F, -v id="$1" -v c="$2" 'NR>1 && $1==id { print $c; exit }' "$FIXTURE"; }
+exists() { awk -F, -v id="$1" 'NR>1 && $1==id { f=1 } END { exit !f }' "$FIXTURE"; }
+text_in() { # text_in <source: file or -> <dest>: copy a note, refusing an empty one
+  if [ "$1" = - ]; then cat > "$2.tmp"; else [ -r "$1" ] || { echo "REFUSED: cannot read $1." >&2; exit 1; }; cat "$1" > "$2.tmp"; fi
+  [ -s "$2.tmp" ] || { rm -f "$2.tmp"; echo "REFUSED: the note is empty." >&2; exit 1; }
+  mv "$2.tmp" "$2"; }
 
 case "${1:-}" in
   health)
-    [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
+    readable
     echo "ok: eb-previsit-worklist, $(( $(wc -l < "$FIXTURE") - 1 )) entry(s)"; exit 0 ;;
   schema)
-    printf 'entry_id\tstring\npatient_ref\tstring\nappointment_id\tstring\nstarts_at\ttimestamp\nclinician\tstring\nstate\tstring\nplaced_at\ttimestamp\ndetail_ref\tstring\n'; exit 0 ;;
+    printf 'entry_id\tstring\npatient_ref\tstring\nappointment_id\tstring\nstarts_at\ttimestamp\nclinician\tstring\nstate\tstring\nplaced_at\ttimestamp\ndetail_ref\tstring\ndecision\tstring\ndecided_by\tstring\ndecided_at\ttimestamp\n'; exit 0 ;;
   fetch)
-    [ -r "$FIXTURE" ] || { echo "worklist unreadable at $FIXTURE" >&2; exit 75; }
-    awk -F, -v want="${2:-}" 'BEGIN { OFS="\t" }
-      NR==1 { $1=$1; print; next }
-      want=="" || $2==want { $1=$1; print }' "$FIXTURE"; exit 0 ;;
+    readable
+    # Rows written before the decision columns existed are padded, so every
+    # row has every field the schema reports.
+    awk -F, -v want="${2:-}" -v nf=$NF -v hdr="$HEADER" 'BEGIN { OFS="\t" }
+      NR==1 { n=split(hdr, h, ","); for (i=1;i<=n;i++) $i=h[i]; print; next }
+      want=="" || $2==want { for (i=NF+1;i<=nf;i++) $i=""; $1=$1; print }' "$FIXTURE"; exit 0 ;;
   place)
     # An interview on 2026-10-08 asked what would place an entry, given the tool
     # offered only health, schema and fetch. Nothing would have. A design that
     # writes to a store the store cannot be written to is a dependency that
     # fails on its first real tick, and the question found it at design time.
-    [ -w "$FIXTURE" ] || { echo "worklist not writable at $FIXTURE" >&2; exit 75; }
+    writable
     PT=${2:-}; APPT=${3:-}; STARTS=${4:-}; CLIN=${5:-}; STATE=${6:-}; DETAIL=${7:-}
     [ -n "$PT" ] && [ -n "$APPT" ] && [ -n "$STATE" ] || {
       echo "usage: eb-previsit-worklist place <patient_ref> <appointment_id> <starts_at> <clinician> <state> [detail_ref]" >&2; exit 64; }
+    for v in "$PT" "$APPT" "$STARTS" "$CLIN" "$DETAIL"; do nocomma "a field" "$v"; done
     # awaiting-approval, approved and declined were added 2026-10-08, after an
     # interview asked where a clinician sees a draft and found no state meant
     # "waiting for them". A state vocabulary that cannot express a process's own
@@ -37,7 +59,60 @@ case "${1:-}" in
     case "$STATE" in flagged|clear|unresolved|not-reconciled|awaiting-approval|approved|declined) ;;
       *) echo "REFUSED: state is flagged, clear, unresolved, not-reconciled, awaiting-approval, approved or declined — not \"$STATE\"." >&2; exit 1 ;; esac
     ID="WL-$(date -u +%s)-$$"
-    printf '%s,%s,%s,%s,%s,%s,%s,%s\n' "$ID" "$PT" "$APPT" "$STARTS" "$CLIN" "$STATE" "$(date -u +%FT%TZ)" "$DETAIL" >> "$FIXTURE"
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,,,\n' "$ID" "$PT" "$APPT" "$STARTS" "$CLIN" "$STATE" "$(now)" "$DETAIL" >> "$FIXTURE"
     echo "$ID"; exit 0 ;;
-  *) echo "usage: eb-previsit-worklist health|schema|fetch|place [...]" >&2; exit 64 ;;
+  draft)
+    # The chase audit on 2026-10-08 (finding 1) found the clinician was meant to
+    # read and edit a draft held in a file inside the loop's own bundle, which no
+    # clinical system can reach. The draft goes into the worklist instead.
+    writable
+    ID=${2:-}; SRC=${3:-}
+    [ -n "$ID" ] && [ -n "$SRC" ] || { echo "usage: eb-previsit-worklist draft <entry_id> <file|->" >&2; exit 64; }
+    exists "$ID" || { echo "REFUSED: no worklist entry $ID." >&2; exit 1; }
+    [ "$(field "$ID" 6)" = awaiting-approval ] \
+      || { echo "REFUSED: $ID is $(field "$ID" 6), not awaiting-approval; a draft is only for an entry waiting on a clinician." >&2; exit 1; }
+    text_in "$SRC" "$NOTES/$ID.draft.txt"
+    echo "$ID draft stored"; exit 0 ;;
+  decide)
+    # The same finding: who decided, when, and what text was approved had no
+    # catalogued source, so the check of the decision and the share of words
+    # changed could not be verified. The worklist records all three, because it
+    # is where the clinician makes the decision.
+    writable
+    ID=${2:-}; DEC=${3:-}; WHO=${4:-}; SRC=${5:-}
+    [ -n "$ID" ] && [ -n "$DEC" ] && [ -n "$WHO" ] || {
+      echo "usage: eb-previsit-worklist decide <entry_id> approved|edited|declined <clinician> [file|-]" >&2; exit 64; }
+    nocomma "the clinician" "$WHO"
+    exists "$ID" || { echo "REFUSED: no worklist entry $ID." >&2; exit 1; }
+    [ "$(field "$ID" 6)" = awaiting-approval ] \
+      || { echo "REFUSED: $ID is $(field "$ID" 6); only an entry awaiting approval can be decided, and a decision is never overwritten." >&2; exit 1; }
+    case "$DEC" in
+      approved)
+        [ -z "$SRC" ] || { echo "REFUSED: approved means approved as drafted; use edited to change the text." >&2; exit 1; }
+        [ -s "$NOTES/$ID.draft.txt" ] || { echo "REFUSED: $ID has no draft to approve." >&2; exit 1; }
+        cp "$NOTES/$ID.draft.txt" "$NOTES/$ID.approved.txt"; STATE=approved ;;
+      edited)
+        [ -n "$SRC" ] || { echo "REFUSED: edited needs the text the clinician approved (a file, or - for stdin)." >&2; exit 1; }
+        [ -s "$NOTES/$ID.draft.txt" ] || { echo "REFUSED: $ID has no draft to edit." >&2; exit 1; }
+        text_in "$SRC" "$NOTES/$ID.approved.txt"; STATE=approved ;;
+      declined)
+        [ -z "$SRC" ] || { echo "REFUSED: a declined note has no approved text." >&2; exit 1; }
+        STATE=declined ;;
+      *) echo "REFUSED: decision is approved, edited or declined — not \"$DEC\"." >&2; exit 1 ;;
+    esac
+    AT=$(now)
+    awk -F, -v OFS=, -v id="$ID" -v st="$STATE" -v dec="$DEC" -v who="$WHO" -v at="$AT" -v nf=$NF -v hdr="$HEADER" '
+      NR==1 { print hdr; next }
+      { for (i=NF+1;i<=nf;i++) $i="" }
+      $1==id { $6=st; $9=dec; $10=who; $11=at }
+      { print }' "$FIXTURE" > "$FIXTURE.tmp" && mv "$FIXTURE.tmp" "$FIXTURE"
+    echo "$ID $DEC by $WHO at $AT"; exit 0 ;;
+  text)
+    readable
+    ID=${2:-}; KIND=${3:-}
+    case "$KIND" in draft|approved) ;; *) echo "usage: eb-previsit-worklist text <entry_id> draft|approved" >&2; exit 64 ;; esac
+    exists "$ID" || { echo "REFUSED: no worklist entry $ID." >&2; exit 1; }
+    [ -r "$NOTES/$ID.$KIND.txt" ] || { echo "REFUSED: $ID has no $KIND text." >&2; exit 1; }
+    cat "$NOTES/$ID.$KIND.txt"; exit 0 ;;
+  *) echo "usage: eb-previsit-worklist health|schema|fetch|place|draft|decide|text [...]" >&2; exit 64 ;;
 esac
