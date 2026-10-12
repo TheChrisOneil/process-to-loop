@@ -385,3 +385,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing, because they were rendered before being published. Everything, had they not been.
 **changed** Every diagram is rendered to SVG and committed beside the document, and a test refuses a sequence message carrying either token.
 **generalizes** A document is not verified by being written carefully. The same notation can have different lexers per diagram type, and the subset that works in one is not the subset that works in another. Render it, or do not claim it.
+
+---
+
+## D29 · 2026-10-12 · An expired credential closed seven steps as business failures
+
+**believed** Our exit-code contract — 0 pass, 1 refused, 75 could not run — protects the record. Every check we write honours it faithfully.
+**happened** The Claude CLI OAuth session expired while two workflows ran unattended for three days. Every agent attempt failed in under a second, and seven steps closed gc.outcome=fail: Write the design, Gate: the design passes its rules, Gate: the audit is real, and four more. The beads read as a design that failed its rules and could not be drawn. It was one credential. The attempt log records only 'attempt subject <id> already failed', which names the bead that failed and not what failed about it.
+**cost** Three days of unattended running, and a diagnosis that began by reading the run as a broken design.
+**changed** Nothing in our layer, because our checks already exit 75 correctly. The orchestrator has nowhere to put a 75, so it becomes fail on the bead. Written up as the first ask in the Gas City letter, with this incident as the evidence.
+**generalizes** A contract honoured on one side of a boundary is not honoured. 75 means could-not-run only as far as the layer that reads it; one layer up, where the audit record actually lives, it is indistinguishable from refusal — and in the direction that looks worse than reality.

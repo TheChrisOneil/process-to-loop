@@ -160,8 +160,11 @@ A non-trivial workload, run repeatedly over two weeks:
 - `gc sling` → cook → materialize → route, confirmed by reading `routed_to` rather than output
 - the control dispatcher, the ready queue, and bead metadata as the run's own record
 
-It works. The failures we hit were almost entirely at **the boundary between a formula and the
-scripts it invokes** — which is partly your surface, and is in §5.
+It works, including unattended for three days across a credential expiry — the beads carried
+every run intact, and nothing had to be reconstructed.
+
+The failures we hit were almost entirely at **the boundary between a formula and the scripts it
+invokes** — which is partly your surface, and is in §5.
 
 ---
 
@@ -169,11 +172,74 @@ scripts it invokes** — which is partly your surface, and is in §5.
 
 Ordered by how much it costs us.
 
-**1. A quarantined check must not let its step close.** This is the one that matters. A check that
-cannot run leaves its step free to close, so a gate can fail *open* when its check is broken. For
-anyone using checks as controls — which is the entire regulated use case — that is a correctness
-problem, not an ergonomics one. We work around it by making each gate its own step with a bead a
-person can read afterwards. We cannot work around it in general.
+**1. A step that could not run must not close as a step that failed — and a check that could not
+run must not let its step close at all.** One ask, because it is one missing distinction, and it
+is the only thing on this list I would call a correctness problem rather than an ergonomics one.
+
+Gas City records a step as `pass` or `fail`. There is no third outcome for *could not run*, and the
+gap shows in both directions:
+
+- **failing open.** A quarantined check leaves its step free to close, so a gate permits when its
+  own check is broken. We work around it by making every gate its own step with a bead a person can
+  read afterwards. We cannot work around it in general.
+- **failing closed, and misattributing it.** An infrastructure failure consumes the step's attempts
+  and closes it `fail`, which reads as a verdict on the work.
+
+### The incident, 2026-10-09
+
+We left two workflows running unattended over three days. The Claude CLI's OAuth session expired:
+
+```
+Failed to authenticate: OAuth session expired and could not be refreshed
+```
+
+Every agent attempt after that failed in under a second. When we came back, one run showed **seven
+steps closed `fail`**:
+
+```
+FAILED  Write the design
+FAILED  Gate: the design passes its rules
+FAILED  Gate: every question came back with an answer
+FAILED  Gate: the audit is real and came from a different model
+FAILED  A person answers
+FAILED  Put the findings in front of a person
+FAILED  Draw both views and the brief
+```
+
+Read cold, that is a design that failed its rules, failed its audit gate, and could not even be
+drawn. **None of it is true.** It is one expired credential. The authoring step spent all five of its attempts on an
+auth error, and the `gc.attempt_log` records only `attempt subject <id> already failed` — which
+names the bead that failed, not what failed about it.
+
+Nothing was lost, because our artifacts are files and the answers survived. But anyone auditing
+those beads later finds six controls that read as refusals and were not, and the cost of telling
+the difference is a person remembering what was happening that week.
+
+### Why we care about this one more than the others
+
+We already solved it inside our own layer, which is how we know the fix is small and the benefit is
+large. Every check we write honours three codes, and the third is the whole point:
+
+```
+0   the condition does not hold; work continues
+1   refused — a BUSINESS outcome, and the refusal names the next human action
+75  could not run — INFRASTRUCTURE. Costs no attempt, and never reads as a failure
+```
+
+Before we had 75, a missing API key reached a person as *"your design needs revision."* After it,
+the same failure says what was missing and costs nothing. That one distinction removed more
+confusion than any other change we made.
+
+What we cannot do is carry it upward. Our checks exit 75 faithfully; the orchestrator has nowhere
+to put it, so it becomes `fail` on the bead. For a regulated buyer this matters beyond
+ergonomics: **the bead store is the audit record**, and an audit record that cannot distinguish
+*"this was refused"* from *"this could not be attempted"* is answering a regulator's question
+wrongly, in the direction that looks worse than reality.
+
+The shape of the ask: a third terminal outcome on a step — `blocked`, `could_not_run`, whatever you
+call it — that does not consume an attempt, and that a formula can be told to treat as neither pass
+nor fail. If exit 75 from an exec check already reaches you, most of the information is there
+already.
 
 **2. Per-step thinking effort.** No supported way to set it, so every stumble in a cheap
 deterministic step costs max-effort deliberation. Our most expensive runs were expensive for this
