@@ -132,6 +132,18 @@ Verify the trap did not fire:
 grep -iE "remote|sync|origin|push" ~/cities/my-rig/.beads/config.yaml
 ```
 
+**If the rig must travel between machines,** give it a private remote, but only *after*
+`gc rig add`. The trap fires when `bd init` runs, so the order is what matters:
+1. Clone the rig.
+2. Remove `origin`.
+3. Register the rig. Use `--adopt` when the clone already carries `.beads/config.yaml` and
+   `metadata.json`.
+4. Confirm that `bd config get sync.remote` says it is not set.
+5. Add `origin` back.
+
+`setup-machine.sh` does exactly this. Re-check `sync.remote` whenever `gc` re-initializes
+beads.
+
 ## 5. Do not leave the mayor resident
 
 The minimal template writes `mode = "always"` for the mayor, which holds a provider session
