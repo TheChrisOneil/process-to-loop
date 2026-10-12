@@ -20,6 +20,8 @@ help:
 	@echo "make formula-preflight F=<formula> RIG=<dir> V='k=v ...'   does everything it names resolve?"
 	@echo "make run-status Q=<artifact_root> [F=--follow]    where is this run right now?"
 	@echo "make run-report T=<transcript.jsonl>              where a run spent its time and tokens"
+	@echo "make skills [DESIGNS=<dir>] [CATALOG=<file>]     every skill: owner, review date, state, where used"
+	@echo "make skills-review [DESIGNS=<dir>]               $(OUT)/skills-review.html: review and refine skills"
 	@echo "make rules                                       all three rule sets"
 	@echo "make probe                                       what gc itself enforces"
 	@echo "make demo                                        compile the worked example"
@@ -98,6 +100,15 @@ run-report:
 	@[ -n "$(T)" ] || { echo "make run-report T=<transcript.jsonl>   (or T=--latest D=<dir>)"; exit 64; }
 	@tooling/run-report.sh "$(T)" $(D)
 
+# Skills are refined with tooling/skills.sh set/propose/accept, never by editing
+# the catalog. The page only composes those commands; it writes nothing.
+skills:
+	@tooling/skills.sh list $(if $(CATALOG),--catalog "$(CATALOG)",) $(if $(DESIGNS),--designs "$(DESIGNS)",)
+
+skills-review:
+	@tooling/skills.sh review --out "$(OUT)/skills-review.html" \
+	   $(if $(CATALOG),--catalog "$(CATALOG)",) $(if $(DESIGNS),--designs "$(DESIGNS)",)
+
 rules:
 	@echo "THE DESIGN RULES — is the method sound?"
 	@tooling/validate.sh --rules | sed 's/^/  /'
@@ -149,7 +160,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design questions discoveries decide compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
+.PHONY: help design questions discoveries decide compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff skills skills-review rules probe demo install-city install-rig install-mayor test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

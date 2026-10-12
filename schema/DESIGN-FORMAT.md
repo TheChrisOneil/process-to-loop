@@ -167,6 +167,44 @@ skill  clinic-note-voice (Practice operations) catalog fd1d69c9203b: in force, n
 **In force, never applied.** That is the only honest claim available, and it answers the question an
 auditor actually asks — *which version of the protocol was in effect on that date*.
 
+#### Reviewing and refining a skill
+
+A skill lives in the catalog, and the person who owns it (often Practice operations, not the
+design's author) reviews and changes it with `tooling/skills.sh`. **The catalog is never
+hand-edited.** A hand edit records nobody, and a typo in `review_by` lapses every design that names
+the skill without anyone noticing.
+
+```bash
+make skills                     # one line each: owner, review_by, state, designs and steps using it
+make skills-review              # build/skills-review.html: every skill, where it is used, and a refine panel
+tooling/skills.sh show clinic-note-voice              # every field, each step that applies it, open proposals
+tooling/skills.sh set clinic-note-voice review_by 2027-10 --by "Practice operations"
+tooling/skills.sh propose dose-phrase-conventions --owner "Practice operations" \
+    --covers "..." --applies-to "..." --because "..." --by "Buzz, process owner"
+tooling/skills.sh accept dose-phrase-conventions --review-by 2027-06 --by "Practice operations"
+```
+
+Designs are read from `~/cities/ptl-rig/processes` (`--designs <dir>`, `DESIGNS=` or `PTL_DESIGNS`
+to change it). Only the current design of each process is read. `prior/` and bundle copies are
+history.
+
+- **`set`** changes one of `covers`, `applies_to`, `because`, `review_by`, `owner`. It sets
+  `decided_by` to `--by` and appends `refined: YYYY-MM-DD by <who>: <field>`. It touches nothing
+  else, and it proves that against the file it wrote before replacing the catalog. A refusal leaves
+  the catalog byte-identical. Refusals cover an unknown id or field, an empty or multi-line value,
+  and a value that changes nothing. A `review_by` must be a future month in `YYYY-MM` form; V43
+  treats the current month as lapsed already.
+- **`propose`** adds a block with `status: proposed`. A proposed skill is catalogued and **not in
+  force**. A design may still propose it (`used_by: -`), and V45 reports who it waits on. No step
+  may depend on it (V40). No gate may cite it (V42). No bundle logs it as in force. **`accept`**
+  is how its owner takes it on: the owner gives it a review date, and from then on steps may
+  depend on it.
+- **`review`** writes one self-contained page, in light and dark. It loads no external script,
+  stylesheet or font, and makes no network request. The page shows each skill's fields, its lapse state, a skill → steps → designs diagram, the
+  used-by rows with each step's own text and the design's reason, and the proposals. Each field has
+  an input that composes the exact, shell-quoted `set`/`propose`/`accept` command to copy. The
+  page writes nothing. Run the command it gives you.
+
 ### `@decisions` — optional, one or more tables
 
 A gate whose condition is prose compiles to a **stub** somebody has to implement. A gate backed

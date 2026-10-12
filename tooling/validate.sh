@@ -68,7 +68,7 @@ FILE="${1:?usage: validate.sh [--tsv] <design file> | --rules}"
 # V37  every rule has one cell per input and per output
 # V38  under a unique policy, no two rules claim the same input
 # V39  a gate naming a decision table names a real table and a real output
-# V40  every skill a step DEPENDS on is in the catalog; a proposal needs nobody
+# V40  every skill a step DEPENDS on is catalogued and in force; a proposal needs nobody
 # V41  every skill is used by a step that exists, and never by a gate step
 # V42  no gate condition depends on a skill — know-how that decides is a decision table
 # V43  no design names a skill whose review date has passed
@@ -89,7 +89,7 @@ if [ -f "$CATALOG" ]; then
   # inside the awk string literal and the query file stops parsing.
   cat > "$CATFILE.q" <<'CATQ'
 END{ for (k in CAT) { ck=k; sub(/^catalog\./,"",ck); printf "#catalog\t%s\t%s\n", ck, CAT[k] }
-     for(i=1;i<=ns;i++) printf "#skill\t%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".review_by"], SK[SKID[i] ".owner"]
+     for(i=1;i<=ns;i++) printf "#skill\t%s\t%s\t%s\t%s\n", SKID[i], SK[SKID[i] ".review_by"], SK[SKID[i] ".owner"], SK[SKID[i] ".status"]
      for(i=1;i<=t;i++) printf "%s\t%s\t%s\n", TID[i], T[TID[i] ".data_class"], T[TID[i] ".provides"] }
 CATQ
   awk -f "$HERE/lib/catalog.awk" -f "$CATFILE.q" "$CATALOG" > "$CATFILE" 2>/dev/null

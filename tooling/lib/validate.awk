@@ -27,7 +27,15 @@ BEGIN {
     while ((getline cl < CATFILE) > 0) {
       n = split(cl, cf, "\t")
       if (n >= 1 && cf[1] == "#catalog") { CPOL[cf[2]] = cf[3]; continue }
-      if (n >= 1 && cf[1] == "#skill")   { CSKILL[cf[2]] = 1; CSKREV[cf[2]] = cf[3]; CSKOWN[cf[2]] = cf[4]; CSKN++; continue }
+      # A PROPOSED skill is catalogued and not in force: somebody has been named
+      # to own it and has not yet accepted it. It goes in CSKPROP, never CSKILL,
+      # so nothing below can mistake it for know-how a step may depend on. V42
+      # reads CSKANY: a gate resting on a proposal is no more checkable than a
+      # gate resting on an accepted skill.
+      if (n >= 1 && cf[1] == "#skill")   {
+        CSKANY[cf[2]] = 1; CSKREV[cf[2]] = cf[3]; CSKOWN[cf[2]] = cf[4]; CSKN++
+        if (cf[5] == "proposed") CSKPROP[cf[2]] = 1; else CSKILL[cf[2]] = 1
+        continue }
       if (n >= 1 && cf[1] != "") { CATN++; CTOOL[cf[1]] = 1; CCLASS[cf[1]] = cf[2]; CPROV[cf[1]] = cf[3] }
     }
     close(CATFILE)
@@ -341,7 +349,7 @@ END {
   if (CSKN+0 > 0) {
     cited=""
     for (sg=1; sg<=g+0; sg++) {
-      for (sk in CSKILL) if (index(GCOND[sg], sk) > 0) cited = cited " gate" sg "(" sk ")"
+      for (sk in CSKANY) if (index(GCOND[sg], sk) > 0) cited = cited " gate" sg "(" sk ")"
     }
     if (cited=="") ok("V42","no gate condition depends on a skill")
     else rec("ERROR","V42","gate condition(s) resting on a skill:" cited,
@@ -372,9 +380,14 @@ END {
       proposed = (ub == "" || ub == "-")
       if (proposed) {
         if (sid in CSKILL) pointless = pointless " " sid
+        else if (sid in CSKPROP) prop = prop " " sid "(already proposed to " CSKOWN[sid] ")"
         else { prop = prop " " sid }
         continue
       }
+      # Catalogued as a proposal is not owned yet. The catalog entry names who
+      # SHOULD own it; until they accept it, depending on it is depending on
+      # know-how nobody has taken responsibility for, which is what V40 refuses.
+      if (sid in CSKPROP) { unc = unc " " sid "(proposed to " CSKOWN[sid] ", not accepted)"; continue }
       if (!(sid in CSKILL)) { unc = unc " " sid; continue }
       byw = CSKREV[sid]
       if (byw != "" && TODAY != "" && byw < TODAY) stale = stale " " sid "(" byw ")"
@@ -390,8 +403,8 @@ END {
         if (!found) nostep = nostep " " sid "@" ssid
       }
     }
-    if (unc=="") ok("V40","every skill a step DEPENDS on is in the catalog")
-    else rec("ERROR","V40","steps depending on skills nothing catalogued:" unc,
+    if (unc=="") ok("V40","every skill a step DEPENDS on is catalogued and in force")
+    else rec("ERROR","V40","steps depending on skills nobody owns yet:" unc,
              "a design may propose know-how and may not depend on know-how nobody owns — write used_by as - to propose it, and it routes to the catalog owner as a finding")
     if (prop!="") rec("WARN","V45","know-how this design needs and the catalog does not have:" prop,
                       "this is a finding for whoever owns the catalog, not a defect in the design — the same procurement signal a missing tool is")
