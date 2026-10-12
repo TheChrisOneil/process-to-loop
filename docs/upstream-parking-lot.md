@@ -46,10 +46,27 @@ might contribute:
 whether capability diffing is wanted, or whether the release-gate check is considered sufficient.
 A comment costs nothing and does not ask maintainers to triage an opinion.
 
-**Status:** offered, 2026-10-09, as draft PR **#7416** (`contrib/pack-capability/`), which asks
-whether capability diffing is wanted as an input to the #4071 release gate. Draft, so nobody is
-asked to triage it. The contributed copy fixes the `pack/lib` path bug below and widens NORMS to
-`agents/`, where upstream packs keep role prompts.
+**Status:** built in Go and offered as draft PR **#7416**: `gc pack diff <old> <new>` and
+`gc pack capability <dir>`, backed by `internal/packcap`. CI is green as of 2026-10-11.
+
+The maintainers asked for finished solutions they can keep or reject, not proposals, so the
+contrib scripts were replaced by the native command. Code review found nine ways a real change
+could read as NONE or as a false BREAKING, and all nine are fixed:
+- every file is now digested;
+- `.md.tmpl` prompts are read;
+- symlinked packs work;
+- CRLF line endings no longer read as a change;
+- MANDATES are read with a token scanner rather than a regex;
+- inline `[[agent]]` and `[[commands]]` count;
+- the verdict precedence is BREAKING > UNCLASSIFIED > ADDITIVE > NONE;
+- `gc.kindred` no longer matches `gc.kind`;
+- the NORMS minimum-length check is no longer off by one.
+
+`gc pack diff --help` states the strategy and the limitations.
+
+Follow-ups:
+- a COMPATIBLE doctor check that writes `.gc/capability.lock` and diffs against it;
+- resolving an import binding or `source@ref` instead of requiring two directories.
 
 ---
 
@@ -69,8 +86,22 @@ fortnight.
 and COMPATIBLE keep catching real problems and the others mostly do not, propose the two that
 earn it rather than all seven.
 
-**Status:** parked. `gc ptl preflight` is importable by anyone who wants it, which is a milder
-way to offer an opinion than a pull request.
+**Status:** the generic half is offered as draft PR **#7439**, as three advisory built-in doctor
+checks. CI is green as of 2026-10-11.
+
+| Check | Property | What it does |
+|---|---|---|
+| `prompt-gc-commands` | CONSISTENT | Resolves every `gc` command written as code in a rendered agent prompt against the running `gc`. It skips commands a prompt names only to forbid them. |
+| `import-version-pins` | PINNED | Flags a remote import with no version. `--fix` pins it, and pins a bundled source to the canonical pin. |
+| `nested-pack-commits` | UNIFIED, for nested packs | Flags a subpack locked at a different commit than its parent pack. |
+
+COHERENT was already covered by `packv2-import-state`. CAPABLE is partly covered.
+
+CURRENT and COMPATIBLE stay here:
+- CURRENT needs the network and is an opinion.
+- COMPATIBLE needs the capability lock that #7416 makes possible.
+
+`gc ptl preflight` still checks all seven properties for anyone who wants that opinion.
 
 ---
 

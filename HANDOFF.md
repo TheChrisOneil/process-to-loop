@@ -14,14 +14,14 @@ As of 2026-10-11. Written on the machine at `/Users/thechrisoneil` (macOS 26.5.2
 
 | PR | Branch (fork `TheChrisOneil/gascity-upstream`) | Head | State | What it does |
 |---|---|---|---|---|
-| [#7416](https://github.com/gastownhall/gascity/pull/7416) | `feat/contrib-pack-capability-diff` | `85b39e670` | Draft | Adds `gc pack diff` and `gc pack capability`, plus the Go package `internal/packcap` |
-| [#7439](https://github.com/gastownhall/gascity/pull/7439) | `feat/doctor-pack-capability-checks` | `fcdb68451` | Draft | Adds advisory doctor checks `prompt-gc-commands`, `import-version-pins` and `nested-pack-commits` |
+| [#7416](https://github.com/gastownhall/gascity/pull/7416) | `feat/contrib-pack-capability-diff` | `80fed1d24` | Draft, CI green | Adds `gc pack diff` and `gc pack capability`, plus the Go package `internal/packcap` |
+| [#7439](https://github.com/gastownhall/gascity/pull/7439) | `feat/doctor-pack-capability-checks` | `fcdb68451` | Draft, CI green | Adds advisory doctor checks `prompt-gc-commands`, `import-version-pins` and `nested-pack-commits` |
 
-Both have been code-reviewed, and all 13 review findings are fixed with regression tests. Both `--help` texts and the docs state the commands' strategy and limitations. Neither has run Bazel, nogo or gofumpt locally; GitHub CI is their first run.
+Both have been code-reviewed, and all 13 review findings are fixed with regression tests. Both `--help` texts and the docs state the commands' strategy and limitations. On 2026-10-11, CI passed on both PRs (34 passed, 14 skipped). The only CI failure along the way was a nogo lint error in #7416 (a parameter named `new`), fixed in `80fed1d24`.
 
 **Remaining steps for the PRs:**
-1. Read CI on both PRs and fix any failures.
-2. Mark each PR ready with `gh pr ready <n> -R gastownhall/gascity`.
+1. Mark each PR ready with `gh pr ready <n> -R gastownhall/gascity`.
+2. Answer reviewer comments. Auto-fix in the Claude Code desktop app relays CI failures and comments while a session has it on.
 3. Possible follow-ups, listed in the PR bodies:
    - a COMPATIBLE doctor check using `.gc/capability.lock`;
    - one shared prompt-command extractor (`packcap.ExtractMandates`) used by both PRs;
@@ -206,6 +206,7 @@ cd ~/software/Github/wt-doctor-capability && go build -o /tmp/gc-7439 ./cmd/gc
 
   The rig's run data uses tokenized patient references (`PT-4417`) and no names or dates of birth. Treat that as a working assumption that it is synthetic. Keep real patient data out of this repo.
 
+- **Only `ptl-city` runs on this machine.** On 2026-10-11, `gascity` and `eb-city` were stopped and unregistered. They had failed since at least 2026-10-01 with `table not found: leases`, because 13 bead schema migrations (v53 → v66) are pending; see gastownhall/gascity#5920. Their files are untouched. Run `gc start` in either folder to bring it back once the migration is fixed.
 - **Never move a running city.** Run `gc stop` in `~/cities/ptl-city` before leaving a machine. The supervisor registry (`~/.gc/cities.toml`) is per machine. It also lists the cities `~/software/gascity` and `~/software/eb-city`. Those are separate projects, not part of this work, and this handoff does not cover them.
 
 ### 3.5 Claude Code memory
