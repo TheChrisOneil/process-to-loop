@@ -96,8 +96,10 @@ decided_by: Buzz, process owner
 review_by: 2027-10
 
 @tool eb-previsit-worklist
-provides: entry_id, patient_ref, appointment_id, starts_at, clinician, state, placed_at, detail_ref
-places: an entry, with its state and a reference to where the detail lives
+provides: entry_id, patient_ref, appointment_id, starts_at, clinician, state, placed_at, detail_ref, decision, decided_by, decided_at
+places: an entry, with its state and a reference to where the detail lives; the draft of a note awaiting approval
+records: the clinician's decision on a draft (approved as drafted, edited or declined), who made it and when, and the text they approved
+reads_back: the draft and the approved text of an entry (text <entry_id> draft|approved)
 states: flagged, clear, unresolved, not-reconciled, awaiting-approval, approved, declined
 via: tools/eb-previsit-worklist
 data_class: phi

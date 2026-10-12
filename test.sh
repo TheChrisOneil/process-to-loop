@@ -531,6 +531,48 @@ EB_APPOINTMENT_FIXTURE=/nope "$HERE/tools/eb-appointment-service" fetch >/dev/nu
               || no "a tool reported infrastructure failure as a business outcome"
 
 echo
+echo "THE CLINICIAN DECIDES IN THE WORKLIST"
+# The chase audit (2026-10-08, finding 1) found the clinician's decision — the
+# approved text, who decided and when — had no catalogued source, so the check
+# of the decision and the share of words changed could not be verified.
+WT=$(mktemp -d); cp "$HERE/tools/fixtures/worklist.csv" "$WT/w.csv"
+WL() { EB_WORKLIST_FIXTURE="$WT/w.csv" EB_WORKLIST_NOTES="$WT/notes" EB_WORKLIST_NOW=2026-10-11T15:00:00Z "$HERE/tools/eb-previsit-worklist" "$@"; }
+"$HERE/tooling/catalog.sh" "$CT" verify eb-previsit-worklist >/dev/null 2>&1 \
+  && ok "eb-previsit-worklist provides every field the catalog claims, decision fields included" \
+  || no "the worklist does not report the decision fields the catalog claims"
+WA=$(WL place PT-1 APT-1 2026-10-12T09:00 "Dr Reyes" awaiting-approval d-1)
+WB=$(WL place PT-2 APT-2 2026-10-12T09:30 "Dr Reyes" awaiting-approval d-2)
+WC=$(WL place PT-3 APT-3 2026-10-12T10:00 "Dr Reyes" awaiting-approval d-3)
+echo "Please call us before your visit." | WL draft "$WA" - >/dev/null 2>&1 \
+  && ok "a draft is placed in the worklist, where the clinician reads it" || no "the worklist would not hold a draft"
+WL decide "$WA" approved "Dr Okafor" >/dev/null 2>&1
+ROW=$(WL fetch | awk -F'\t' -v id="$WA" '$1==id')
+[ "$(echo "$ROW" | cut -f6,9,10,11)" = "$(printf 'approved\tapproved\tDr Okafor\t2026-10-11T15:00:00Z')" ] \
+  && ok "an approval records the decision, who made it and when" || no "the approval did not record who and when: $ROW"
+[ "$(WL text "$WA" approved)" = "Please call us before your visit." ] \
+  && ok "the approved text is read back from the worklist" || no "the approved text could not be read back"
+WL decide "$WA" declined "Dr Reyes" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a decision is never overwritten" || no "a second decision replaced the first"
+echo "Draft two." | WL draft "$WB" - >/dev/null 2>&1
+echo "Please ring the practice today." | WL decide "$WB" edited "Dr Reyes" - >/dev/null 2>&1
+[ "$(WL text "$WB" draft)" = "Draft two." ] && [ "$(WL text "$WB" approved)" = "Please ring the practice today." ] \
+  && ok "an edit keeps both the draft and the approved text, so the words changed can be counted" \
+  || no "an edit lost the draft or the approved text"
+WL decide "$WC" approved "Dr Reyes" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "nothing can be approved without a draft" || no "an entry with no draft was approved"
+WL decide "$WC" declined "Dr Reyes" >/dev/null 2>&1 && WL text "$WC" approved >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a declined note has no approved text" || no "a declined note reported approved text"
+WL decide WL-1 declined "Dr Reyes" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "only an entry awaiting approval can be decided" || no "a flagged entry was decided"
+WL decide "$WA" maybe "Dr Reyes" >/dev/null 2>&1
+[ $? -eq 1 ] && ok "a decision outside approved, edited or declined is refused" || no "an unknown decision was accepted"
+[ "$(WL fetch | awk -F'\t' 'NR>1 && NF!=11' | wc -l | tr -d ' ')" = 0 ] \
+  && ok "every row, old or new, has every field the schema reports" || no "fetch returned a row short of the schema"
+EB_WORKLIST_FIXTURE=/nope "$HERE/tools/eb-previsit-worklist" decide "$WA" approved x >/dev/null 2>&1
+[ $? -eq 75 ] && ok "an unwritable worklist exits 75 on a decision" || no "an unwritable worklist was reported as a refusal"
+rm -rf "$WT"
+
+echo
 echo "COMPILE-TIME BINDING"
 BT=$(mktemp -d); mkdir -p "$BT/run"
 printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"
