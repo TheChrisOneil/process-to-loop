@@ -69,6 +69,45 @@ Claude Code's memory and several docs assume these exact paths. Use the same mac
 
 ## 3. One-time setup on a new machine
 
+### 3.0 The short way: `setup-machine.sh`
+
+The script does everything in 3.1–3.4. It runs the same way on a new machine and on one that is already set up, so it also serves as the "arriving" step in section 4.
+
+On a new machine, run this after Homebrew is installed and `gh auth login` is done:
+
+```bash
+gh repo clone TheChrisOneil/process-to-loop ~/software/process-to-loop && ~/software/process-to-loop/setup-machine.sh
+```
+
+On a machine that is already set up:
+
+```bash
+~/software/process-to-loop/setup-machine.sh
+```
+
+What the script does:
+- Installs missing Homebrew tools.
+- Clones or fast-forwards the repos and the two PR worktrees.
+- Clones the rig with its git remote removed, so the beads trap can't fire. It adopts the rig's tracked bead identity, then restores the remote.
+- Creates the city with the pinned imports.
+- Installs this repo's formulas, checks and tooling into the city and the rig.
+- Starts the city.
+- Tests it: `gc gc --help`, `work/gc.run-operator`, `gc doctor`, `city-preflight` and `test.sh`.
+
+It never signs in for you, never force-pushes, never deletes a city, and never answers Claude Code's folder-trust prompt. It ends with a list of the steps it leaves to you.
+
+Options:
+- `NO_START=1` skips starting the city.
+- `SKIP_BREW=1` skips installing tools.
+- `SKIP_UPSTREAM=1` skips the gascity fork.
+- `CITIES_DIR`, `CITY_NAME` and `SOFTWARE_DIR` change where things go.
+
+A fresh run (scratch directories, not started) and a run on this machine (started) both reported 0 failures on 2026-10-11.
+
+**Right after a restart,** `gc doctor` reports `order-firing-current` as failing, because orders were stale while the city was stopped. It should clear once orders fire. That is an inference I have not re-checked.
+
+The rest of section 3 is what the script does, step by step, for when you need to do it by hand.
+
 ### 3.1 Tools
 
 Versions on the current machine are shown in comments.
