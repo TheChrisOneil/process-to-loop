@@ -405,3 +405,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. Caught by reading the status screen before the new run reached compile.
 **changed** REHEARSAL moved to DERIVED. A rehearsal belongs to one run: each earns its own or has none. A test asserts both lists by name rather than asserting the file is mentioned somewhere.
 **generalizes** An explicit two-list partition has a third case — on neither — and the consequence of landing there is OPPOSITE for the two kinds of file. Asking only whether everything is on a list misses it; the question is what the default does, and whether that default is right for this file.
+
+---
+
+## D31 · 2026-10-13 · An expired credential produced silence, not an error
+
+**believed** After the 2026-10-09 incident, an auth failure was understood: it closes steps fail and reads as a broken design. Loud, and wrong about the cause, but visible.
+**happened** Re-slung after logging back in, the run materialized and then did nothing. One step ready, three agents up, no failure on the run, no message on any screen. The agent sessions had started before the login landed and held the dead credential in memory. The same cause produced the opposite symptom.
+**cost** Twenty minutes of watching a run that was never going to move, and one false report that it was running.
+**changed** Kill the agent sessions after any login — added to the restart runbook as step 1b. A session showing Login expired is a session started too early.
+**generalizes** A failure mode is not characterised by the symptom you saw once. The same missing distinction — could-not-run versus failed — surfaced as seven false failures one week and as total silence the next, and silence is the harder of the two because nothing prompts you to look.

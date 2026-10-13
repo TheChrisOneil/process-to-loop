@@ -18,17 +18,46 @@ Failed to authenticate: OAuth session expired and could not be refreshed
 Every agent attempt since has failed instantly. In a terminal:
 
 ```bash
-claude /login
+claude auth login
 ```
 
-Follow the browser flow. Then confirm it took, from any directory:
+Follow the browser flow. Then confirm it took:
 
 ```bash
+claude auth status          # expect "loggedIn": true
 claude -p "reply with the single word: ok" --model claude-opus-5
 ```
 
+`claude auth status` is the reliable check. The desktop app keeps a **separate** session from the
+CLI's OAuth, so logging into one leaves the other expired — which is what happened on 2026-10-13,
+and `"loggedIn": false` was what settled it.
+
 If that prints `ok`, you are unblocked. If it prints anything about authentication, stop here —
 nothing further will work.
+
+### 1b. Kill the agent sessions — they do NOT pick up the new token
+
+An agent session holds its credential in memory from the moment it starts. Any session running
+before the login keeps the dead one, and the symptom is not an error: the run materializes, a step
+sits ready, and **nothing happens at all**. No failure on the run, no message on the screen.
+
+```bash
+cd ~/cities/ptl-city
+tmux -S /private/tmp/tmux-501/ptl-city ls | grep run-operator   # note the names
+gc session kill <each-session-name>
+```
+
+The reconciler respawns them within a minute, authenticated. Confirm by looking at one:
+
+```bash
+tmux -S /private/tmp/tmux-501/ptl-city capture-pane -p -t <new-session-name> -S -10
+```
+
+A session showing `Login expired · Please run /login` is a session started too early. Kill it.
+
+**This is the second shape of the same gap.** On 2026-10-09 the expired credential closed seven
+steps `fail`, which read as a broken design. On 2026-10-13 it produced silence instead. Both are
+the orchestrator having no way to say *could not run* — see `docs/for-gas-city.md` §5.
 
 ---
 
@@ -170,7 +199,7 @@ and it is a defect in the answers rather than in the design.
 
 ## The short version
 
-1. `claude /login`, then confirm with a one-line prompt
+1. `claude auth login`, confirm with `claude auth status`, then **kill the agent sessions**
 2. `launchctl list | grep gascity`, then `gc status`
 3. re-sling med-rec with the command in §4
 4. close its `gate-answers` when it parks
