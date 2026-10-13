@@ -7,11 +7,24 @@ infrastructure problem — an unreachable dependency, a missing credential, a se
 down — consumes the step's attempts and closes it `fail`, which is indistinguishable from the
 check having evaluated its condition and refused.
 
-Proposal: treat **exit 75** as a third outcome. It is already defined as exactly this.
+Proposal: give the check a third outcome, and reach it through exit codes that already carry this
+meaning — `75` from `sysexits.h`, and `126`/`127` from the shell. No number needs assigning.
 
-## 75 is already EX_TEMPFAIL
+## These exit codes already mean something, and gc flattens all of them
 
-From `sysexits.h`, shipped on BSD and macOS and widely followed elsewhere:
+The proposal does not need a number assigned to it. Several already carry this meaning, from
+conventions older than gc and independent of it.
+
+**From the shell, universally:**
+
+| exit | meaning | source |
+|---|---|---|
+| `127` | command not found | POSIX shell |
+| `126` | found but not executable | POSIX shell |
+| `128+n` | killed by signal n — e.g. `143` is SIGTERM | POSIX |
+
+**From `sysexits.h`** — a BSD header originating in sendmail, shipped by the OS, nothing to do
+with gc:
 
 ```c
 /*	EX_TEMPFAIL -- temporary failure, indicating something that
@@ -22,9 +35,13 @@ From `sysexits.h`, shipped on BSD and macOS and widely followed elsewhere:
 #define EX_TEMPFAIL	75	/* temp failure; user is invited to retry */
 ```
 
-*"Something that is not really an error."* That is the semantics being asked for, and an exec
-check is already a process with an exit status, so the convention applies without anything being
-introduced.
+gc does not currently assign any of these a meaning. It reads zero versus non-zero and treats
+everything else alike, so all four land in `fail`.
+
+The sharpest case needs no convention at all: **a check whose script is not on disk exits 127, and
+that is recorded as the step having failed.** The step did not fail. Nothing ran.
+
+A check killed by gc's own `timeout` is the same story, arriving as `143` or `124`.
 
 ## Current behaviour
 
@@ -57,8 +74,17 @@ Both attempts consumed, step closed `fail`. Exit 75 and exit 1 are treated ident
 | exit | outcome |
 |---|---|
 | `0` | pass |
-| `1`–`74`, `76`+ | fail — a business outcome, attempt consumed |
-| `75` | **could not run** — attempt **not** consumed, step does not close, run halts |
+| `75` | **could not run** — `EX_TEMPFAIL`: the check ran and could not do its job |
+| `126`, `127` | **could not run** — the check never ran: not executable, or not there |
+| `128`+ | **could not run** — killed by a signal, including gc's own timeout |
+| everything else | fail — a business outcome, attempt consumed |
+
+A *could not run* outcome consumes no attempt, does not close the step, and halts the run.
+
+Whether `128+` belongs in that set is the one judgement call here. A signal-killed check has not
+evaluated its condition, so treating it as a refusal asserts something that did not happen — but a
+project may reasonably want a timeout to count against its attempts. It could be the one part made
+configurable, or simply left as `fail` if that is the house view.
 
 ## Both halves already exist
 
@@ -101,6 +127,15 @@ apart is somebody remembering what was happening at the time.
 The failure is also easy to miss in the other direction: a run can stall with a step ready and
 nothing claiming it, and no bead records a reason, because the thing that could not run never got
 far enough to write one.
+
+## On repurposing 75
+
+75 is not currently reserved by gc for anything — it is swept into `fail` along with every other
+non-zero value. The compatibility question is whether a check somewhere exits 75 *meaning* a
+business refusal, and the version gate above is what makes that safe to ignore: formulas declaring
+an earlier compiler version keep today's behaviour exactly.
+
+126, 127 and `128+` carry less risk still. A check author does not choose those — the shell does.
 
 ## Related, but separate
 
