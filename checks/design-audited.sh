@@ -15,7 +15,16 @@
 # Exit 75  the check could not run
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
+# The exec checks and the formula's steps resolved DIFFERENT copies of the
+# tooling. A step follows {{tooling_root}}, which points at the repo. A check
+# resolved HERE/tooling, the copy inside the rig, stale since whenever somebody
+# last remembered to copy it. On 2026-10-13 the validate gate judged a design
+# with a validator several commits behind the repo and said nothing, because
+# both copies exist and neither knows about the other.
+# bind-checks already exports TOOLING_ROOT. Prefer it; fall back for an unbound
+# check so nothing that was working breaks.
+T=${TOOLING_ROOT:-$HERE/tooling}
+. "$T/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 
 D=${DESIGN_PATH:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set, so there is no design to check an audit against." >&2; exit 75; }

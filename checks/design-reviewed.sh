@@ -12,9 +12,18 @@
 # Exit 75  the design, the verdict or a tool is not there to judge.
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# The exec checks and the formula's steps resolved DIFFERENT copies of the
+# tooling. A step follows {{tooling_root}}, which points at the repo. A check
+# resolved HERE/tooling, the copy inside the rig, stale since whenever somebody
+# last remembered to copy it. On 2026-10-13 the validate gate judged a design
+# with a validator several commits behind the repo and said nothing, because
+# both copies exist and neither knows about the other.
+# bind-checks already exports TOOLING_ROOT. Prefer it; fall back for an unbound
+# check so nothing that was working breaks.
+T=${TOOLING_ROOT:-$HERE/tooling}
 # The controller does not export a formula's [vars] to an exec check. Recover
 # them from the workflow root before reading anything from the environment.
-. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
+. "$T/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 D=${DESIGN_PATH:-}; V=${AUDIT_VERDICT:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set — the authoring step did not record where it wrote." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D — nothing was authored." >&2; exit 75; }
@@ -22,7 +31,7 @@ command -v python3 >/dev/null || { echo "no python3 to read the verdict." >&2; e
 
 # 1. form first. A design that fails its rules is not worth auditing.
 if ! env ${QUESTIONS_PATH:+QUESTIONS="$QUESTIONS_PATH"} ${METHOD_PATH:+METHOD="$METHOD_PATH"} ${CATALOG:+CATALOG="$CATALOG"} \
-     "$HERE/tooling/validate.sh" "$D" >/tmp/dr-val.$$ 2>&1; then
+     "$T/validate.sh" "$D" >/tmp/dr-val.$$ 2>&1; then
   sed 's/^/  /' /tmp/dr-val.$$ | grep -E "FAIL" | head -6 >&2
   rm -f /tmp/dr-val.$$
   echo "NOT YET: the design does not pass its own rules." >&2
@@ -49,7 +58,7 @@ fi
 if [ "$NEEDS_AUDIT" -eq 1 ]; then
   U=${USE_CASE_PATH:-}
   [ -n "$U" ] && [ -f "$U" ] || { echo "USE_CASE_PATH is not set, so the audit has nothing to judge the design against." >&2; exit 75; }
-  "$HERE/tooling/audit-design.sh" "$D" "$U" "$V" || exit $?
+  "$T/audit-design.sh" "$D" "$U" "$V" || exit $?
 fi
 
 # 3. classify what the audit found

@@ -10,8 +10,17 @@
 # Exit 75  the bundle or the design is not there to check
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# The exec checks and the formula's steps resolved DIFFERENT copies of the
+# tooling. A step follows {{tooling_root}}, which points at the repo. A check
+# resolved HERE/tooling, the copy inside the rig, stale since whenever somebody
+# last remembered to copy it. On 2026-10-13 the validate gate judged a design
+# with a validator several commits behind the repo and said nothing, because
+# both copies exist and neither knows about the other.
+# bind-checks already exports TOOLING_ROOT. Prefer it; fall back for an unbound
+# check so nothing that was working breaks.
+T=${TOOLING_ROOT:-$HERE/tooling}
 # Formula [vars] live on the workflow root, not in an exec check's environment.
-. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
+. "$T/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 B=${BUNDLE_PATH:-}; D=${DESIGN_PATH:-}
 [ -n "$B" ] && [ -n "$D" ] || { echo "BUNDLE_PATH and DESIGN_PATH are not set — the compile step did not record where it wrote." >&2; exit 75; }
 [ -d "$B" ] || { echo "no bundle at $B — the compile step emits to ARTIFACT_ROOT/bundle, bound at the start of the run." >&2; exit 75; }

@@ -9,15 +9,24 @@
 # Exit 75  the design or the renderer is not there to check
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
+# The exec checks and the formula's steps resolved DIFFERENT copies of the
+# tooling. A step follows {{tooling_root}}, which points at the repo. A check
+# resolved HERE/tooling, the copy inside the rig, stale since whenever somebody
+# last remembered to copy it. On 2026-10-13 the validate gate judged a design
+# with a validator several commits behind the repo and said nothing, because
+# both copies exist and neither knows about the other.
+# bind-checks already exports TOOLING_ROOT. Prefer it; fall back for an unbound
+# check so nothing that was working breaks.
+T=${TOOLING_ROOT:-$HERE/tooling}
 # Formula [vars] live on the workflow root, not in an exec check's environment.
-. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
+. "$T/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 D=${DESIGN_PATH:-}
 [ -n "$D" ] || { echo "DESIGN_PATH is not set — the render step did not record where it wrote." >&2; exit 75; }
 [ -f "$D" ] || { echo "no design at $D." >&2; exit 75; }
 DIR=$(cd "$(dirname "$D")" && pwd)/diagrams
-[ -f "$HERE/tooling/lib/parse.awk" ] || { echo "the parser is not at $HERE/tooling/lib." >&2; exit 75; }
+[ -f "$T/lib/parse.awk" ] || { echo "the parser is not at $T/lib." >&2; exit 75; }
 
-WANT=$(awk -f "$HERE/tooling/lib/parse.awk" -f "$HERE/tooling/lib/gates.awk" "$D" 2>/dev/null | grep -c .)
+WANT=$(awk -f "$T/lib/parse.awk" -f "$T/lib/gates.awk" "$D" 2>/dev/null | grep -c .)
 fail=0
 for v in sequence flow; do
   f="$DIR/$v.mmd"

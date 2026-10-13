@@ -12,12 +12,21 @@
 # Exit 75  the questions file or the tool is not there to run
 set -uo pipefail
 HERE=$(cd "$(dirname "$0")/.." && pwd)
-. "$HERE/tooling/step-vars.sh" 2>/dev/null && load_workflow_vars || true
+# The exec checks and the formula's steps resolved DIFFERENT copies of the
+# tooling. A step follows {{tooling_root}}, which points at the repo. A check
+# resolved HERE/tooling, the copy inside the rig, stale since whenever somebody
+# last remembered to copy it. On 2026-10-13 the validate gate judged a design
+# with a validator several commits behind the repo and said nothing, because
+# both copies exist and neither knows about the other.
+# bind-checks already exports TOOLING_ROOT. Prefer it; fall back for an unbound
+# check so nothing that was working breaks.
+T=${TOOLING_ROOT:-$HERE/tooling}
+. "$T/step-vars.sh" 2>/dev/null && load_workflow_vars || true
 Q=${QUESTIONS_PATH:-}
 [ -n "$Q" ] || { echo "QUESTIONS_PATH is not set — the interview step did not record where it wrote." >&2; exit 75; }
 [ -f "$Q" ] || { echo "no questions at $Q — the interview wrote nothing." >&2
                  echo "A design authored with nothing asked is the thing this step replaces." >&2; exit 75; }
-[ -x "$HERE/tooling/questions.sh" ] || { echo "the questions tool is not at $HERE/tooling/questions.sh." >&2; exit 75; }
+[ -x "$T/questions.sh" ] || { echo "the questions tool is not at $T/questions.sh." >&2; exit 75; }
 
 # The use case the questions claim to be about must be the one this run read.
 # A question set carried over from a different description is a set of questions
@@ -34,4 +43,4 @@ if [ -n "${USE_CASE_PATH:-}" ] && [ -f "$USE_CASE_PATH" ]; then
   fi
 fi
 
-exec env ${CATALOG:+CATALOG="$CATALOG"} "$HERE/tooling/questions.sh" validate "$Q"
+exec env ${CATALOG:+CATALOG="$CATALOG"} "$T/questions.sh" validate "$Q"

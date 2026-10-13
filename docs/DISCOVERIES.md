@@ -557,3 +557,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. No emitted bundle has ever dropped every gate, so the guard had never been asked to fire from zero.
 **changed** The assignment ends in || true with a floor of 0, and the reason is at the call site. Proven with a two-line probe: before, exit 1 and the guard is never reached; after, the guard runs with the count 0 that makes it fire.
 **generalizes** A guard is least tested in the case it exists for, because that case is the one that has not happened yet. When a guard reads a count, check what the count does at zero.
+
+---
+
+## D46 · 2026-10-13 · The gates and the steps were running two different copies of the tooling
+
+**believed** One validator, one compiler, one set of rules. A change to validate.awk changes what every gate enforces, and a change to compile.sh changes what every run may build.
+**happened** A formula step follows tooling_root, which points at the repo. An exec check resolves HERE/tooling, where HERE is the rig — a plain copy somebody updates by hand, last touched at 11:31 while the repo moved all day. The rig's validate.awk held zero occurrences of V46 against the repo's three, 23 lines behind, so the validate gate judged med-rec with a validator several commits old and reported a clean pass. The rig's compile.sh held no acceptance check at all: anything resolving it would have built a bundle from an unsigned design, which is the exact control added that morning.
+**cost** Nothing yet, and only because the compile STEP follows tooling_root rather than HERE. The gate result was already wrong — V46 never ran on the design it was supposed to warn about.
+**changed** All 11 checks resolve tooling through TOOLING_ROOT, which bind-checks was already exporting and no check read, falling back to HERE/tooling so an unbound check still works. The rig copy is synced from the repo.
+**generalizes** Two copies of an executable are two dialects, and the comment saying so was written on a decision table while the whole toolchain had the same defect one directory up. When a value is already bound and nothing reads it, that is not a missing feature; it is a second source of truth that has not announced itself yet.
