@@ -415,3 +415,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Twenty minutes of watching a run that was never going to move, and one false report that it was running.
 **changed** Kill the agent sessions after any login — added to the restart runbook as step 1b. A session showing Login expired is a session started too early.
 **generalizes** A failure mode is not characterised by the symptom you saw once. The same missing distinction — could-not-run versus failed — surfaced as seven false failures one week and as total silence the next, and silence is the harder of the two because nothing prompts you to look.
+
+---
+
+## D32 · 2026-10-13 · We asserted exit 75 costs no attempt, in generated code, for weeks. It never did.
+
+**believed** The exit-code contract was honoured by gc: 0 pass, 1 refused, 75 could not run and costs no attempt. Every check this project emits carried a comment saying so, and the mayor prompt told a person so.
+**happened** A one-step probe with max_attempts 2 and a check that always exits 75 consumed BOTH attempts and closed the step fail. gc treats 75 exactly as it treats 1. The claim had been generated into every emitted check for weeks and nothing had ever tested it — including the test suite, which asserts a great deal about what our checks SAY and nothing about what gc does with it.
+**cost** Nothing directly, and an unknown amount indirectly: every infrastructure failure since has silently cost a revision attempt, which is part of why the authoring loop exhausted itself more than once.
+**changed** Corrected in all four places that asserted it — the emitter, CONTRACT.md, the mayor prompt and the architecture doc — and written up with the probe as evidence in the Gas City letter. We kept using 75, because the distinction is right and the day it is honoured every check here is already correct.
+**generalizes** A claim about somebody else's system, repeated in your own generated artifacts, is still a claim nobody tested. The test suite covered everything on our side of the boundary and nothing about the boundary itself, which is exactly where every expensive defect in this project has lived.

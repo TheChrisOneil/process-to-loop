@@ -58,7 +58,13 @@ script's header comment, where they are the only record of what the check was su
 
 Every emitted check exits 1 and says it is not implemented. That is correct and expected — the
 emitter writes the gate's *shape* and a person writes its logic. A check that cannot run exits
-**75**, which does not consume an attempt and must never be used for a business failure.
+**75**, which must never be used for a business failure.
+
+> **Measured 2026-10-13:** gc treats exit 75 exactly as it treats exit 1 — the attempt is
+> consumed and the step closes `fail`. A one-step probe whose check always exited 75 burned
+> both its attempts. 75 is therefore a signal to whoever reads the log, not to the
+> orchestrator. Keep using it, because the distinction is right and the day the orchestrator
+> honours it every check here is already correct — but do not rely on it costing nothing.
 
 ## A condition describes what REFUSES — `fixtures.awk`
 

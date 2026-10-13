@@ -213,7 +213,7 @@ stateDiagram-v2
 |---|---|
 | `0` | the condition does not hold; work continues |
 | `1` | refused — a business outcome, and the refusal names the next human action |
-| `75` | could not run — infrastructure. **Never** a business failure, and costs no attempt |
+| `75` | could not run — infrastructure. **Never** a business failure. *Measured 2026-10-13: gc consumes the attempt anyway and closes `fail`; see `for-gas-city.md` §5* |
 
 ---
 

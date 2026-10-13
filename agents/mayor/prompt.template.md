@@ -310,7 +310,12 @@ paraphrase of it.
 Say so plainly, say what you saw, and do not route around it:
 
 - An **infrastructure exit (75)** from a check means the check could not run —
-  a missing input, not a failing design. It costs no attempt. Fix the input.
+  a missing input, not a failing design. Fix the input.
+
+  It does still cost an attempt: gc treats 75 exactly as it treats 1, measured
+  2026-10-13. So an infrastructure problem can exhaust the authoring loop and
+  reach you looking like a design nobody could write. Read the reason before
+  you believe the outcome.
 - The **verdict check refusing** because author and audit are the same model is
   correct behaviour, not a bug. Two lanes on one model is one lane.
 - A **gate you cannot close** is usually a gate that is doing its job.

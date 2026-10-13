@@ -230,16 +230,72 @@ Before we had 75, a missing API key reached a person as *"your design needs revi
 the same failure says what was missing and costs nothing. That one distinction removed more
 confusion than any other change we made.
 
-What we cannot do is carry it upward. Our checks exit 75 faithfully; the orchestrator has nowhere
-to put it, so it becomes `fail` on the bead. For a regulated buyer this matters beyond
+What we cannot do is carry it upward, and we measured exactly how far it gets.
+
+### The probe, 2026-10-13
+
+A one-step formula. `max_attempts = 2`. One exec check, which always exits 75 and says so:
+
+```
+gc.attempt_log = [
+  {"action":"fail","attempt":"1","outcome":"fail","reason":"PROBE: this check could not run (exit 75)"},
+  {"action":"fail","attempt":"2","outcome":"fail","reason":"PROBE: this check could not run (exit 75)"}
+]
+```
+
+**Both attempts consumed, step closed `fail`, workflow closed `fail`.** Exit 75 is treated
+exactly as exit 1.
+
+We had asserted the opposite in our own generated code for weeks — every check this project emits
+carried a comment saying 75 *"does not consume an attempt"*. It was never true, and nothing had
+tested it. We have corrected the comment rather than the behaviour, because the behaviour is
+yours.
+
+One thing the probe did show is that the information is already there. When a check cannot be
+found at all, you record it:
+
+```
+gc.controller_error       = absolute gc.check_path "..." escapes trusted roots
+gc.controller_error_class = hard
+```
+
+So the controller already distinguishes *a check that could not be reached* from *a check that
+returned non-zero*. What it does not do is carry either distinction into the step's outcome, or
+let a formula say what to do about it. Across 186 recorded outcomes in our bead store, exactly two
+values appear: `pass` and `fail`. For a regulated buyer this matters beyond
 ergonomics: **the bead store is the audit record**, and an audit record that cannot distinguish
 *"this was refused"* from *"this could not be attempted"* is answering a regulator's question
 wrongly, in the direction that looks worse than reality.
 
-The shape of the ask: a third terminal outcome on a step — `blocked`, `could_not_run`, whatever you
-call it — that does not consume an attempt, and that a formula can be told to treat as neither pass
-nor fail. If exit 75 from an exec check already reaches you, most of the information is there
-already.
+### Two incidents, one cause, opposite symptoms
+
+**2026-10-09.** A credential expired while two workflows ran unattended. Seven steps closed
+`fail`, reading as a design that failed its rules and could not be drawn. Loud, and wrong about
+the cause.
+
+**2026-10-13.** Re-slung after logging back in. The agent sessions had started before the login
+landed and held the dead credential, so the run materialized, one step sat ready, three agents
+were up — and **nothing happened at all.** No failure, no message, nothing on any screen. We
+reported the run as healthy before checking.
+
+Same missing distinction. Silence is the harder of the two, because nothing prompts you to look.
+For a product aimed at unattended operation, it is also the disqualifying one.
+
+### The shape of the ask
+
+A third terminal outcome on a step — `blocked`, `could_not_run`, whatever you call it — that does
+not consume an attempt, and that a formula can be told to treat as neither pass nor fail. Exit 75
+from an exec check already reaches you, `controller_error_class` already exists, and
+`bd config set status.custom` already accepts new states. The information and the vocabulary are
+both present; what is missing is the wiring between them.
+
+Failing that, two smaller things would recover most of the value:
+
+- **a non-zero exit that does not consume an attempt**, selectable per check. Even one reserved
+  code would do
+- **an agent that cannot authenticate should not claim work.** A session holding a dead credential
+  claims a bead, fails in under a second, and the only trace is `attempt subject <id> already
+  failed` — which names the bead that failed, not what failed about it
 
 **2. Per-step thinking effort.** No supported way to set it, so every stumble in a cheap
 deterministic step costs max-effort deliberation. Our most expensive runs were expensive for this
