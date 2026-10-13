@@ -21,16 +21,33 @@ cd "$Q" || { echo "cannot enter $Q." >&2; exit 75; }
 # Which workflow owns this artifact_root? Resolved once, so a caller needs no
 # bead id to get a truthful answer.
 if [ -z "${ROOT_BEAD:-}" ]; then
-  ROOT_BEAD=$(ARTQ="$Q" gc bd list --json 2>/dev/null | ARTQ="$Q" python3 -c "
+  # A re-sling against the same artifact_root leaves BOTH runs in the store, and
+  # the first match in list order is as likely to be the dead one as the live
+  # one. On 2026-10-13 this reported a stale run's human gate as the current
+  # state of a run that was four steps along. Take the most recently updated,
+  # and say out loud that there was more than one.
+  ROOT_RESOLVE=$(ARTQ="$Q" gc bd list --json 2>/dev/null | ARTQ="$Q" python3 -c "
 import json, sys, os
 q = os.environ.get('ARTQ', '')
 try: bs = json.load(sys.stdin)
 except Exception: raise SystemExit
-for b in bs:
-    md = b.get('metadata') or {}
-    if md.get('gc.kind') == 'workflow' and md.get('gc.var.artifact_root') == q:
-        print(b.get('id') or ''); break
+m = [b for b in bs
+     if (b.get('metadata') or {}).get('gc.kind') == 'workflow'
+     and (b.get('metadata') or {}).get('gc.var.artifact_root') == q]
+if not m: raise SystemExit
+m.sort(key=lambda b: b.get('updated_at') or '', reverse=True)
+print(m[0].get('id') or '')
+print(len(m))
+for b in m[1:]:
+    print('%s\t%s\t%s' % (b.get('id'), b.get('status'), b.get('updated_at')))
 " 2>/dev/null)
+  ROOT_BEAD=$(printf '%s\n' "$ROOT_RESOLVE" | sed -n 1p)
+  ROOT_COUNT=$(printf '%s\n' "$ROOT_RESOLVE" | sed -n 2p)
+  if [ "${ROOT_COUNT:-1}" -gt 1 ] 2>/dev/null; then
+    echo "NOTE: $ROOT_COUNT workflows name this artifact_root. Reporting the most recently" >&2
+    echo "      updated, $ROOT_BEAD. The others are stale and their beads still exist:" >&2
+    printf '%s\n' "$ROOT_RESOLVE" | sed -n '3,$p' | sed 's/^/        /' >&2
+  fi
 fi
 # An empty answer here means "I found no run", and it must not be reported as
 # "the run has done nothing". Those look identical on screen and they are not

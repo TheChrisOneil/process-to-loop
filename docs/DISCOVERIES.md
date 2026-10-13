@@ -487,3 +487,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** One full run, and the finding was the harness rather than the thing being tested.
 **changed** bind-checks takes --checks so a formula binds its own set, and writes a manifest of what it bound. checks-bound reads that manifest instead of carrying its own copy of the list, which removes the duplication that would have drifted next.
 **generalizes** A fix applied to one caller of a shared pattern is not a fix to the pattern. The untouched callers look identical until one is exercised, and the first thing to run after a long gap is the thing most likely to be carrying an old defect.
+
+---
+
+## D39 · 2026-10-13 · The status screen picked one of two runs sharing an artifact_root, and did not say so
+
+**believed** A run is identified by its artifact_root. run-status resolves the workflow bead from that path, and the resolution was written as a loop with a break on the first match, which assumed the match is unique.
+**happened** Re-slinging gate 2 against the same artifact_root left both the dead run and the live one in the bead store, each naming that path. The first in list order was the dead one. The screen reported its human gate as the current state while the live run was four steps further along, and nothing on screen indicated a choice had been made.
+**cost** About fifteen minutes reading a status that described a run that had already stopped.
+**changed** Resolution now takes the most recently updated match and prints a NOTE naming the count and listing the stale ids on stderr.
+**generalizes** A lookup that assumes a unique match must say what it did when the match was not unique. Taking the first and printing nothing produces a screen that is wrong and confident in the same way a correct one looks, which is the failure mode every other part of this project is built to refuse.
