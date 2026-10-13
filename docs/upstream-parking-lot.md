@@ -328,6 +328,32 @@ lands.
 
 ---
 
+## Standing note: we are not the average user
+
+Almost everything below was found by driving gc with **generated formulas and a great many exec
+checks**. That is a heavier use of the check surface than most — somebody hand-writing a formula
+does not produce a self-referencing `needs`, and a person running a handful of steps does not
+notice that an unreachable check burns five attempts.
+
+So read these as *what a heavy user of exec checks runs into*, not as *what is wrong with gc*. The
+distinction matters when deciding what to send: a defect only we hit, in a surface only we lean
+on, is a lower claim on a maintainer's attention than our own frustration suggests.
+
+**Ranked by whether anybody is blocked:**
+
+| | |
+|---|---|
+| **a real correctness issue** | **the quarantine** — a check that cannot run lets its step close, so a gate permits when its own check is broken. This one matters to anyone using checks as controls |
+| everything else here | diagnostics and ergonomics. Worth fixing, not worth interrupting somebody's reliability work for |
+
+We filed one of the nicities as an issue on 2026-10-13 and withdrew it the same day
+([#7801](https://github.com/gastownhall/gascity/issues/7801)) on exactly this reasoning.
+
+**The rule going forward: a nicety gets flagged, not filed.** Building out the vocabularies —
+sources, tools, skills, decisions, questions — is worth more than any of this.
+
+---
+
 ## PARKED-5 · No step outcome for *could not run*
 
 **Status 2026-10-13: investigated, with probes. Not yet proposed upstream.**
@@ -514,3 +540,57 @@ Not by us. Both are gc's code.
 
 Both belong in the same upstream conversation, and neither is a reason to leave the platform. What
 would be: a gap we cannot work around at all. We have not met one.
+
+
+---
+
+## PARKED-7 · A self-referencing `needs` is caught after beads exist
+
+**A nicety. Filed, withdrawn, parked 2026-10-13.**
+
+A step whose `needs` names its own id is refused at graph-apply rather than in the loader:
+
+```
+native graph apply: adding edge wk-2sjj->wk-2sjj: cannot add self-dependency
+```
+
+The bead id is the tell — beads exist by then. The sibling case is caught cleanly before anything
+is created:
+
+```
+  - steps[0] (a): needs references unknown step "nosuchstep"
+```
+
+Both are decidable from the file alone. The fix is a few lines beside the existing check.
+
+**Why it is parked rather than pursued.** Nobody is blocked. The condition is caught; it fires
+later with a worse message. And it is close to unreachable for a normal user — a self-dependency
+comes from a generator, which is what we are. We hit it probing, not working.
+
+Filed as [#7801](https://github.com/gastownhall/gascity/issues/7801) and withdrawn the same day
+once that was clear. Worth sending again only if bundled with something somebody is blocked by.
+
+---
+
+## PARKED-8 · When work cannot proceed, the reason should reach a bead
+
+**The useful half of PARKED-5, restated non-breakingly.** Full draft in
+`docs/upstream/pr-2-report-the-error-condition.md`.
+
+The goal is not a new outcome. It is that a coordinator has enough to ask a person to fix
+something. Three cases:
+
+| case | what is recorded | wanted |
+|---|---|---|
+| the check ran and failed | the reason, on the bead | nothing — already right |
+| the controller could not reach the check | `controller_error` and `controller_error_class`, but `outcome` alone cannot distinguish it, and all attempts burn on the same unreachable path | do not consume an attempt; surface the error beside the outcome |
+| **an agent cannot claim the work** | **nothing, anywhere** — the logical bead says `attempt subject X already failed` and X holds an empty record | write the reason on the bead that could not be claimed |
+
+The third is the only one with real teeth, and it is the one that produced a run sitting silent
+with a ready step and live agents.
+
+**Still a nicety by the ranking above**, because a person watching a run finds out eventually. It
+earns promotion if it ever costs a run that nobody noticed had stopped.
+
+None of the three changes an outcome value, so none breaks a consumer. That is deliberate: an
+earlier draft asked for a third terminal outcome and would have left runs that never terminate.
