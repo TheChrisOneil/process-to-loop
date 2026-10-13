@@ -353,11 +353,26 @@ gc.attempt_log = [
 Both attempts consumed, step closed `fail`. **We had asserted the opposite in every emitted check
 for weeks** and never tested it.
 
-**2 — `[steps.check.check]` carries three keys, and discards the rest silently.** A cooked formula
-declaring `blocked_exit_codes = [75]` and `on_could_not_run = "blocked"` compiled without a word
-of complaint, and neither key reached the bead. Only `mode`, `path` and `timeout` survive. A
-formula can declare check behaviour that never happens — declared, reported, absent, at the
-platform level.
+**2 — an UNKNOWN key in `[steps.check.check]` is accepted and silently discarded.** A formula
+declaring `blocked_exit_codes = [75]` and `on_could_not_run = "blocked"` cooked without a word of
+complaint, and neither key reached the bead. Only `mode`, `path` and `timeout` survive.
+
+Be precise about the scope, because the first draft of this note was not. gc **does** validate the
+keys it knows: misspell `max_attempts` and cooking fails with *"max_attempts must be >= 1"*,
+because its absence violates a constraint. The exposure is narrower than "typos are not caught":
+
+| | caught? |
+|---|---|
+| a known key with a violated constraint | **yes** |
+| a known key misspelled, leaving a constrained key absent | **yes**, indirectly |
+| a key gc does not know | **no** — accepted, dropped, silent |
+| a known optional key misspelled | **no** |
+
+The second half of that table is where a formula can declare check behaviour that never happens.
+It matters here more than elsewhere: this project's whole claim is that a formula is the
+EXECUTABLE form of a method, as against a document that merely describes one. A formula carrying
+declarations that are silently inert is, in that respect, partly a document — and a reader cannot
+tell by looking which parts are load-bearing.
 
 **3 — `gc.outcome` holds two values.** Across 186 recorded outcomes: `pass` and `fail`. Nothing else.
 
@@ -396,8 +411,9 @@ Smallest change that would close it, in preference order:
 2. **Per-check configuration**, e.g. `blocked_exit_codes = [75]` in `[steps.check.check]` — which
    is what an author would reach for first, which is why it was the shape probed. Requires the key
    to stop being discarded.
-3. **Failing both: reject unknown keys.** If a formula cannot declare this, it should not be able
-   to appear to.
+3. **Failing both: reject unknown keys in a check block.** If a formula cannot declare this, it
+   should not be able to appear to. gc already validates the keys it knows; this asks it to also
+   refuse the ones it does not.
 
 ### The second half, which is worse
 
