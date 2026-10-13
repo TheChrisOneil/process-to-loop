@@ -465,3 +465,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Most of a proposal, and an extensibility design nobody needed. Caught before submission by somebody reading the ask instead of the draft.
 **changed** Rewritten around the three outcomes. The unknown-key defect is real and kept as a separate, smaller PR; the registry analysis stands for whenever gc does add a key worth misspelling.
 **generalizes** A proposal that grows a sub-design has usually answered the wrong question. The tell is the second layer: needing a registry to protect a key is a signal the key was the wrong move, not that the registry is hard. State the ask as an OUTCOME before designing a mechanism for it.
+
+---
+
+## D37 · 2026-10-13 · I argued from a convention gc never sees
+
+**believed** A check script that is missing exits 127, and one that is not executable exits 126, so gc was discarding exit codes the shell already gives it. The proposal was built on that.
+**happened** gc never sees either. It resolves the path itself and reports 'resolving check path: lstat ...: no such file or directory' with controller_error_class = hard, then closes the step fail. The shell is never reached, so no shell convention applies — and the real finding is better: gc computes the classification and then discards it.
+**cost** A proposal built on a mechanism that is not in the path. Caught by probing rather than by a maintainer.
+**changed** PR 2 split in two. Part 1 asks gc to honour the classification it ALREADY computes, which needs no conventions, no exit codes and no compatibility gate. Part 2 is the genuine convention case: a check that ran and found its own dependency missing, which only the check can report, via EX_TEMPFAIL.
+**generalizes** Before arguing that a system should honour a convention, check that the convention is reachable from where the system stands. Twice now the stronger argument was already in the system's own output, and reading it was faster than reasoning about what ought to be there.
