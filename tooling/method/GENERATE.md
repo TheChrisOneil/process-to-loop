@@ -43,8 +43,24 @@ description. Every gap you filled is an assumption, and it goes in `@assumptions
 assumptions are hidden reads as authoritative and stops the conversation it should start.
 
 **Step 2 — Remove the rule-shaped work.** Anything whose decision rule can be written down is
-a mechanical step, not a judgment. Most of the process is this. If the entire process is
-rule-shaped, say so in an assumption — that process wants ordinary automation, and is cheaper.
+a step no model touches. Most of the process is this. If the entire process is rule-shaped, say
+so in an assumption — that process wants ordinary automation, and is cheaper.
+
+**Which kind, and why it matters.** A step's type is not a label for what the work feels like.
+It names **where the step's oracle comes from** — the thing that can say the step is correct
+without being the step itself. Pick the one that is true:
+
+| type | actor | what checks it |
+|---|---|---|
+| `tool-call` | code | its **catalog entry**. The entry names the endpoint, the fields, the data class and the permission, so a step reading a field the entry does not list is refusable before it runs |
+| `decision` | code | its **decision table**. Completeness and non-overlap are machine-checkable ahead of any run, and the table is the rule rather than a description of one |
+| `gate` | code | its **condition**. The condition names inputs and a boundary, so the fixtures come from the condition and not from the script |
+| `test` | code | **one violating case per claim** in its description. A test step that checks four things cannot ship with fixtures for three |
+| `thinking` | model or human | **the test and the gate around it**. Nothing checks the prompt; what makes the step admissible is the recomputation beside it |
+| `coordination` | code | **nothing of its own.** Ordering, capping, admitting. If you reach for it often, the step is probably derivable from the unit definition and wants generating rather than writing |
+
+Do not write `mechanical`. It is still accepted and rule 46 warns, because it names three of
+these at once and a validator cannot ask it for the right evidence.
 
 **Step 3 — Name the unit of work.** The smallest thing that gets exactly one decision. Not the
 queue, not the inbox, not the day. Then apply the two-people test: two competent people, given
@@ -58,14 +74,14 @@ the same input and unable to confer, produce the same units — or they argue.
 
 | | Scope | Type | Doing what |
 |---|---|---|---|
-| 1 | batch | mechanical | retrieve and normalize the inputs |
-| 2 | batch | mechanical | partition them into units, and screen any externally-written text |
+| 1 | batch | tool-call | retrieve and normalize the inputs |
+| 2 | batch | decision | partition them into units, and screen any externally-written text |
 | 3 | batch | coordination | order the units and cap how many are worked |
 | 4 | unit | gate | refuse what is not machine-safe, before anything is spent |
 | 5 | unit | thinking | the one question a rule cannot answer |
 | 6 | unit | test | recompute independently what the judgment claimed |
 | 7 | unit | gate | refuse an unusable or unverified result |
-| 8 | unit | mechanical | write the proof and checksum it |
+| 8 | unit | tool-call | write the proof and checksum it |
 | 9 | unit | coordination | deliver a proposal to the named approver |
 
 **Step 5 — Isolate the judgment.** Exactly one thinking step. If you believe you need two,
@@ -139,13 +155,13 @@ A design is rejected unless all of these hold:
 8. `fanout` is a number and `fanout_reason` is set
 9. Step ids run 1..N with no gaps
 10. Every step has a known type, a known actor, and a description of 15+ characters
-11. Coordination, mechanical, test and gate are always `code`; only `thinking` is `model` or `human`
+11. `tool-call`, `decision`, `coordination`, `test` and `gate` are always `code`; only `thinking` is `model` or `human`
 12. Exactly one thinking step, or set `thinking_justification` in `@unit`
 13. Every thinking step is followed by a test or a gate
 14. At least two gates
 15. Every gate condition contains a number, a comparison, or the word "never"
 16. Every refusal is 25+ characters and is not "needs review", "escalate", "cannot proceed" or "TBD"
-17. `evidence.writer_step` names a **mechanical** step
+17. `evidence.writer_step` names a step **no model touches** — `tool-call`, `decision` or `coordination`
 18. `evidence.integrity` says how tampering is detected
 19. At least three KPIs, including one `cost` and one `quality`
 20. Baselines are given, or written `unmeasured`
