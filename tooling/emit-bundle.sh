@@ -162,7 +162,7 @@ fi
 step_say() {
   local c=""
   case "$3" in
-    mechanical) c="$C_MECH" ;; coordination) c="$C_COORD" ;;
+    mechanical|tool-call|decision) c="$C_MECH" ;; coordination) c="$C_COORD" ;;
     thinking)   c="$C_THINK" ;; test)        c="$C_TEST"  ;;
     gate)       c="$C_GATE" ;;
   esac
@@ -197,6 +197,8 @@ while IFS=$'\t' read -r _ ID SLUG TYPE ACTOR DESC SCOPE; do
   NOTE="a step of the process"
   case "$TYPE" in
     mechanical)   NOTE="a rule: same input, same output, no tokens" ;;
+    tool-call)    NOTE="reads through a catalogued tool; the entry says what it may touch" ;;
+    decision)     NOTE="a decision table, complete and non-overlapping before it ran" ;;
     coordination) NOTE="binds, routes, records — it decides nothing" ;;
     test)         NOTE="runs the real check against the before-state" ;;
     thinking)     NOTE="the one question a rule cannot answer" ;;

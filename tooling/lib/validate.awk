@@ -105,14 +105,29 @@ END {
   terr=""; aerr=""; derr=""; xerr=""
   for (i=1;i<=s;i++) {
       t=tolower(STYPE[i]); ac=tolower(SACT[i])
-      if (t!="coordination" && t!="mechanical" && t!="thinking" && t!="test" && t!="gate") terr=terr " " SID[i]
+      # The vocabulary grew on 2026-10-13. A step's kind is not a label for what
+      # the work feels like — it names WHERE THE STEP'S ORACLE COMES FROM, and
+      # "mechanical" named three different oracles at once. tool-call is checked
+      # against the catalog entry, decision against its table's completeness and
+      # non-overlap, test against a violating case per claim. mechanical is still
+      # accepted and V46 says what it costs.
+      if (t!="coordination" && t!="mechanical" && t!="tool-call" && t!="decision" \
+          && t!="thinking" && t!="test" && t!="gate") terr=terr " " SID[i]
+      if (t=="mechanical") { unclassified = unclassified " " SID[i] }
       if (ac!="code" && ac!="model" && ac!="human") aerr=aerr " " SID[i]
       if (length(SDESC[i])<15) derr=derr " " SID[i]
       if (t!="thinking" && ac!="code") xerr=xerr " " SID[i]
       if (t=="thinking" && ac=="code") xerr=xerr " " SID[i]
       if (t=="thinking") { th++; THI[th]=i }
   }
-  if (terr=="") ok("V10","every step has a known type"); else rec("ERROR","V10","unknown step type at step(s)" terr,"use coordination, mechanical, thinking, test or gate")
+  if (terr=="") ok("V10","every step has a known type"); else rec("ERROR","V10","unknown step type at step(s)" terr,"use tool-call, decision, coordination, thinking, test or gate")
+  # WARN, not ERROR, because five designs were written before the vocabulary
+  # existed and refusing them would make the change a migration nobody asked for
+  # today. It becomes an ERROR once those five are re-authored; the date is here
+  # so a reader can tell a deliberate grace period from a rule somebody forgot.
+  if (unclassified != "")
+    rec("WARN","V46","\"mechanical\" says nothing about what checks this step, at step(s)" unclassified,"tool-call is checked against its catalog entry, decision against its table being complete and non-overlapping, coordination against nothing because it should be generated — pick the one that is true (grace period opened 2026-10-13)")
+  else if (s > 0) ok("V46","every step names where its oracle comes from")
   if (aerr=="" && derr=="") ok("V10","every step has a known actor and a description of substance")
   else { if (aerr!="") rec("ERROR","V10","unknown actor at step(s)" aerr,"use code, model or human")
          if (derr!="") rec("ERROR","V10","description too short at step(s)" derr,"say what the step does, 15 characters minimum") }
@@ -191,8 +206,8 @@ END {
   # V17 proof writer is mechanical
   ws=V["evidence.writer_step"]; wt=""
   for (i=1;i<=s;i++) if (SID[i]==ws) wt=tolower(STYPE[i])
-  if (wt=="mechanical") ok("V17","the proof is written by a mechanical step")
-  else if (wt=="") rec("ERROR","V17","evidence.writer_step " (ws==""?"is unset":"names no step: " ws),"point it at a mechanical step")
+  if (wt=="mechanical" || wt=="tool-call" || wt=="decision" || wt=="coordination") ok("V17","the proof is written by a step no model touches")
+  else if (wt=="") rec("ERROR","V17","evidence.writer_step " (ws==""?"is unset":"names no step: " ws),"point it at a tool-call, decision, coordination or mechanical step")
   else rec("ERROR","V17","the proof is written by a " wt " step","evidence a model can edit is not evidence")
 
   # V18 integrity

@@ -22,7 +22,8 @@ END {
         print "    H" j ":::out"
         prev=id; break }
     } else {
-      cls = (t=="mechanical" ? "mech" : t=="thinking" ? "think" : t=="test" ? "test" : t=="gate" ? "gate" : "coord")
+      cls = (t=="mechanical" || t=="tool-call" ? "mech" : t=="decision" ? "decide" \
+             : t=="thinking" ? "think" : t=="test" ? "test" : t=="gate" ? "gate" : "coord")
       print "    " id "[\"" lbl "\"]:::" cls
       print "    " prev " --> " id
       prev=id
@@ -41,6 +42,7 @@ END {
   }
   print "    " prev " --> OUT([\"DELIVER to " clean(V["meta.approver"],40) "<br/>the machine never approves its own work\"]):::out"
   print "    classDef mech fill:#d6ead6,stroke:#3a7d3a"
+  print "    classDef decide fill:#cfe3d4,stroke:#2f6b4a"
   print "    classDef coord fill:#e9e3d2,stroke:#7a6a3a"
   print "    classDef think fill:#f5dbe4,stroke:#8f3754"
   print "    classDef test fill:#dceef5,stroke:#2d6d80"

@@ -71,6 +71,30 @@ then no "a design edited after acceptance was compiled under the old signature"
 else ok "one byte added after acceptance and the design is refused"; fi
 rm -rf "$AC"
 
+# The step kinds name where a step's oracle comes from. "mechanical" named three
+# at once, so it stays legal and warns; the kinds that replaced it must validate,
+# compile and carry their own properties.
+KD=$(mktemp -d)
+sed -e 's/| mechanical |/| tool-call |/' "$HERE/examples/invoices.design" > "$KD/d.design"
+KV=$("$HERE/tooling/validate.sh" "$KD/d.design" 2>&1)
+case "$KV" in *"every step has a known type"*) ok "tool-call is a known step type" ;;
+              *) no "V10 refused tool-call" ;; esac
+case "$KV" in *"every step names where its oracle comes from"*) ok "a design with no mechanical step names every oracle" ;;
+              *) no "V46 did not pass a design free of mechanical steps" ;; esac
+MV=$("$HERE/tooling/validate.sh" "$HERE/examples/invoices.design" 2>&1)
+case "$MV" in *"says nothing about what checks this step"*) ok "a mechanical step warns that it names no oracle" ;;
+              *) no "V46 let mechanical through without a word" ;; esac
+accept_fixture "$KD/d.design"
+"$HERE/tooling/compile.sh" "$KD/d.design" --name kd-t --out "$KD/o" >/dev/null 2>&1 \
+  && ok "a design using the new kinds compiles" || no "a tool-call design did not compile"
+KP=$(awk -v ID=1 -v SLUG=x -v TYPE=tool-call -v ACTOR=code -v SCOPE=batch -f "$HERE/tooling/lib/step-properties.awk" </dev/null)
+case "$KP" in *field-covered*) ok "a tool-call step is checked against its catalog entry" ;;
+              *) no "tool-call got no property beyond determinism" ;; esac
+KP=$(awk -v ID=1 -v SLUG=x -v TYPE=decision -v ACTOR=code -v SCOPE=unit -f "$HERE/tooling/lib/step-properties.awk" </dev/null)
+case "$KP" in *no-fallthrough*) ok "a decision step is checked against its table being complete" ;;
+              *) no "decision got no property beyond determinism" ;; esac
+rm -rf "$KD"
+
 # F5: delete a check script and the formula must stop validating
 cp "$OUT/formulas/fc-invoices.toml" "$OUT/f5.toml" 2>/dev/null
 rm -f "$OUT/.gc/scripts/checks/fc-invoices-g01.sh"

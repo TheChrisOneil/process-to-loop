@@ -20,9 +20,25 @@ END {
   printf "ledger\twrites a ledger line on every exit path\ta step that returns silently cannot be costed or audited\n"
   printf "confinement\twrites only under memory/, proof/ and outbox/\ta step that writes elsewhere is a side effect nobody recorded\n"
 
-  if (t == "mechanical" || t == "coordination" || t == "test") {
+  # Determinism is true of every code kind and is the ORACLE for none of them.
+  # Running a script twice and comparing bytes says nothing about whether a tool
+  # call read a field its catalog entry covers, or whether a decision table has
+  # a row for every combination of its inputs. So the shared promises stay shared
+  # and each kind then earns the property that actually checks it.
+  if (t == "mechanical" || t == "coordination" || t == "test" \
+      || t == "tool-call" || t == "decision") {
     printf "no-model\tcontains no provider call\tthis type is a rule; a rule that asks a model is not a rule\n"
-    printf "determinism\tsame input twice, byte-identical output\tthe definition of this type, and it is runnable\n"
+    printf "determinism\tsame input twice, byte-identical output\tnecessary for every code step and sufficient for none\n"
+  }
+  if (t == "tool-call") {
+    printf "catalogued\treads and writes only through tools named in @tools\ta call to something nobody sanctioned is a call nobody reviewed\n"
+    printf "field-covered\tevery field it reads is one its catalog entry lists\tthe entry is the oracle; a field outside it was assumed\n"
+    printf "logs-provenance\twrites a read row naming the source, the tool and the data class\tan auditor asking where a number came from reads this row\n"
+  }
+  if (t == "decision") {
+    printf "table-backed\tevery outcome it returns comes from a named decision table\ta branch written in the script is a rule the validator never saw\n"
+    printf "no-fallthrough\tno outcome is produced for input the table does not cover\tthe table is complete by construction; a default hides the gap it leaves\n"
+    printf "shared-semantics\tevaluates cells through the bundled dt-cell.awk, not its own comparison\ttwo copies of what \">= 2000\" means are two dialects\n"
   }
   if (t == "thinking" && a == "model") {
     printf "is-model\tcalls exactly one provider, once per unit\tthe design names one judgment; two is a design change\n"
