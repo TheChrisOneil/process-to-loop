@@ -82,9 +82,69 @@ required = true
 description = "Absolute path where this run writes the script, the verdict and the log."
 required = true
 
+[vars.checks_root]
+description = "Absolute path to the rig's checks directory, which holds the real check scripts this run binds."
+required = true
+
+[vars.tooling_root]
+description = "Absolute path to the process-to-loop tooling directory."
+required = true
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "bind-checks"
+title = "Bind this run's checks to this run's values"
+description = """
+Deterministic work only. This runs before anything else.
+
+gc hands an exec check one thing: GC_BEAD_ID. It does not hand it the workflow
+output a step recorded, so a check cannot read a value a step "reported". The
+first ever run of check-authoring reached both its gates on 2026-10-13 and both
+reported the same thing — "CHECK_SCRIPT and CHECK_FIXTURES are not set",
+"AUDIT_VERDICT is not set" — neither of which had anything to do with the script
+being judged. This formula had the same shape and had never been run, so nothing
+had found it here yet.
+
+Bind them while every value is still known:
+
+    {{tooling_root}}/bind-checks.sh --checks "step-selftest audit-verdict" \
+      {{artifact_root}} {{checks_root}} \
+      STEP_SCRIPT={{step_path}} \
+      STEP_PROPERTIES={{properties_path}} \
+      STEP_BUNDLE={{bundle_path}} \
+      AUDIT_VERDICT={{artifact_root}}/step-audit-verdict.json \
+      DESIGN_PATH={{design_path}} \
+      ARTIFACT_ROOT={{artifact_root}} \
+      AUTHOR_MODEL={{author_model}} \
+      AUDIT_MODEL={{audit_model}} \
+      TOOLING_ROOT={{tooling_root}}
+
+AUDIT_VERDICT names step-audit-verdict.json because that is the file the audit
+step writes. Binding a path no step produces is how check-authoring reached a
+sound verdict its own gate could not find.
+
+It writes one wrapper per check into {{artifact_root}}/checks/, each exporting its
+values literally and exec'ing the real check. Every later gate here runs the
+bound wrapper.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and the reason. Do not continue
+past a failed binding: every gate after this one would run on whatever the
+environment happened to carry.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/checks-bound.sh"
+timeout = "2m"
+
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
 id = "load-step"
+needs = ["bind-checks"]
 title = "Read the step and generate its properties"
 description = """
 Deterministic work only. Do not infer, do not fill gaps, and do not decide
@@ -97,9 +157,10 @@ anything this step was not told to decide.
 3. Report which properties the selftest can decide and which are marked for a
    person. A property nobody can check mechanically is one the audit lane and the
    approver have to carry.
-4. Record STEP_SCRIPT={{step_path}}, STEP_PROPERTIES={{properties_path}} and
-   STEP_BUNDLE={{bundle_path}} in the workflow output, because the selftest gate
-   reads them.
+4. Report STEP_SCRIPT={{step_path}}, STEP_PROPERTIES={{properties_path}} and
+   STEP_BUNDLE={{bundle_path}} so a reader of the run can see them. The selftest
+   gate does NOT read them from here — bind-checks wrote them into the wrapper
+   the gate runs, because gc gives an exec check only GC_BEAD_ID.
 
 Close with `gc.outcome=pass`, or `gc.outcome=fail` and a reason. Closing without
 an outcome is read as a failure.
@@ -164,7 +225,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/step-selftest.sh"
+path = "{{artifact_root}}/checks/step-selftest.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- thinking ----
@@ -248,7 +309,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/audit-verdict.sh"
+path = "{{artifact_root}}/checks/audit-verdict.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- thinking ----
