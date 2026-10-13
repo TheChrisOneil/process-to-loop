@@ -196,6 +196,41 @@ for kv in "$@"; do
   case "$stale" in *"within its review date"*) cap_ok "every catalog entry is within its review date" ;; esac
 done
 
+# ---- the rig's copy of the tooling must match the one the run will be given.
+#
+# A formula step follows tooling_root. An exec check falls back to the copy
+# inside the rig. When those differ, the gates judge the run with one version of
+# the rules and the steps do the work with another, and nothing says so: both
+# copies exist and neither knows about the other. On 2026-10-13 a validate gate
+# passed a design using a validator 23 lines behind the repo, including the one
+# rule that would have warned about it.
+#
+# This is the moment to notice, because after the sling there is no moment.
+if [ -d "$RIG/tooling" ] && [ -d "$HERE_PF" ]; then
+  RIGT=$(cd "$RIG/tooling" && pwd); REPOT=$(cd "$HERE_PF" && pwd)
+  if [ "$RIGT" = "$REPOT" ]; then
+    cap_ok "the rig's tooling IS the repo's — one copy, so it cannot drift"
+  else
+    REPOC=$(cd "$REPOT/../checks" 2>/dev/null && pwd)
+    D1=$(diff -rq "$REPOT" "$RIGT" 2>/dev/null | grep -c . || true)
+    D2=0
+    [ -z "$REPOC" ] || [ ! -d "$RIG/checks" ] || \
+      D2=$(diff -rq "$REPOC" "$RIG/checks" 2>/dev/null | grep -c . || true)
+    DRIFT=$(( ${D1:-0} + ${D2:-0} ))
+    if [ "$DRIFT" -eq 0 ]; then
+      cap_ok "the rig's copies of tooling/ and checks/ match the repo"
+    else
+      cap_no "the rig's copies differ from the repo in $DRIFT place(s)"
+      { diff -rq "$REPOT" "$RIGT" 2>/dev/null
+        [ -z "$REPOC" ] || diff -rq "$REPOC" "$RIG/checks" 2>/dev/null; } \
+        | head -12 | sed 's/^/           /' >&2
+      echo "           The gates would judge this run with one version and the steps do the" >&2
+      echo "           work with another. Next human action: rsync -a --delete the repo's" >&2
+      echo "           tooling/ and checks/ over the rig's, then preflight again." >&2
+    fi
+  fi
+fi
+
 echo
 if [ "$PATHS_RC" = 0 ] && [ "$CAP_RC" = 0 ]; then
   echo "ready to sling"; exit 0
