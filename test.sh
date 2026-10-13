@@ -57,18 +57,28 @@ else ok "a missing design is refused"; fi
 # step that writes the next one was still running.
 AC=$(mktemp -d)
 cp "$HERE/examples/appointments-chase.design" "$AC/d.design"
-if "$HERE/tooling/compile.sh" "$AC/d.design" --name ac-unsigned --out "$AC/o" >/dev/null 2>&1
-then no "a design nobody signed was compiled anyway"
-else ok "a design the acceptance register does not cover is refused"; fi
+# Assert the MESSAGE, not only the status. The first version of this test checked
+# the exit code alone and passed while compile refused in total silence: under
+# set -e the status lookup killed the script before a word was printed. A refusal
+# nobody can read is the defect this check exists to catch.
+ACOUT=$("$HERE/tooling/compile.sh" "$AC/d.design" --name ac-unsigned --out "$AC/o" 2>&1) && ACRC=0 || ACRC=1
+if [ "$ACRC" -eq 1 ]
+then ok "a design the acceptance register does not cover is refused"
+else no "a design nobody signed was compiled anyway"; fi
+case "$ACOUT" in *"not in the acceptance register"*) ok "the refusal says why, and names the next human action" ;;
+                 *) no "compile refused silently" "exit was $ACRC and it printed: $(printf '%s' "$ACOUT" | tail -1)" ;; esac
 accept_fixture "$AC/d.design"
 "$HERE/tooling/compile.sh" "$AC/d.design" --name ac-signed --out "$AC/o" >/dev/null 2>&1 \
   && ok "the same design, signed, compiles" \
   || no "a signed design did not compile, so the acceptance test proves nothing"
 # One byte. Nothing a reader would see, and the signature stops covering it.
 printf '\n' >> "$AC/d.design"
-if "$HERE/tooling/compile.sh" "$AC/d.design" --name ac-drifted --out "$AC/o" >/dev/null 2>&1
-then no "a design edited after acceptance was compiled under the old signature"
-else ok "one byte added after acceptance and the design is refused"; fi
+DROUT=$("$HERE/tooling/compile.sh" "$AC/d.design" --name ac-drifted --out "$AC/o" 2>&1) && DRRC=0 || DRRC=1
+if [ "$DRRC" -eq 1 ]
+then ok "one byte added after acceptance and the design is refused"
+else no "a design edited after acceptance was compiled under the old signature"; fi
+case "$DROUT" in *"CHANGED SINCE ACCEPTANCE"*) ok "the drift refusal prints both digests" ;;
+                 *) no "the drift refusal did not say the content had changed" ;; esac
 rm -rf "$AC"
 
 # The step kinds name where a step's oracle comes from. "mechanical" named three

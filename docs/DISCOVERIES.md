@@ -537,3 +537,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing measurable. The gap was found by counting rather than by a failure, which is the cheapest way it was ever going to be found.
 **changed** V10 accepts tool-call and decision. V46 warns on mechanical and names what checks each successor. step-properties gives tool-call catalogued, field-covered and logs-provenance, and decision table-backed, no-fallthrough and shared-semantics. V17 widened to any step no model touches. Six tests.
 **generalizes** A type is useful to a validator only in proportion to how much it narrows the evidence. A type that covers several oracles narrows nothing, and the symptom is a generator that emits the same properties for every member of it. Count the members before trusting a vocabulary.
+
+---
+
+## D44 · 2026-10-13 · The refusal I added to catch silent failures failed silently
+
+**believed** compile.sh refuses a design the acceptance register does not cover, and three tests proved it: unsigned refused, signed compiles, one appended byte refused.
+**happened** Running it against the real med-rec design gave exit 1 and not one word of output. compile.sh runs under set -e and the status lookup was a bare assignment, ACC=$(accept.sh --status ...), which exits non-zero for exactly the case the block exists to report. The assignment killed the script before the first echo. All three tests passed because every one of them checked the exit code and none checked that anything was printed.
+**cost** Nothing, because it was caught by running the control against a real artifact rather than by reading its tests.
+**changed** The assignment ends in || true, with the reason at the call site. Two more tests assert the refusal TEXT: that it says why, and that the drift case prints both digests.
+**generalizes** A test that asserts only an exit code cannot tell a refusal from a crash, and those are the two things a user most needs told apart. Every refusal this project makes is a message with an exit code attached, so the message is the thing to assert.

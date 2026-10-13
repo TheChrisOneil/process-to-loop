@@ -80,7 +80,12 @@ rm -f /tmp/fc-design.$$
 #
 # A closed gate proves a person was asked. This proves they were asked about
 # THIS design. Those are two facts and only one of them is checkable.
-ACC=$("$TOOLING/accept.sh" --status "$DESIGN" 2>&1)
+# `|| true` is load-bearing: this script runs under `set -e` and --status exits
+# non-zero for exactly the case this block is here to report. Without it the
+# assignment killed the script before a word was printed — compile refused an
+# unsigned design, correctly, and said nothing, which is the defect this check
+# was added to catch, inside the check added to catch it.
+ACC=$("$TOOLING/accept.sh" --status "$DESIGN" 2>&1) || true
 case "$ACC" in
   ACCEPTED*) ;;
   *)
