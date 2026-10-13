@@ -6,6 +6,19 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 HERE_EX="$HERE"
 OUT=$(mktemp -d); trap 'rm -rf "$OUT"' EXIT
 PASS=0; FAIL=0
+
+# compile now refuses a design the acceptance register does not cover BY CONTENT,
+# so every fixture this suite compiles has to be signed first — into a scratch
+# register, never the real one. Signing the fixture is not a workaround for the
+# check; it is the same two steps a person takes, which is the only reason it is
+# allowed to satisfy it.
+export ACCEPT_REGISTER="$OUT/acceptances.tsv"
+accept_fixture() {  # $1 design
+  local by
+  by=$(awk -F': *' '/^approver:/{sub(/^approver: */,""); print; exit}' "$1")
+  [ -n "$by" ] || return 1
+  printf 'I accept\n' | "$HERE/tooling/accept.sh" "$1" --by "$by" >/dev/null 2>&1
+}
 G="\033[32m"; R="\033[31m"; Z="\033[0m"
 ok()  { PASS=$((PASS+1)); printf "  ${G}PASS${Z}  %s\n" "$1"; }
 no()  { FAIL=$((FAIL+1)); printf "  ${R}FAIL${Z}  %s\n" "$1"; [ -n "${2:-}" ] && printf "        %s\n" "$2"; }
@@ -14,6 +27,7 @@ echo "COMPILING EVERY EXAMPLE"
 for d in "$HERE"/examples/*.design; do
   n=$(basename "$d" .design)
   [ "$n" = "broken" ] && continue
+  accept_fixture "$d"
   if out=$("$HERE/tooling/compile.sh" "$d" --name "fc-$n" --out "$OUT" 2>&1); then
     gates=$(grep -c '^\[steps.check\]' "$OUT/formulas/fc-$n.toml")
     want=$(awk -f "$HERE/tooling/lib/parse.awk" -f "$HERE/tooling/lib/gates.awk" "$d" | grep -c .)
@@ -37,6 +51,25 @@ else ok "a name that is not a slug is refused"; fi
 if "$HERE/tooling/compile.sh" /nowhere/nothing.design --name fc-x --out "$OUT" >/dev/null 2>&1
 then no "a missing design was accepted"
 else ok "a missing design is refused"; fi
+
+# Acceptance is of CONTENT. The register has said so since the first version and
+# nothing enforced it until an acceptance gate closed over one design while the
+# step that writes the next one was still running.
+AC=$(mktemp -d)
+cp "$HERE/examples/appointments-chase.design" "$AC/d.design"
+if "$HERE/tooling/compile.sh" "$AC/d.design" --name ac-unsigned --out "$AC/o" >/dev/null 2>&1
+then no "a design nobody signed was compiled anyway"
+else ok "a design the acceptance register does not cover is refused"; fi
+accept_fixture "$AC/d.design"
+"$HERE/tooling/compile.sh" "$AC/d.design" --name ac-signed --out "$AC/o" >/dev/null 2>&1 \
+  && ok "the same design, signed, compiles" \
+  || no "a signed design did not compile, so the acceptance test proves nothing"
+# One byte. Nothing a reader would see, and the signature stops covering it.
+printf '\n' >> "$AC/d.design"
+if "$HERE/tooling/compile.sh" "$AC/d.design" --name ac-drifted --out "$AC/o" >/dev/null 2>&1
+then no "a design edited after acceptance was compiled under the old signature"
+else ok "one byte added after acceptance and the design is refused"; fi
+rm -rf "$AC"
 
 # F5: delete a check script and the formula must stop validating
 cp "$OUT/formulas/fc-invoices.toml" "$OUT/f5.toml" 2>/dev/null
@@ -1215,6 +1248,7 @@ sed 's/yields action escalate/yields severity escalate/' "$DT/d.design" > "$DT/b
 dtsay "$DT/bo.design" V39 "a gate naming an output the table does not have is refused" \
                           "a gate read a column that does not exist"
 
+accept_fixture "$DT/d.design"
 if "$HERE/tooling/compile.sh" "$DT/d.design" --name dt-t --out "$DT/o" >/dev/null 2>&1; then
   [ -f "$DT/o/.gc/scripts/decisions/flag-severity.tsv" ] \
     && ok "the table ships beside the checks that evaluate it" \
@@ -1251,6 +1285,7 @@ echo "REHEARSAL"
 # approval afterwards.
 RH=$(mktemp -d)
 cp "$HERE/examples/appointments-chase.design" "$RH/d.design"
+accept_fixture "$RH/d.design"
 "$HERE/tooling/compile.sh" "$RH/d.design" --name rh-clean --out "$RH/o" >/dev/null 2>&1 \
   && ok "a run with no rehearsal compiles" \
   || no "a clean design did not compile, so the rehearsal test proves nothing"

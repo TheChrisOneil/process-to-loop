@@ -507,3 +507,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** One run reached a clean audit and could not record it. The verdict is on disk and the gate never saw it.
 **changed** The binding names audit-verdict.json. audit-verdict.json and QUESTIONS.md.new are added to archive-run.sh's DERIVED list, because both are read by name and belong to one run.
 **generalizes** Binding a value and writing the value are two acts, and nothing checked that the name in one appears in the other. A path handed to a check should be a path some step is declared to produce, and that is a rule a validator can hold: every bound path is either an input that exists at cook time or an output some step declares.
+
+---
+
+## D41 · 2026-10-13 · The acceptance gate closed over a design the run was about to replace, and compile would not have noticed
+
+**believed** Acceptance is of content. The register records the design's SHA-256, README has said from the first version that changing one character stops the acceptance covering what would be built, and the chained register makes an edited row detectable.
+**happened** An acceptance gate was closed while the authoring step of that same run was still going. The signature was real and covered design ef478341. The next thing that step writes is a different design under the same filename. compile.sh checks the REHEARSAL file and the design rules and never reads the acceptance register, so it would have emitted a bundle from a design nobody signed, with a closed gate and a genuine register row standing behind it.
+**cost** Nothing yet. The run had not reached compile.
+**changed** compile.sh refuses a design that accept.sh --status does not report ACCEPTED, placed after the rules so a broken design still fails on its rules. Three tests: unsigned refused, signed compiles, one appended byte refused. test.sh signs its fixtures into a scratch register, which is the same two steps a person takes.
+**generalizes** A control stated in prose and implemented in one tool is enforced nowhere in particular. The register held the right answer the whole time and nothing asked it. A claim that an acceptance ceases to cover an artifact once the artifact changes is a claim about the step that CONSUMES the artifact, and it was only ever written down beside the step that produces it.

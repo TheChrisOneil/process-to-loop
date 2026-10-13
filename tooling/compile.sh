@@ -67,6 +67,32 @@ if ! "$TOOLING/validate.sh" "$DESIGN" >/tmp/fc-design.$$ 2>&1; then
 fi
 rm -f /tmp/fc-design.$$
 
+# ---- 1b. the design must be ACCEPTED, and accepted BY CONTENT
+#
+# The register records the SHA-256 of a design as it stood when somebody signed
+# it. README has said from the first version that changing one character stops
+# the acceptance covering what would be built, and nothing enforced it.
+#
+# On 2026-10-13 an acceptance gate closed over design ef478341 while the
+# authoring step of that same run was still going. The next thing that step
+# writes is a different design under the same filename, and compile would have
+# emitted it: signed, by content, by nobody.
+#
+# A closed gate proves a person was asked. This proves they were asked about
+# THIS design. Those are two facts and only one of them is checkable.
+ACC=$("$TOOLING/accept.sh" --status "$DESIGN" 2>&1)
+case "$ACC" in
+  ACCEPTED*) ;;
+  *)
+    echo "REFUSED: this exact design is not in the acceptance register." >&2
+    printf '%s\n' "$ACC" | sed 's/^/           /' >&2
+    echo "         A closed gate says somebody was asked. It does not say they were" >&2
+    echo "         asked about this content, and the content is what gets built." >&2
+    echo "         Next human action: have $(awk -F': *' '/^approver:/{sub(/^approver: */,""); print; exit}' "$DESIGN") sign this design —" >&2
+    echo "             accept.sh \"$DESIGN\" --by \"<their name>\"" >&2
+    exit 1 ;;
+esac
+
 CHECKDIR=".gc/scripts/checks"
 mkdir -p "$OUT/formulas" "$OUT/$CHECKDIR"
 FORMULA="$OUT/formulas/$NAME.toml"
