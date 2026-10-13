@@ -235,10 +235,17 @@ standing beside it.
 
 ### What the taxonomy exposes
 
-`mechanical` is 38 of 94 steps and covers at least three of the five kinds — catalogued tool calls,
-decision tables, and plumbing that is neither. Those have different oracles, and a single label
-cannot tell the validator which evidence to demand of which step. Splitting that column is the next
-change to the design format.
+`mechanical` was 38 of 94 steps and covered at least three of the five kinds — catalogued tool
+calls, decision tables, and plumbing that is neither. Those have different oracles, and a single
+label cannot tell the validator which evidence to demand of which step.
+
+That column is now split. `tool-call` and `decision` are accepted types; **V46** warns on
+`mechanical` and names the three successors with what checks each, and the grace period's start
+date is written into the rule so a reader can tell a deliberate wait from a rule somebody forgot.
+The property generator stopped giving three kinds one promise: determinism is necessary for every
+code step and sufficient for none, so a `tool-call` step now carries `catalogued`, `field-covered`
+and `logs-provenance`, and a `decision` step carries `table-backed`, `no-fallthrough` and
+`shared-semantics`.
 
 `coordination` — ordering, capping, admitting — is the residue. It carries no oracle of its own
 today. The open question is whether it should acquire one or stop being authored: a step that only

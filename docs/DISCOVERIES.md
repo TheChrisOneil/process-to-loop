@@ -527,3 +527,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. It was caught by reading the output of the command rather than its exit code.
 **changed** Rule A8 refuses a stated or delegated value that is punctuation alone or one of tbd, todo, n/a, na, none, xxx, fixme, placeholder, unknown. Three tests. The placeholder in the documented example stays, because the example has to show the shape; the rule is what makes running it harmless.
 **generalizes** An example command is a thing people run. Any placeholder in one is a value the system will eventually receive, so the validator has to know the placeholder by sight. Writing the example and writing the rule that catches its placeholder are one task.
+
+---
+
+## D43 · 2026-10-13 · One step type named three different oracles, and the validator could not tell them apart
+
+**believed** A step's type says what kind of work it is: mechanical, coordination, thinking, test or gate. The property generator derives what a step must hold from that type.
+**happened** Counting the types across five designs put 38 of 94 steps under mechanical. Those 38 are catalogued tool calls, decision tables, and plumbing that is neither, and the property generator gave all three the same two promises: no provider call, and byte-identical output when run twice. Determinism is true of every code step and is the oracle for none of them. Nothing checked that a tool call read a field its catalog entry covers, or that a decision table had a row for every combination of its inputs.
+**cost** Nothing measurable. The gap was found by counting rather than by a failure, which is the cheapest way it was ever going to be found.
+**changed** V10 accepts tool-call and decision. V46 warns on mechanical and names what checks each successor. step-properties gives tool-call catalogued, field-covered and logs-provenance, and decision table-backed, no-fallthrough and shared-semantics. V17 widened to any step no model touches. Six tests.
+**generalizes** A type is useful to a validator only in proportion to how much it narrows the evidence. A type that covers several oracles narrows nothing, and the symptom is a generator that emits the same properties for every member of it. Count the members before trusting a vocabulary.
