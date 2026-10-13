@@ -457,3 +457,60 @@ symptoms, and a fix that uses two mechanisms gc already ships. What it lacks: an
 another operator has hit it, and any check of whether a newer gc has already changed this.
 
 **Check the version first.** Our conclusion is about the gascity build installed on 2026-10-13.
+
+---
+
+## PARKED-6 · Which of our formula rules does gc already enforce?
+
+**Measured 2026-10-13**, after it was asked whether the overlapping rules are still needed. Each
+defect was cooked against a live city and gc's own message recorded.
+
+| rule | what it catches | gc's answer | verdict |
+|---|---|---|---|
+| F2 | no top-level `formula =` | *formula: name is required* | gc is equal |
+| F3 | no `[requires] formula_compiler` | names the key AND the deprecated alternative | **gc is better** |
+| F6 | a step carrying both check and gate | *check cannot be combined with gate* | gc is equal |
+| F10 | duplicate step id | *duplicate id "a" (first defined at steps[0])* | **gc is better** — it names both |
+| F11 | `needs` an unknown step | *needs references unknown step "nosuchstep"* | gc is equal |
+| F12 | a step that needs itself | caught — **but at graph-apply, after beads exist** | **ours is better** |
+
+F12 is the one that matters. gc refuses it, and by then it has already created beads:
+
+```
+native graph apply: adding edge wk-2sjj->wk-2sjj: cannot add self-dependency
+```
+
+Ours refuses before cook, so nothing is materialized.
+
+### So are the overlapping rules still needed?
+
+**They are not duplicate validation. They are emitter self-tests.**
+
+These formulas are not written by hand — `compile.sh` emits them from a design. A duplicate step
+id or a self-dependency in one is **our bug**, not a user's typo, and the place to catch our bug is
+our own suite, not somebody's cook. Every one of these rules runs on every emitted formula in
+`test.sh`, in milliseconds, with no network and no city.
+
+Deleting them would save about thirty lines and move the discovery of an emitter regression from
+`make test` to a user's first sling. That is a bad trade at any count.
+
+What changes if the concern is the *number*: F10, F11 and F6 could go, because gc says the same
+thing or better and an emitter regression there would still surface at cook. F12 stays regardless.
+F2 and F3 stay, because they guard the skeleton `compile.sh` writes.
+
+**The number to watch is the two, not the eighteen.**
+
+### Can F5 and F18 be fixed rather than worked around?
+
+Not by us. Both are gc's code.
+
+- **F5** — a formula naming a check that is not on disk. The run-time half is already covered
+  without gc changing: `bind-checks.sh` writes a wrapper that always exists, and
+  `checks-bound.sh` refuses when the wrapper points at nothing. F5 is the compile-time half, and
+  it is cheap. The gc-side fix is that a quarantined check should block its step.
+- **F18** — a key gc accepts and discards. There is no our-side fix beyond refusing to emit one.
+  The gc-side fix is the third item in PARKED-5: reject unknown keys in a check block, which is
+  the same validation gc already does for the keys it knows.
+
+Both belong in the same upstream conversation, and neither is a reason to leave the platform. What
+would be: a gap we cannot work around at all. We have not met one.

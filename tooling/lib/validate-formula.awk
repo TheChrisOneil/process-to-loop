@@ -7,8 +7,14 @@
 #   6  our METHOD, which gc should never enforce   F7 F9 F13 F15 F16 F17
 #   6  gc's own schema and deprecations, caught earlier and worded better
 #                                                  F1 F2 F3 F4 F8 F14
-#   4  graph hygiene gc also checks; we fail sooner and say more
-#                                                  F6 F10 F11 F12
+#   4  graph hygiene gc also checks; these are EMITTER SELF-TESTS  F6 F10 F11 F12
+#
+# On that last group, measured 2026-10-13: gc catches all four, and for F10 and
+# F3 its message is better than ours. They stay because these formulas are not
+# hand-written — compile.sh emits them — so a duplicate step id here is OUR bug,
+# and the place to catch our bug is our own suite rather than somebody's cook.
+# F12 is the one where ours is genuinely better: gc refuses a self-dependency at
+# graph-apply, AFTER it has created beads.
 #   2  true workarounds for a gap in gc            F5 F18
 #
 # F9, F16 and F17 are the product: a method with fewer than two controls is not

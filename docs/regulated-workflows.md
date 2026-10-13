@@ -427,8 +427,15 @@ The premise is checkable, so it was checked rather than agreed with.
 |---|---|---|
 | **our method, which gc should never enforce** | 6 | F7, F9, F13, F15, F16, F17 |
 | **gc's own schema and deprecations**, caught earlier and worded better | 6 | F1, F2, F3, F4, F8, F14 |
-| **graph hygiene** gc also checks; we fail sooner with a clearer message | 4 | F6, F10, F11, F12 |
+| **graph hygiene** gc also checks — these are emitter self-tests | 4 | F6, F10, F11, F12 |
 | **true workarounds for a gc gap** | **2** | F5, F18 |
+
+Measured 2026-10-13, cooking each defect against a live city: gc catches every one of the
+overlapping ten, and for two of them its message is better than ours. They stay anyway, because
+these formulas are emitted by `compile.sh` rather than written by hand — a duplicate step id is
+**our** bug, and our bug belongs in our own suite rather than in somebody's first sling. The one
+where ours is genuinely better is F12: gc refuses a self-dependency at graph-apply, after it has
+already created beads.
 
 F9 refuses a method with fewer than two controls. F16 refuses a step that both runs a model and
 writes its own proof. F17 refuses a gate with nothing guarding it. **Those are the product.** If gc
