@@ -1,5 +1,20 @@
 # The compiler's own rules, over an emitted formula. These are the rules gc does
 # NOT enforce — gc checks that the graph is well formed, not that the method is.
+#
+# WHAT THESE RULES ARE, counted 2026-10-13 because it was asked whether they are
+# all workarounds for gc. They are not:
+#
+#   6  our METHOD, which gc should never enforce   F7 F9 F13 F15 F16 F17
+#   6  gc's own schema and deprecations, caught earlier and worded better
+#                                                  F1 F2 F3 F4 F8 F14
+#   4  graph hygiene gc also checks; we fail sooner and say more
+#                                                  F6 F10 F11 F12
+#   2  true workarounds for a gap in gc            F5 F18
+#
+# F9, F16 and F17 are the product: a method with fewer than two controls is not
+# governed; a step may not both run a model and write its own proof; a gate with
+# nothing guarding it is a control that enforces nothing. If gc enforced those we
+# would have less to offer, not more.
 # -v CHECKROOT=<dir the check paths are relative to>  -v FILE=<the formula path>
 function fail(id, msg) { F[++nf] = id "  " msg }
 function warn(id, msg) { W[++nw] = id "  " msg }

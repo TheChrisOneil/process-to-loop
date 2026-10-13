@@ -411,3 +411,68 @@ different signers, and whatever rules the regulator implies.
 - `tooling/method/GENERATE.md` · `INTERVIEW.md` · `CONTRACT.md` — the versioned methods
 - `formulas/design-authoring.toml` — the pipeline, 17 formula rules
 - `upstream-parking-lot.md` — what belongs to Gas City, not here
+
+---
+
+## 11. Is Gas City the wrong platform?
+
+Asked 2026-10-13, after F18 was added: *every F-rule is a workaround for gc, we are up to
+eighteen, and that suggests gc is unsuited or immature.*
+
+The premise is checkable, so it was checked rather than agreed with.
+
+### What the eighteen rules actually are
+
+| | count | rules |
+|---|---|---|
+| **our method, which gc should never enforce** | 6 | F7, F9, F13, F15, F16, F17 |
+| **gc's own schema and deprecations**, caught earlier and worded better | 6 | F1, F2, F3, F4, F8, F14 |
+| **graph hygiene** gc also checks; we fail sooner with a clearer message | 4 | F6, F10, F11, F12 |
+| **true workarounds for a gc gap** | **2** | F5, F18 |
+
+F9 refuses a method with fewer than two controls. F16 refuses a step that both runs a model and
+writes its own proof. F17 refuses a gate with nothing guarding it. **Those are the product.** If gc
+enforced them we would have less to sell, not more. Counting them as workarounds mistakes the
+thing being built for scaffolding around the thing being built.
+
+The two that are workarounds:
+
+- **F5** — a formula naming a check script that is not on disk. gc lets a quarantined check's step
+  close, so a gate can permit when its own check is broken.
+- **F18** — a key gc accepts, discards and says nothing about.
+
+### Unsuited, or immature?
+
+Both workarounds, and the two incidents behind PARKED-5, are the same class: **the orchestrator is
+optimistic about failure reporting.** A check that cannot run does not block. A key it does not
+know is dropped. A step that could not run closes `fail`. An agent that cannot authenticate claims
+work and records nothing.
+
+That is a maturity signature, not an architectural mismatch. An architectural mismatch would look
+different: beads unable to carry what an audit needs, a graph model that cannot express gates and
+loops, determinism we cannot get. None of those is true. In two weeks this platform carried a
+17-step formula with seven gates, a bounded author loop, cross-provider dispatch and two human
+gates — through a machine restart, a three-day credential expiry and two concurrent runs — and
+lost nothing.
+
+The honest counter-question: **what would we build instead, and would it be better?** Replacing it
+means building a bead store with history, a supervisor, agent lifecycle, a formula compiler and
+cross-provider dispatch — to fix four reporting gaps, two of which we have already worked around
+in a day each.
+
+### What would change the answer
+
+A rate, not a count. Two workarounds in two weeks is noise; two a month, compounding, is a trend —
+and the trend is the thing to watch, not the total. Three things would move this from *immature*
+to *unsuited*:
+
+1. **A gap we cannot work around.** F5 and F18 were each a day. A gap that needs us to reimplement
+   bead storage or the controller is a different answer.
+2. **The upstream conversation going nowhere.** PARKED-5 asks for one more branch on an exit code,
+   using two mechanisms gc already ships. If that is refused or ignored, the platform's direction
+   is not ours.
+3. **A second operator hitting the same walls.** Everything here is one user on one city. If
+   somebody else's first week looks like ours, it is the platform. If it does not, it is us.
+
+Until one of those, the assessment is: **immature, in a direction that is fixable, on a platform
+whose primitives are right.** Worth saying plainly that this is a judgment and not a measurement.
