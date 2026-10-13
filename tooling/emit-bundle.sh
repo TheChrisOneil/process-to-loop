@@ -508,7 +508,12 @@ Bash and awk. No gc, no city, no network.
 EOF
 
 # ---------------------------------------------------------------- build guard
-BUILT=$(grep -l 'CHECK="\$CHECKS' "$B"/steps/*.sh 2>/dev/null | wc -l | tr -d ' ')
+# `|| true` is load-bearing, exactly as in compile.sh: this script runs under
+# set -e with pipefail, and grep -l exits 1 when it matches nothing. Nothing
+# matching is THE case this guard exists for — every gate dropped — so without
+# it the guard died before printing and left the broken bundle in place.
+BUILT=$(grep -l 'CHECK="\$CHECKS' "$B"/steps/*.sh 2>/dev/null | wc -l | tr -d ' ') || true
+[ -n "${BUILT:-}" ] || BUILT=0
 if [ "$BUILT" != "$GATES" ]; then
   rm -rf "$B"
   echo "REFUSED: the design has $GATES gate(s) and only $BUILT reached the bundle." >&2

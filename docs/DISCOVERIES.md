@@ -547,3 +547,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing, because it was caught by running the control against a real artifact rather than by reading its tests.
 **changed** The assignment ends in || true, with the reason at the call site. Two more tests assert the refusal TEXT: that it says why, and that the drift case prints both digests.
 **generalizes** A test that asserts only an exit code cannot tell a refusal from a crash, and those are the two things a user most needs told apart. Every refusal this project makes is a message with an exit code attached, so the message is the thing to assert.
+
+---
+
+## D45 · 2026-10-13 · The sweep D44 implied found the same trap in the guard for the worst case
+
+**believed** D44 was one careless assignment in compile.sh. Its generalization said to look at every refusal, so the two scripts in this repo that run under set -e were read line by line.
+**happened** emit-bundle.sh ends with a build guard: it counts how many gates reached the bundle and refuses when the count differs from the design, removing the half-built bundle. The count was a bare assignment ending in a grep that exits 1 when it matches nothing. Nothing matching is precisely the case the guard exists for — every gate dropped — so in its worst case the script died before the refusal, left the broken bundle on disk, and said nothing.
+**cost** Nothing. No emitted bundle has ever dropped every gate, so the guard had never been asked to fire from zero.
+**changed** The assignment ends in || true with a floor of 0, and the reason is at the call site. Proven with a two-line probe: before, exit 1 and the guard is never reached; after, the guard runs with the count 0 that makes it fire.
+**generalizes** A guard is least tested in the case it exists for, because that case is the one that has not happened yet. When a guard reads a count, check what the count does at zero.
