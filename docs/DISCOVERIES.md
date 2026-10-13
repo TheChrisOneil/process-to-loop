@@ -435,3 +435,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Four probes, about twenty minutes. Two of them contradicted claims this repo had been generating into its own artifacts.
 **changed** PARKED-5 written up with the probes as evidence and a proposal ordered smallest-first, rather than a complaint. The preflight fix shipped on our side, because for the auth case no bead records anything and no reporting can recover it.
 **generalizes** Before asking for a capability, probe whether the pieces are already shipped and merely unconnected. A proposal that names two existing mechanisms and the gap between them is a different conversation from one that asks for a feature.
+
+---
+
+## D34 · 2026-10-13 · A formula could declare check behaviour that never happens
+
+**believed** A formula is the executable form of a method. That is the whole distinction this project rests on: a gate written into a prompt is a request, and a formula is where it stops being one.
+**happened** gc accepts an unknown key in a check block, drops it, and says nothing. blocked_exit_codes and on_could_not_run cooked without complaint and never reached the bead. So a formula can carry a line that reads as a control and is inert — and nothing downstream can catch it, because by the time anything downstream exists the key is gone.
+**cost** Nothing yet. It was found while probing something else, and no formula of ours had carried a discarded key.
+**changed** F18 refuses any key in a check block that gc will discard, against an allowlist MEASURED by cooking a probe and reading the bead rather than read from a spec. The comment records the date and how to widen it, because a false positive and a stale list look identical.
+**generalizes** The line between an executable artifact and a document is not where the file format changes. It is wherever the executor silently accepts something it will not honour. Find those places and refuse them yourself, because downstream cannot.

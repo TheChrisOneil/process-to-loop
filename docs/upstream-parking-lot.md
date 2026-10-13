@@ -427,6 +427,28 @@ land somewhere durable. No amount of better reporting recovers a reason that was
 down — which is why our own fix went into **preflight**, before the sling, rather than into the
 status screen after it.
 
+### What we did on our side, 2026-10-13
+
+The bottom two rows of that table are now **F18**, a formula rule:
+
+```
+FAIL  F18  key gc will silently discard: [steps.check.check] blocked_exit_codes
+           — it cooks without complaint, never reaches the bead, and the
+           behaviour it declares never happens
+```
+
+It carries an allowlist of the keys a check block actually honours, and the
+allowlist is **measured, not read**: a probe formula set each key, and the step
+bead was read to see which arrived. The comment in `validate-formula.awk` records
+the date and the procedure for widening it, because a refusal from F18 means one
+of two things that look identical — the key is a typo, or gc has gained a key and
+the list is stale. Measure before widening.
+
+This does not fix gc. It stops *our* formulas from carrying inert declarations,
+which is the half we own. The upstream ask stands, and is now smaller: gc already
+validates the keys it knows, so refusing the ones it does not is the same
+mechanism applied once more.
+
 ### Against proposing this yet
 
 The rule in this file is that nothing goes upstream on a hunch, and this has run against one city.

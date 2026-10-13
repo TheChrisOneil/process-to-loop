@@ -6,7 +6,30 @@ function warn(id, msg) { W[++nw] = id "  " msg }
 function trim(t,  s) { s=t; gsub(/^[ \t]+|[ \t]+$/,"",s); return s }
 function strval(l,   v) { v=l; sub(/^[^=]*=[ \t]*/,"",v); gsub(/^"|"[ \t]*$/,"",v); return v }
 
-BEGIN { tbl=""; inblock=0; si=0 }
+BEGIN { tbl=""; inblock=0; si=0
+
+  # F18 — the keys gc actually HONOURS in a check block.
+  #
+  # gc accepts an unknown key here, drops it, and says nothing. A formula can
+  # therefore declare check behaviour that never happens, which is the one place
+  # a formula stops being executable and becomes a document. gc validates the
+  # keys it KNOWS (misspell max_attempts and cooking fails on the constraint);
+  # it does not refuse the ones it does not know.
+  #
+  # MEASURED 2026-10-13, not read from a spec. A formula declaring
+  # blocked_exit_codes and on_could_not_run cooked without complaint and neither
+  # key reached the bead. These three did:
+  #
+  #     gc.check_mode · gc.check_path · gc.check_timeout
+  #
+  # TO ADD A KEY: cook a formula that sets it, then read the step bead
+  # (gc bd show <id> --json) and confirm it arrived. Add it here with the date.
+  # A refusal from this rule means one of two things, and they look identical:
+  # the key is a typo, or gc has gained a key and this list is stale. Measure
+  # before you widen it.
+  split("mode path timeout", K, " "); for (z in K) OKCHECKCHECK[K[z]]=1
+  split("max_attempts", K2, " ");     for (z in K2) OKCHECK[K2[z]]=1
+}
 {
   line=$0
   # multi-line strings: collect the body, but keep scanning for {{vars}}
@@ -30,6 +53,14 @@ BEGIN { tbl=""; inblock=0; si=0 }
   if (t ~ /^#/ || t=="") next
 
   scanvars(t)
+
+  # F18: a key in a check block that gc will silently discard.
+  if ((tbl=="checkcheck" || tbl=="check") && t ~ /^[a-z_]+[ \t]*=/) {
+      ky=t; sub(/[ \t]*=.*$/,"",ky)
+      if (tbl=="checkcheck" && !(ky in OKCHECKCHECK)) BADKEY[++nbk] = "[steps.check.check] " ky
+      if (tbl=="check"      && !(ky in OKCHECK))      BADKEY[++nbk] = "[steps.check] " ky
+  }
+
   if (t ~ /^formula[ \t]*=/ && tbl=="")        FORMULA=strval(t)
   if (t ~ /^contract[ \t]*=/ && tbl=="")       BARECONTRACT=1
   if (t ~ /^formula_compiler[ \t]*=/ && tbl=="requires") REQ=strval(t)
@@ -51,6 +82,14 @@ function scanvars(l,   rest, v) {
   }
 }
 END {
+  # F18 reported first: a discarded key is not a defect in the method, it is a
+  # line that reads as a control and is inert. Nothing downstream can catch it,
+  # because by the time anything downstream exists the key is gone.
+  for (b=1; b<=nbk+0; b++)
+      fail("F18", "key gc will silently discard: " BADKEY[b] \
+                  " — it cooks without complaint, never reaches the bead, and the" \
+                  " behaviour it declares never happens")
+
   base=FILE; sub(/.*\//,"",base)
   stem=base; sub(/\.toml$/,"",stem)
 

@@ -930,6 +930,45 @@ esac
 rm -rf "$SK"
 
 echo
+echo "F18 — KEYS GC WILL SILENTLY DISCARD"
+# gc accepts an unknown key in a check block, drops it, and says nothing. That is
+# the one place a formula stops being executable and becomes a document: the line
+# reads as a control and is inert. Nothing downstream can catch it, because by
+# then the key is gone.
+F18=$(mktemp -d)
+python3 - "$F18" "$HERE" <<'PYEOF'
+import sys, pathlib
+T, H = sys.argv[1], sys.argv[2]
+base = pathlib.Path(H + "/formulas/design-authoring.toml").read_text()
+pathlib.Path(T + "/unknown.toml").write_text(
+    base.replace('mode = "exec"\npath = "checks/checks-bound.sh"',
+                 'mode = "exec"\nblocked_exit_codes = [75]\npath = "checks/checks-bound.sh"', 1))
+pathlib.Path(T + "/typo.toml").write_text(base.replace('timeout = "2m"', 'timeou = "2m"', 1))
+PYEOF
+f18say() {
+  local o; o=$("$HERE/tooling/validate-formula.sh" "$1" --checkroot "$HOME/cities/ptl-rig" 2>&1 || true)
+  case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+    *"FAIL  F18"*) ok "$2" ;; *) no "$3" ;;
+  esac
+}
+f18say "$F18/unknown.toml" \
+  "a key gc does not know is refused before it can look like a control" \
+  "a formula declared check behaviour that never happens, and nothing noticed"
+f18say "$F18/typo.toml" \
+  "a known optional key, misspelled, is refused" \
+  "a typo in an optional key passed and silently took the default"
+# And it must not refuse the real thing, or it is useless.
+o=$("$HERE/tooling/validate-formula.sh" "$HERE/formulas/design-authoring.toml" --checkroot "$HOME/cities/ptl-rig" 2>&1 || true)
+case "$(printf '%s' "$o" | sed 's/\x1b\[[0-9;]*m//g')" in
+  *"FAIL  F18"*) no "F18 refuses the pipeline's own formula — the allowlist is wrong" ;;
+  *) ok "the pipeline's own formula passes F18" ;;
+esac
+grep -q 'MEASURED 2026-10-13' "$HERE/tooling/lib/validate-formula.awk" \
+  && ok "the allowlist records that it was measured, and how to extend it" \
+  || no "the allowlist is asserted rather than measured, so nobody can widen it safely"
+rm -rf "$F18"
+
+echo
 echo "THE ARCHITECTURE DIAGRAMS"
 # A diagram that does not compile is a diagram nobody checked. Two of the seven
 # did not, and both were the sequence diagrams — the ones most asked for.
