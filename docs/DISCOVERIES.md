@@ -497,3 +497,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** About fifteen minutes reading a status that described a run that had already stopped.
 **changed** Resolution now takes the most recently updated match and prints a NOTE naming the count and listing the stale ids on stderr.
 **generalizes** A lookup that assumes a unique match must say what it did when the match was not unique. Taking the first and printing nothing produces a screen that is wrong and confident in the same way a correct one looks, which is the failure mode every other part of this project is built to refuse.
+
+---
+
+## D40 · 2026-10-13 · The binding named a file no step writes
+
+**believed** bind-checks fixes the gate's inputs at cook time, so a gate can no longer report an unset variable. The binding was written by reading the formula's [vars] and the check's needs.
+**happened** AUDIT_VERDICT was bound to artifact_root/check-audit-verdict.json. The audit step writes artifact_root/audit-verdict.json. The name with the prefix appears nowhere else in the formula and was invented while writing the binding. Gate 2's audit returned sound with no defects, and the gate that reads the verdict FAILED because the path it was handed named nothing.
+**cost** One run reached a clean audit and could not record it. The verdict is on disk and the gate never saw it.
+**changed** The binding names audit-verdict.json. audit-verdict.json and QUESTIONS.md.new are added to archive-run.sh's DERIVED list, because both are read by name and belong to one run.
+**generalizes** Binding a value and writing the value are two acts, and nothing checked that the name in one appears in the other. A path handed to a check should be a path some step is declared to produce, and that is a rule a validator can hold: every bound path is either an input that exists at cook time or an output some step declares.

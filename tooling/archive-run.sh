@@ -59,7 +59,19 @@ fi
 # in the direction of looking worse than reality.
 #
 # A rehearsal belongs to ONE run. Each run earns its own or has none.
-DERIVED="design-audit-verdict.json FINDINGS.md REHEARSAL"
+#
+# audit-verdict.json is check-authoring's verdict, named without the "design-"
+# prefix, and it is read BY NAME by the audit-verdict gate. A run that left one
+# behind would hand the next run a verdict about a different script. The gate
+# compares subject_sha256 and would catch it, so this is the second lock rather
+# than the first — and the first lock is the one that should not be the only one.
+#
+# QUESTIONS.md.new is the interview's fresh set, written each run and folded in
+# by `questions.sh merge`. It belongs to one run. merge refuses a set with fewer
+# answers, which is what stopped a stale one from destroying an interview; that
+# guard stays, and a leftover intermediate still has no business surviving the
+# run that made it.
+DERIVED="design-audit-verdict.json audit-verdict.json FINDINGS.md REHEARSAL QUESTIONS.md.new"
 # Worth keeping a copy of, but harmless if left.
 #
 # QUESTIONS.md is on this list and NOT on DERIVED, and the distinction cost a

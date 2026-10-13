@@ -106,7 +106,7 @@ So bind them here, once, while every value is already known:
       {{artifact_root}} {{checks_root}} \
       CHECK_SCRIPT={{check_path}} \
       CHECK_FIXTURES={{fixtures_path}} \
-      AUDIT_VERDICT={{artifact_root}}/check-audit-verdict.json \
+      AUDIT_VERDICT={{artifact_root}}/audit-verdict.json \
       DESIGN_PATH={{design_path}} \
       ARTIFACT_ROOT={{artifact_root}} \
       AUTHOR_MODEL={{author_model}} \
