@@ -445,3 +445,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing yet. It was found while probing something else, and no formula of ours had carried a discarded key.
 **changed** F18 refuses any key in a check block that gc will discard, against an allowlist MEASURED by cooking a probe and reading the bead rather than read from a spec. The comment records the date and how to widen it, because a false positive and a stale list look identical.
 **generalizes** The line between an executable artifact and a document is not where the file format changes. It is wherever the executor silently accepts something it will not honour. Find those places and refuse them yourself, because downstream cannot.
+
+---
+
+## D35 · 2026-10-13 · I truncated the status screen to the section I expected to change
+
+**believed** The run was authoring. Four steps showed done, the design had not been rewritten yet, and a long authoring loop is normal — it had taken ten minutes a step before.
+**happened** It had been parked at the answers gate for hours. run-status printed that gate on every single check, under 'waiting for a person', and I was reading the output through sed -n '3,8p' — a window onto the steps section that cut the gates off. The tool answered the question correctly every time and I had filtered out the answer.
+**cost** Hours of a run doing nothing, and several reports to Buzz that it was authoring when it was waiting on me.
+**changed** Nothing in the tool, because the tool was right. The habit: read the whole screen, or at least the section that says what is BLOCKING, before reporting what is progressing.
+**generalizes** A status tool that reports correctly is no use if the reader narrows it to the part they expect to move. This is the human half of the silent-failure problem, and it is the harder half: the machine said so, in the right place, every time.
