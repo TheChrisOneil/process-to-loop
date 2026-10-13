@@ -152,8 +152,25 @@ anything this step was not told to decide.
 
 1. Read step {{step_id}} from {{design_path}}: its name, type, actor, scope and
    description. Report all of them verbatim.
-2. Confirm the property table at {{properties_path}} exists and print it. It is
-   generated from the step's declared type, not written by hand.
+2. GENERATE the property table and print it. It comes from the step's declared
+   type, never from hand:
+
+       {{tooling_root}}/properties.sh {{design_path}} {{step_id}} > {{properties_path}}
+
+   This step used to say "confirm the table exists", which left the only thing
+   the selftest judges against to be produced by somebody outside the run. A
+   formula that depends on a file it never creates, and does not say who does,
+   is a control nobody owns.
+
+2b. If the step's type is `test`, also print its fixture obligations:
+
+       {{tooling_root}}/test-fixtures.sh {{design_path}} {{step_id}}
+
+   A test step's claims are the "that ..." clauses of its description, and each
+   one owes a case that VIOLATES it. A test step's failure mode is passing
+   everything, so a test whose fixtures only satisfy is a test that has not been
+   tested. Report any claim with no violating case as a defect of this run, not
+   of the step.
 3. Report which properties the selftest can decide and which are marked for a
    person. A property nobody can check mechanically is one the audit lane and the
    approver have to carry.
