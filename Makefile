@@ -11,6 +11,7 @@ help:
 	@echo "make compile DESIGN=<path> NAME=<formula-name>   design -> formula + check scripts"
 	@echo "make conformance NAME=<formula-name>             ask the installed gc"
 	@echo "make bundle DESIGN=<path> NAME=<bundle-name>     design -> a standalone RPA bundle + launchd job"
+	@echo "make test-fixtures DESIGN=<path> STEP=<id>      what a test step must catch"
 	@echo "make properties DESIGN=<path> STEP=<id>          what one step's type promises"
 	@echo "make diagram DESIGN=<path>                       a sequence diagram, by rule not by model"
 	@echo "make flow DESIGN=<path>                          a flowchart, coloured by step type"
@@ -82,6 +83,10 @@ pack-diff:
 	@[ -n "$(A)" ] && [ -n "$(B)" ] || { echo "make pack-diff A=<pack-dir> B=<pack-dir>"; exit 64; }
 	@tooling/pack-diff.sh "$(A)" "$(B)"
 
+test-fixtures:
+	@[ -n "$(DESIGN)" ] && [ -n "$(STEP)" ] || { echo "make test-fixtures DESIGN=<path> STEP=<id>"; exit 64; }
+	@tooling/test-fixtures.sh "$(DESIGN)" "$(STEP)"
+
 properties:
 	@[ -n "$(DESIGN)" ] && [ -n "$(STEP)" ] || { echo "make properties DESIGN=<path> STEP=<id>"; exit 64; }
 	@tooling/properties.sh "$(DESIGN)" "$(STEP)"
@@ -149,7 +154,7 @@ test: ; @./test.sh
 
 clean: ; @rm -rf $(OUT) $(BUNDLES) && echo "cleaned $(OUT)/ and $(BUNDLES)/"
 
-.PHONY: help design questions discoveries decide compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
+.PHONY: help design questions discoveries decide test-fixtures compile conformance bundle properties diagram flow brief city-preflight pack-capability pack-diff rules probe demo install-city install-rig install-mayor test selftest clean
 
 selftest:
 	@[ -n "$(NAME)" ] || { echo "make selftest NAME=<formula-name>"; exit 64; }

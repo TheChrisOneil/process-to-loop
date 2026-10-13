@@ -930,6 +930,73 @@ esac
 rm -rf "$SK"
 
 echo
+echo "FIXTURES FOR A TEST STEP"
+# A gate's fixtures come from its condition, because a condition is a predicate
+# over one value. A test step's description is not a predicate, so what is
+# derivable is the list of CLAIMS and the obligation each creates.
+TF=$(mktemp -d)
+cat > "$TF/d.design" <<'TFEOF'
+@meta
+use_case: a worked example for the test-step fixture generator
+author: test
+date: 2026-10-13
+approver: A Person, role
+exit_criterion: shut down after 1 failure
+@assumptions
+- synthetic
+@unit
+definition: one thing
+kind: rule
+two_people_test: two people agree
+fanout: 1
+fanout_reason: bounded by review capacity
+@steps
+1 | gather | mechanical | code | Read the rows from the source and write them down | batch
+2 | judge | thinking | model | Decide the one thing a rule cannot settle
+3 | verify | test | code | Recompute from the raw rows that each entry holds one answer, that each answer names a row from the input named by no other entry, and that the input held only rows that pass the screen of step 1
+4 | deliver | coordination | code | Write the outcome where a person reads it
+@gates
+2 | more than 0 answers carry no name | Return it to the reviewer with the unnamed answer
+4 | more than 0 outcomes rest on an unverified answer | Hold it and tell the named owner
+@evidence
+writer_step: 1
+integrity: sha256 over each row
+@record
+transitions: every step
+units: one row each
+retention: 7 years
+acceptance: the register
+@kpis
+cost per unit | cost | unmeasured
+error rate | quality | unmeasured
+units per day | throughput | unmeasured
+value realized | tvr-throughput | unmeasured
+TFEOF
+TFOUT=$("$HERE/tooling/test-fixtures.sh" "$TF/d.design" 3 2>&1)
+[ "$(printf '%s\n' "$TFOUT" | grep -c '^claim-')" = "6" ] \
+  && ok "three claims, each with a satisfying and a violating case" \
+  || no "the claim split is wrong (got $(printf '%s\n' "$TFOUT" | grep -c '^claim-') rows, wanted 6)"
+printf '%s' "$TFOUT" | grep -q 'only rows that pass the screen of step 1' \
+  && ok "a relative clause stays with its claim — the comma is the separator" \
+  || no "a bare 'that' split a relative clause in half"
+printf '%s' "$TFOUT" | grep -q 'violated -> FAIL' \
+  && ok "every claim demands a case the step must FAIL" \
+  || no "the fixtures ask only for cases that pass, which is the defect they exist to catch"
+grep -q 'carry its own oracle' "$HERE/docs/THESIS.md" \
+  && ok "the thesis is written down, not just enacted" \
+  || no "the rule every shape is judged by exists only in the code"
+printf '%s' "$TFOUT" | grep -q 'recomputes from the RAW source' \
+  && ok "the type obligations are emitted alongside the claims" \
+  || no "a test step reading its own subject would pass these fixtures"
+"$HERE/tooling/test-fixtures.sh" "$TF/d.design" 1 >/dev/null 2>&1 \
+  && no "a mechanical step was given test-step fixtures" \
+  || ok "a step that is not a test step is refused"
+"$HERE/tooling/test-fixtures.sh" "$TF/d.design" 99 >/dev/null 2>&1 \
+  && no "fixtures were produced for a step that does not exist" \
+  || ok "a step id that is not in the design is refused"
+rm -rf "$TF"
+
+echo
 echo "F18 — KEYS GC WILL SILENTLY DISCARD"
 # gc accepts an unknown key in a check block, drops it, and says nothing. That is
 # the one place a formula stops being executable and becomes a document: the line
