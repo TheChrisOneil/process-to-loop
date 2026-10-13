@@ -19,8 +19,9 @@ So the constraint has an operational form:
 implementation tests that the code does what the code does. A check derived from the declaration
 tests that the code does what was asked, and those come apart precisely where it matters.
 
-Where no oracle exists, the shape is wrong. Reviewing harder does not help, because the thing
-missing is not attention but an independent witness.
+Where no oracle exists, the shape is wrong. Reviewing harder does not help: review supplies
+more attention drawn from the same source that produced the artifact, and the missing
+ingredient is a witness independent of that source.
 
 ---
 

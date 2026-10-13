@@ -294,8 +294,10 @@ typed name.
 **cost** Nothing. This is the thing working.
 **changed** Two tools catalogued in response, which is what a procurement signal
 is for.
-**generalizes** The value of asking is not the answers. It is the questions that
-turn out to have no answer.
+**generalizes** Asking pays off hardest where it fails. An answered question
+confirms what the catalog already held. A question nothing can answer locates a
+gap that careful authoring would have closed over, because the author would have
+filled it from assumption and never noticed doing so.
 
 ---
 
@@ -444,7 +446,7 @@ the design was not written for, and the new paths are where the deadlocks are.
 **happened** gc accepts an unknown key in a check block, drops it, and says nothing. blocked_exit_codes and on_could_not_run cooked without complaint and never reached the bead. So a formula can carry a line that reads as a control and is inert — and nothing downstream can catch it, because by the time anything downstream exists the key is gone.
 **cost** Nothing yet. It was found while probing something else, and no formula of ours had carried a discarded key.
 **changed** F18 refuses any key in a check block that gc will discard, against an allowlist MEASURED by cooking a probe and reading the bead rather than read from a spec. The comment records the date and how to widen it, because a false positive and a stale list look identical.
-**generalizes** The line between an executable artifact and a document is not where the file format changes. It is wherever the executor silently accepts something it will not honour. Find those places and refuse them yourself, because downstream cannot.
+**generalizes** An artifact stops being executable at the point where its executor accepts something it will not honour, and that point can sit well inside a file format that looks executable all the way through. Find those points and refuse them in your own suite, because downstream cannot: by the time anything downstream exists, the discarded line is already gone.
 
 ---
 

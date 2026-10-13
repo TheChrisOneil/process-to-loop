@@ -21,8 +21,10 @@ is.** An auditor does not ask whether the right answer came out; they ask what
 was checked, by whom, against what rule, on what authority, and where it is
 written down. A green check answers none of that.
 
-So the exclusion is not a gap in tooling. It is a statement that the loop
-pattern, as described, has no vocabulary for the thing being regulated.
+So the exclusion follows from what the loop pattern can express. It has terms
+for an outcome and for a test that judges one. It has no terms for who checked,
+under whose authority, against which version of which rule. The exclusion
+reports that missing vocabulary rather than any shortage of tooling.
 
 **This project is the attempt to give it one.** Everything below follows from a
 single move: *make the process itself the artifact.* Not a prompt that describes

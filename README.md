@@ -111,8 +111,9 @@ Acceptance is of **content**, not of a filename. `tooling/accept.sh` appends to 
 chained register: the approver's name, the design's digest, the timestamp, each row hashing the
 one before it. Change a character afterwards and the acceptance stops covering what would be
 built. And the register refuses a signature from anybody other than **the approver the design
-itself names** — a signature from somebody else is not an acceptance, it is a different
-person's opinion in the same column.
+itself names**. The design states who has the authority to accept it, so a signature from
+anybody else records agreement without recording authority — and once both are in the same
+column, nothing downstream can tell them apart.
 
 Then the `records` gate confirms the emitted bundle actually keeps what the design promised. It
 does not read the code and believe it: **it runs a tick and checks the ledger has rows in it.**

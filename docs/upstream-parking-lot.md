@@ -510,7 +510,7 @@ Ours refuses before cook, so nothing is materialized.
 
 ### So are the overlapping rules still needed?
 
-**They are not duplicate validation. They are emitter self-tests.**
+**They are emitter self-tests.**
 
 These formulas are not written by hand — `compile.sh` emits them from a design. A duplicate step
 id or a self-dependency in one is **our bug**, not a user's typo, and the place to catch our bug is
@@ -577,8 +577,11 @@ once that was clear. Worth sending again only if bundled with something somebody
 **The useful half of PARKED-5, restated non-breakingly.** Full draft in
 `docs/upstream/pr-2-report-the-error-condition.md`.
 
-The goal is not a new outcome. It is that a coordinator has enough to ask a person to fix
-something. Three cases:
+The goal is that a coordinator has enough information to ask a person to fix something.
+Adding an outcome value is one way to carry that information and the expensive one, since
+every existing consumer of `outcome` would have to learn the new value before it is safe to
+emit. The three cases below need only that the reason be written where a coordinator reads.
+Three cases:
 
 | case | what is recorded | wanted |
 |---|---|---|

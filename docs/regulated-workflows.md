@@ -359,8 +359,9 @@ nobody's name on it is an unexplained pass.
 > the separation between engine and industry is an architectural claim rather than a demonstrated
 > one; one rule and the audit prompt still name healthcare's vocabulary directly.
 >
-> The open question is not whether the machinery works. It is whether a process owner who did not
-> build it can drive it.
+> The open question is whether a process owner who did not build it can drive it. That the
+> machinery runs is established by the runs above. Nobody outside the people who wrote it has
+> tried to use it, so its usability is untested rather than demonstrated.
 
 ---
 
