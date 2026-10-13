@@ -370,16 +370,17 @@ echo "STATUS REPORTS OUTCOMES"
 # gates which had REFUSED as though they had passed, and the run read as healthy
 # while it had failed. A status tool that cannot distinguish pass from fail is
 # the defect this repo exists to catch, in the tool written to watch for it.
-grep -q 'gc.outcome' "$HERE/tooling/run-status.sh" \
+RCLOSED="$HERE/tooling/lib/run-closed.py"
+grep -q 'gc.outcome' "$RCLOSED" \
   && ok "the status tool reads gc.outcome" \
   || no "run-status still reports closed beads without their outcome"
-grep -q 'FAILED' "$HERE/tooling/run-status.sh" \
+grep -q 'FAILED' "$RCLOSED" \
   && ok "it has a distinct label for a failed step" \
   || no "run-status has no way to render a failure"
 grep -q 'ROOT_BEAD' "$HERE/tooling/run-status.sh" \
   && ok "the status tool scopes to one workflow" \
   || no "run-status mixes steps from other runs in the same rig"
-grep -q 'iteration' "$HERE/tooling/run-status.sh" \
+grep -q 'iteration' "$RCLOSED" \
   && ok "it reports the logical bead, not every iteration" \
   || no "run-status would show a step as both done and failed"
 
@@ -1522,6 +1523,27 @@ RSOUT=$(printf '%s' '[{"title":"Step A","metadata":{"gc.root_bead_id":"wk-mine"}
 [ "$RSOUT" = "x Step A" ] \
   && ok "a step belonging to another run is dropped, not relabelled" \
   || no "the lister kept a foreign run's step (got: ${RSOUT:-nothing})"
+# gc has no outcome for could-not-run, so an infrastructure failure closes fail
+# and reads as a verdict on the work. This is the wiring that tells them apart.
+WIRE=$(printf '%s' '[{"title":"unreachable check","metadata":{"gc.root_bead_id":"wk-x","gc.outcome":"fail","gc.controller_error_class":"hard"}},
+{"title":"a real refusal","metadata":{"gc.root_bead_id":"wk-x","gc.outcome":"fail","gc.attempt_log":"[{\"reason\":\"V15 not checkable\"}]"}},
+{"title":"no credential","metadata":{"gc.root_bead_id":"wk-x","gc.outcome":"fail","gc.attempt_log":"[{\"reason\":\"Login expired\"}]"}}]' \
+  | ROOT_BEAD=wk-x python3 "$HERE/tooling/lib/run-closed.py" 2>/dev/null)
+printf '%s' "$WIRE" | grep -qE 'BLOCKED +unreachable check' \
+  && ok "an unreachable check reads BLOCKED, not FAILED" \
+  || no "an infrastructure failure still reads as a verdict on the work"
+printf '%s' "$WIRE" | grep -qE 'BLOCKED +no credential' \
+  && ok "a missing credential reads BLOCKED" \
+  || no "a credential failure reads as a design failure"
+printf '%s' "$WIRE" | grep -qE 'FAILED +a real refusal' \
+  && ok "a real rule failure still reads FAILED — the distinction cuts both ways" \
+  || no "every failure now reads BLOCKED, which is the same blindness reversed"
+grep -q 'claude auth status' "$HERE/tooling/formula-preflight.sh" \
+  && ok "preflight verifies the author provider is logged in, before the sling" \
+  || no "preflight assumes the author provider carries its own auth"
+grep -q 'PROVIDERS' "$HERE/tooling/formula-preflight.sh" \
+  && ok "preflight checks providers that come from DEFAULTS, not only passed ones" \
+  || no "a provider the caller did not pass is never capability-checked"
 grep -q 'cd "$Q"' "$RS" \
   && ok "run-status stands in the rig before asking gc anything" \
   || no "run-status asks whatever city the caller happened to be standing in"

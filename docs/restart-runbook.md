@@ -61,6 +61,25 @@ the orchestrator having no way to say *could not run* — see `docs/for-gas-city
 
 ---
 
+### 1c. Or just run preflight, which now checks all of this
+
+As of 2026-10-13 `formula-preflight.sh` verifies the author provider is actually
+logged in, not merely installed:
+
+```bash
+cd ~/software/process-to-loop
+make formula-preflight F=formulas/design-authoring.toml RIG=$HOME/cities/ptl-rig \
+  V='use_case_path=/x design_path=/x method_path=/x tooling_root=$PWD/tooling
+     checks_root=$HOME/cities/ptl-rig/checks catalog_path=$PWD/catalog/eb-tools.catalog
+     questions_path=/x interview_path=/x artifact_root=/x approver=x'
+```
+
+`MISSING provider claude is NOT logged in` is the answer to step 1 without reading
+a runbook. It would have caught both the 2026-10-09 and 2026-10-13 incidents
+before a single bead was created.
+
+---
+
 ## 2. Check the supervisor came back by itself
 
 `com.gascity.supervisor` is a launchd agent with `RunAtLoad` and `KeepAlive`, so it should start

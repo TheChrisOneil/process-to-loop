@@ -109,8 +109,30 @@ CAP_RC=0
 cap_no() { echo "  MISSING  $1" >&2; CAP_RC=1; }
 cap_ok() { echo "  ok   $1"; }
 
+# A var the caller did not supply still has a DEFAULT, and the run will use it.
+# Checking only what was passed meant this loop had never once examined a
+# provider in a real preflight: every sling of design-authoring relies on
+# author_provider and audit_provider defaulting, so the capability section
+# silently examined nothing and printed nothing, which reads exactly like
+# "no providers to check".
+PROVIDERS=""
 for kv in "$@"; do
-  case "${kv%%=*}" in *_provider) ;; *) continue ;; esac
+  case "${kv%%=*}" in *_provider) PROVIDERS="$PROVIDERS $kv" ;; esac
+done
+# Anything the formula declares with a default, and the caller did not override.
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  pname=${line%%=*}
+  case " $PROVIDERS " in *" $pname="*) continue ;; esac
+  PROVIDERS="$PROVIDERS $line"
+done <<EOF
+$(awk '/^\[vars\.[a-z_]*_provider\]/{ n=$0; sub(/^\[vars\./,"",n); sub(/\]$/,"",n); want=n; next }
+       want!="" && /^default *=/ { v=$0; sub(/^default *= *"?/,"",v); sub(/"$/,"",v)
+                                   if (v!="") print want "=" v; want="" }
+       /^\[\[steps\]\]/{ want="" }' "$F")
+EOF
+
+for kv in $PROVIDERS; do
   prov=${kv#*=}
   [ -n "$prov" ] || continue
   if ! command -v "$prov" >/dev/null 2>&1; then
@@ -127,7 +149,31 @@ for kv in "$@"; do
         cap_no "provider $prov has NO credential — the audit lane cannot run"
         echo "           store one: security add-generic-password -a \"\$USER\" -s process-to-loop-gemini -w" >&2
       fi ;;
-    claude) cap_ok "provider $prov carries its own session auth" ;;
+    claude)
+      # "carries its own session auth" was an ASSUMPTION, and it cost two
+      # incidents. On 2026-10-09 the OAuth session expired mid-run and seven
+      # steps closed fail, reading as a broken design. On 2026-10-13 the same
+      # expiry produced total silence: the run materialized, a step sat ready,
+      # agents were up, and nothing moved. Both were knowable in under a second,
+      # before the sling.
+      if ! command -v python3 >/dev/null; then
+        cap_ok "provider $prov installed; auth not verified (no python3 to read the status)"
+      else
+        AUTHJ=$(claude auth status 2>/dev/null)
+        LOGGED=$(printf '%s' "$AUTHJ" | python3 -c '
+import json, sys
+try: print("yes" if json.load(sys.stdin).get("loggedIn") else "no")
+except Exception: print("unknown")' 2>/dev/null)
+        case "$LOGGED" in
+          yes) cap_ok "provider $prov is logged in" ;;
+          no)
+            cap_no "provider $prov is NOT logged in — every agent attempt will fail in under a second"
+            echo "           claude auth login" >&2
+            echo "           then KILL the agent sessions: a session started before the login" >&2
+            echo "           keeps the dead credential and claims work it cannot do." >&2 ;;
+          *) cap_ok "provider $prov installed; auth status unreadable on this version" ;;
+        esac
+      fi ;;
     *)      cap_ok "provider $prov credential not verified by this tool" ;;
   esac
 done

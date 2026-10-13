@@ -62,36 +62,8 @@ snapshot() {
   # showed two gates that had REFUSED as though they had passed, on 2026-10-05,
   # which is the failure this whole project exists to catch — in the tool
   # written to watch for it. Read gc.outcome.
-  gc bd list --status closed --json 2>/dev/null | python3 -c '
-import sys, json, os
-ROOT = os.environ.get("ROOT_BEAD", "")
-try: beads = json.load(sys.stdin)
-except Exception: sys.exit(0)
-seen = set()
-for b in beads:
-    t = b.get("title") or ""
-    if t.startswith("Step spec") or not t: continue
-    md = b.get("metadata") or {}
-    # One rig can hold several runs at once. Without this filter another
-    # workflow steps appear as this one: it once showed compile and finalize
-    # as done when both belonged to a different design.
-    if ROOT and md.get("gc.root_bead_id") != ROOT: continue
-    # Each step has iteration beads and one logical bead. An iteration may fail
-    # and a later one pass, which is the loop working; the logical bead carries
-    # the outcome that stands. Show only that one, or a step reads as both done
-    # and FAILED at once.
-    ref = md.get("gc.step_ref") or ""
-    if ".iteration." in ref: continue
-    out = md.get("gc.outcome") or ""
-    if   out == "pass": label = "done   "
-    elif out == "fail": label = "FAILED "
-    elif out == "":     label = "closed "
-    else:               label = (out[:6] + " ").ljust(7)
-    key = (label, t)
-    if key in seen: continue
-    seen.add(key)
-    print("    %s%s" % (label, t))
-' 
+  gc bd list --status closed --json 2>/dev/null \
+    | python3 "$HERE_T/lib/run-closed.py"
   # Scoped by ROOT_BEAD, exactly as the closed list above is. The closed list was
   # fixed on 2026-10-05 and these two were not, so the first time two runs shared
   # a rig — 2026-10-08 — each showed the other's in-progress step, and one showed
@@ -143,6 +115,14 @@ print("    %-8s %s" % (b.get("id"), ref or (b.get("title") or "").strip()))'
     echo "  ── REHEARSAL ─────────────────────────────────────"
     awk -F'\t' '{printf "    %s  %s  by %s\n", $1, $2, $4}' "$Q/REHEARSAL"
     echo "    gate(s) closed without a person. compile will refuse this run."
+  fi
+
+  # BLOCKED is not a gc outcome. It is this screen refusing to report an
+  # infrastructure failure as a verdict on the work, which gc cannot do for us.
+  if gc bd list --status closed --json 2>/dev/null | grep -qiE 'login expired|oauth|escapes trusted roots'; then
+    echo "    ─"
+    echo "    BLOCKED means the step did not fail — it could not run. gc has no"
+    echo "    outcome for that, so it closed them fail. Read the reason, not the label."
   fi
 
   echo "  ── artifacts ─────────────────────────────────────"
