@@ -1,8 +1,16 @@
 # Upstream proposal: refuse unknown keys in a check block
 
-Draft for Gas City. Written 2026-10-13 against the `gascity` build installed that day.
-**Not yet submitted.** This is the design, the evidence, and the objection that has to be
-answered first.
+Draft for Gas City. Written 2026-10-13. **Not yet submitted, and no longer the primary ask.**
+
+> **Superseded as a motivation by `pr-three-check-outcomes.md`.** This draft proposed a
+> configurable `blocked_exit_codes` key, and then spent most of its length keeping an extension
+> registry from becoming a coordination problem — a problem it had invented. The real ask needs no
+> key at all: a check returns pass, fail, or could-not-run, and exit 75 already means the third
+> thing in `sysexits.h`.
+>
+> Kept because the defect is real and independent: an unrecognised key in a check block is
+> accepted, dropped and never mentioned. The extensibility analysis below stands on its own, and
+> applies whenever gc does add a key worth misspelling.
 
 ---
 

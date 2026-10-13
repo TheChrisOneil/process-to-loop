@@ -455,3 +455,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Hours of a run doing nothing, and several reports to Buzz that it was authoring when it was waiting on me.
 **changed** Nothing in the tool, because the tool was right. The habit: read the whole screen, or at least the section that says what is BLOCKING, before reporting what is progressing.
 **generalizes** A status tool that reports correctly is no use if the reader narrows it to the part they expect to move. This is the human half of the silent-failure problem, and it is the harder half: the machine said so, in the right place, every time.
+
+---
+
+## D36 · 2026-10-13 · The ask was three outcomes; I designed a key, then a registry for the key
+
+**believed** Fixing could-not-run meant giving a formula a way to declare it — blocked_exit_codes in the check block — which meant gc refusing unknown keys, which meant a reserved namespace so extensions still worked, which meant answering how gc spell-checks inside the namespace.
+**happened** Buzz asked whether we were simply saying a check has three outcomes: pass, fail, frozen. That is the whole ask. No key, no registry, no namespace, no new status vocabulary. And exit 75 is already EX_TEMPFAIL in sysexits.h — temporary failure, indicating something that is not really an error — so even the number was chosen decades ago.
+**cost** Most of a proposal, and an extensibility design nobody needed. Caught before submission by somebody reading the ask instead of the draft.
+**changed** Rewritten around the three outcomes. The unknown-key defect is real and kept as a separate, smaller PR; the registry analysis stands for whenever gc does add a key worth misspelling.
+**generalizes** A proposal that grows a sub-design has usually answered the wrong question. The tell is the second layer: needing a registry to protect a key is a signal the key was the wrong move, not that the registry is hard. State the ask as an OUTCOME before designing a mechanism for it.
