@@ -325,3 +325,97 @@ releases its dependents (upstream #6246; proposed fixes #7174 and #5672). For a 
 control, that is the follow-up to watch. Keep the per-gate step and the path preflight until it
 lands.
 
+
+---
+
+## PARKED-5 · No step outcome for *could not run*
+
+**Status 2026-10-13: investigated, with probes. Not yet proposed upstream.**
+
+### The problem, in one line
+
+An exec check that cannot run is indistinguishable, in the bead store, from one that refused.
+
+### What was measured, not assumed
+
+Four probes against a live city. Each is a control test, and two of them contradicted something
+this repo had been asserting in generated code.
+
+**1 — exit 75 is exit 1.** A one-step formula, `max_attempts = 2`, one check that always exits 75:
+
+```
+gc.attempt_log = [
+  {"action":"fail","attempt":"1","outcome":"fail","reason":"...exit 75"},
+  {"action":"fail","attempt":"2","outcome":"fail","reason":"...exit 75"}
+]
+```
+
+Both attempts consumed, step closed `fail`. **We had asserted the opposite in every emitted check
+for weeks** and never tested it.
+
+**2 — `[steps.check.check]` carries three keys, and discards the rest silently.** A cooked formula
+declaring `blocked_exit_codes = [75]` and `on_could_not_run = "blocked"` compiled without a word
+of complaint, and neither key reached the bead. Only `mode`, `path` and `timeout` survive. A
+formula can declare check behaviour that never happens — declared, reported, absent, at the
+platform level.
+
+**3 — `gc.outcome` holds two values.** Across 186 recorded outcomes: `pass` and `fail`. Nothing else.
+
+**4 — but the controller already classifies.** Point a check at a path outside the rig and gc
+records:
+
+```
+gc.controller_error       = absolute gc.check_path "..." escapes trusted roots
+gc.controller_error_class = hard
+```
+
+So the distinction *is* computed. It is simply not carried into the step's outcome, and no formula
+can ask for it to be.
+
+### The lever that already exists
+
+`bd config set status.custom "could_not_run:frozen"` creates the status, and a bead holds it:
+
+| asked | answer |
+|---|---|
+| can a bead hold it? | **yes** |
+| is it offered as work? | **no** |
+| is it counted closed? | **no** |
+
+Category `frozen` is exactly the semantics wanted: the run halts, dependents stay blocked, and
+nothing claims the work failed. **The vocabulary exists. What is missing is any way for a check
+result to reach it.**
+
+### The shape of the proposal
+
+Smallest change that would close it, in preference order:
+
+1. **A reserved exit code that sets a frozen status.** The controller already branches on the exit
+   code; it needs one more branch, and `frozen` custom statuses already behave correctly. No new
+   concepts.
+2. **Per-check configuration**, e.g. `blocked_exit_codes = [75]` in `[steps.check.check]` — which
+   is what an author would reach for first, which is why it was the shape probed. Requires the key
+   to stop being discarded.
+3. **Failing both: reject unknown keys.** If a formula cannot declare this, it should not be able
+   to appear to.
+
+### The second half, which is worse
+
+For an agent that cannot authenticate, **nothing is written to any bead at all.** Every iteration
+bead from the 2026-10-09 expiry has an empty `attempt_log` and an empty `controller_error`; the
+logical bead records only `attempt subject wk-xxx already failed`, naming a bead that records
+nothing. The reason existed only on a tmux pane.
+
+An agent that cannot authenticate should not claim work. Failing that, the claim failure should
+land somewhere durable. No amount of better reporting recovers a reason that was never written
+down — which is why our own fix went into **preflight**, before the sling, rather than into the
+status screen after it.
+
+### Against proposing this yet
+
+The rule in this file is that nothing goes upstream on a hunch, and this has run against one city.
+What it has in its favour: four reproducible probes, two incidents a week apart with opposite
+symptoms, and a fix that uses two mechanisms gc already ships. What it lacks: any evidence that
+another operator has hit it, and any check of whether a newer gc has already changed this.
+
+**Check the version first.** Our conclusion is about the gascity build installed on 2026-10-13.

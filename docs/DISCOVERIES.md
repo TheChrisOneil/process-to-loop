@@ -425,3 +425,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing directly, and an unknown amount indirectly: every infrastructure failure since has silently cost a revision attempt, which is part of why the authoring loop exhausted itself more than once.
 **changed** Corrected in all four places that asserted it — the emitter, CONTRACT.md, the mayor prompt and the architecture doc — and written up with the probe as evidence in the Gas City letter. We kept using 75, because the distinction is right and the day it is honoured every check here is already correct.
 **generalizes** A claim about somebody else's system, repeated in your own generated artifacts, is still a claim nobody tested. The test suite covered everything on our side of the boundary and nothing about the boundary itself, which is exactly where every expensive defect in this project has lived.
+
+---
+
+## D33 · 2026-10-13 · The vocabulary for could-not-run already exists; nothing connects to it
+
+**believed** gc has no way to express a step that could not run, so the fix is a feature request.
+**happened** bd config set status.custom could_not_run:frozen creates it, a bead holds it, and the semantics are exactly right: not offered as work, not counted closed. The run halts without claiming the work failed. Separately the controller already computes gc.controller_error_class. Both halves exist. The wiring between a check result and that status is what does not.
+**cost** Four probes, about twenty minutes. Two of them contradicted claims this repo had been generating into its own artifacts.
+**changed** PARKED-5 written up with the probes as evidence and a proposal ordered smallest-first, rather than a complaint. The preflight fix shipped on our side, because for the auth case no bead records anything and no reporting can recover it.
+**generalizes** Before asking for a capability, probe whether the pieces are already shipped and merely unconnected. A proposal that names two existing mechanisms and the gap between them is a different conversation from one that asks for a feature.
