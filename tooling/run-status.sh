@@ -98,7 +98,7 @@ snapshot() {
   # runs shared a rig each showed the other's steps. A filter applied to one of
   # three places is a filter that reads as working.
   gc bd list --status in_progress --json 2>/dev/null \
-    | LBL="    NOW    " python3 "$HERE_T/lib/run-steps.py"
+    | LBL="    NOW    " KEEP_ITER=1 python3 "$HERE_T/lib/run-steps.py"
   gc bd ready --json 2>/dev/null \
     | LBL="    next   " python3 "$HERE_T/lib/run-steps.py"
 

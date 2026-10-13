@@ -28,8 +28,13 @@ for b in beads:
     md = b.get("metadata") or {}
     if ROOT and md.get("gc.root_bead_id") != ROOT:
         continue
-    # An iteration bead is one attempt; the logical bead carries what stands.
-    if ".iteration." in (md.get("gc.step_ref") or ""):
+    # An iteration bead is one attempt; the logical bead carries what stands, so
+    # the closed and ready lists want the logical one. A RUNNING step is the
+    # exception: only the attempt is in_progress and its logical bead stays open,
+    # so dropping iterations here printed nothing at all while a step was working.
+    # On 2026-10-13 a design had been authoring for twenty minutes and the screen
+    # showed the step before it as the last thing that happened.
+    if ".iteration." in (md.get("gc.step_ref") or "") and not os.environ.get("KEEP_ITER"):
         continue
     # Gates have their own section, and it says what closing one means.
     if b.get("issue_type") == "gate":
