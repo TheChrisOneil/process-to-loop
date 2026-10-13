@@ -1448,9 +1448,15 @@ printf '%s\n' "$MT" | awk -F'\t' '$1=="Q1"{print $6}' | grep -q 'one form' \
 grep -q 'would drop' "$HERE/tooling/questions.sh" \
   && ok "the merge refuses rather than writing a set with fewer answers" \
   || no "nothing stops a merge from silently losing answers"
-grep -q 'QUESTIONS.md' "$HERE/tooling/archive-run.sh" \
-  && ok "the archive keeps the interview, which it once did not" \
+grep -q 'KEEP=.*QUESTIONS.md' "$HERE/tooling/archive-run.sh" \
+  && ok "the archive KEEPS the interview, which it once did not" \
   || no "a revision can destroy the only record of what a person was asked"
+# The mirror of that bug: a file on neither list SURVIVES, and a rehearsal mark
+# belongs to one run. Inherited, it makes the next run refuse to build for
+# something it did not do.
+grep -q 'DERIVED=.*REHEARSAL' "$HERE/tooling/archive-run.sh" \
+  && ok "the archive copies then REMOVES the rehearsal mark — each run earns its own" \
+  || no "a stale rehearsal mark survives into the next run, which never earned it"
 grep -q 'questions.sh merge' "$HERE/formulas/design-authoring.toml" \
   && ok "the questions step writes a proposal and merges it, never overwrites" \
   || no "the questions step still writes straight over an answered set"

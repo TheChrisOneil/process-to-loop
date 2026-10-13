@@ -395,3 +395,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Three days of unattended running, and a diagnosis that began by reading the run as a broken design.
 **changed** Nothing in our layer, because our checks already exit 75 correctly. The orchestrator has nowhere to put a 75, so it becomes fail on the bead. Written up as the first ask in the Gas City letter, with this incident as the evidence.
 **generalizes** A contract honoured on one side of a boundary is not honoured. 75 means could-not-run only as far as the layer that reads it; one layer up, where the audit record actually lives, it is indistinguishable from refusal — and in the direction that looks worse than reality.
+
+---
+
+## D30 · 2026-10-13 · A file on neither archive list survives, and that is sometimes the bug
+
+**believed** After QUESTIONS.md was destroyed by a revision, the archive lists were understood: DERIVED is copied then deleted, KEEP is copied and left, and the danger of being on neither is deletion.
+**happened** The danger runs both ways. REHEARSAL was on neither list, so it SURVIVED — and a mark earned by a run that died three days earlier would have made the next run refuse to compile for something that run never did. compile reads it by name and cannot tell which run it describes, which is the exact rationale for the DERIVED list.
+**cost** Nothing. Caught by reading the status screen before the new run reached compile.
+**changed** REHEARSAL moved to DERIVED. A rehearsal belongs to one run: each earns its own or has none. A test asserts both lists by name rather than asserting the file is mentioned somewhere.
+**generalizes** An explicit two-list partition has a third case — on neither — and the consequence of landing there is OPPOSITE for the two kinds of file. Asking only whether everything is on a list misses it; the question is what the default does, and whether that default is right for this file.

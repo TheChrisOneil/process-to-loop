@@ -51,7 +51,15 @@ if [ -n "$RUN" ] && [ -d "$R/prior" ]; then
 fi
 
 # Only ever reused by a later step, so only ever dangerous to leave behind.
-DERIVED="design-audit-verdict.json FINDINGS.md"
+#
+# REHEARSAL is here and not on KEEP, and the difference is the same one that cost
+# QUESTIONS.md: it is read BY NAME, by compile, which cannot tell which run it
+# describes. A mark earned by a run that failed three days ago would make the
+# next run refuse to build, for something that run did not do — a false record,
+# in the direction of looking worse than reality.
+#
+# A rehearsal belongs to ONE run. Each run earns its own or has none.
+DERIVED="design-audit-verdict.json FINDINGS.md REHEARSAL"
 # Worth keeping a copy of, but harmless if left.
 #
 # QUESTIONS.md is on this list and NOT on DERIVED, and the distinction cost a
