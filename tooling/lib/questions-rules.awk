@@ -72,6 +72,21 @@ END {
       if (qp!="real" && qp!="synthetic" && qp!="") badprov = badprov " " qd
       if (qt=="stated" && Q[qd ".answer_value"]=="") novalue = novalue " " qd
       if (qt=="delegated" && Q[qd ".answer_value"] !~ /^assumed:/) noassume = noassume " " qd
+      # An answer that is present and empty of content passes every rule above
+      # and tells the author nothing. It arrived by someone running an example
+      # command with its placeholder still in it, which is a thing that happens
+      # and which no other rule here can see. Punctuation only, or one of the
+      # words people type when they mean "not yet".
+      qv = Q[qd ".answer_value"]
+      if (qt=="delegated") sub(/^assumed: */, "", qv)
+      if ((qt=="stated" || qt=="delegated") && qv != "") {
+        tv = tolower(qv)
+        gsub(/^[ \t]+|[ \t]+$/, "", tv)
+        if (qv ~ /^[-_.,;:!?*#~ \t]+$/ || tv=="tbd" || tv=="todo" || tv=="t.b.d." \
+            || tv=="n/a" || tv=="na" || tv=="none" || tv=="xxx" || tv=="fixme" \
+            || tv=="placeholder" || tv=="unknown")
+          holder = holder " " qd
+      }
     }
     if (op=="") ok("A1","every question has an answer")
     else rec("ERROR","A1","no answer at:" op,"stated, unanswered or delegated — all three are legal, and silence is not one of them")
@@ -88,6 +103,8 @@ END {
     else if (nans>0) ok("A6","every delegated answer says what was assumed")
     if (badprov!="") rec("ERROR","A7","unknown provenance at:" badprov,"real or synthetic")
     else if (nans>0) ok("A7","every answer declares whether it is real or synthetic")
+    if (holder!="") rec("ERROR","A8","the value is a placeholder at:" holder,"an answer that passes the gate and says nothing is worse than an open question, because nothing downstream can tell the two apart")
+    else if (nans>0) ok("A8","no answer is a placeholder")
   }
 
   for (rx=1; rx<=nr; rx++) {

@@ -517,3 +517,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing yet. The run had not reached compile.
 **changed** compile.sh refuses a design that accept.sh --status does not report ACCEPTED, placed after the rules so a broken design still fails on its rules. Three tests: unsigned refused, signed compiles, one appended byte refused. test.sh signs its fixtures into a scratch register, which is the same two steps a person takes.
 **generalizes** A control stated in prose and implemented in one tool is enforced nowhere in particular. The register held the right answer the whole time and nothing asked it. A claim that an acceptance ceases to cover an artifact once the artifact changes is a claim about the step that CONSUMES the artifact, and it was only ever written down beside the step that produces it.
+
+---
+
+## D42 · 2026-10-13 · A documented example command was run with its placeholder still in it
+
+**believed** The answer rules A1 to A7 cover the shapes an answer can be wrong in: no answer, unknown type, missing author or date, stated with no value, delegated with no assumed value, unknown provenance.
+**happened** An example command written to show the SYNTAX of an answer was run verbatim, placeholder and all. Q41 became a stated answer whose value was three dots. It satisfied every rule: it has a type, an author, a date, a value, and a provenance. Downstream nothing distinguishes it from an answer somebody thought about, and the author would have read three dots as the answer to whether two processes sharing a worklist can be told apart.
+**cost** Nothing. It was caught by reading the output of the command rather than its exit code.
+**changed** Rule A8 refuses a stated or delegated value that is punctuation alone or one of tbd, todo, n/a, na, none, xxx, fixme, placeholder, unknown. Three tests. The placeholder in the documented example stays, because the example has to show the shape; the rule is what makes running it harmless.
+**generalizes** An example command is a thing people run. Any placeholder in one is a value the system will eventually receive, so the validator has to know the placeholder by sight. Writing the example and writing the rule that catches its placeholder are one task.

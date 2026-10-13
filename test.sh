@@ -1450,6 +1450,27 @@ cp "$IV/base.md" "$IV/Q.md"
   && no "an answer to a question that does not exist was accepted" \
   || ok "an answer to a question nobody asked is refused"
 
+# A8. Someone ran a documented example with its placeholder still in it, and the
+# answer "..." satisfied every rule above. An answer present and empty of content
+# is indistinguishable downstream from one somebody thought about.
+cp "$IV/base.md" "$IV/ph.md"
+# `answered` exits non-zero when a rule fails, and under pipefail that status is
+# what `... | grep -q` returns even when grep matched. Capture first, then grep.
+# This is the fourth time this trap has been hit in this repo.
+a8() { "$HERE/tooling/questions.sh" answered "$IV/ph.md" 2>&1; }
+"$HERE/tooling/questions.sh" answer "$IV/ph.md" Q1 stated --by "Buzz" --value "..." >/dev/null 2>&1
+PH=$(a8)
+case "$PH" in *FAIL*A8*) ok "a stated answer of punctuation alone is refused as a placeholder" ;;
+              *) no "the answer \"...\" passed the rules" ;; esac
+"$HERE/tooling/questions.sh" answer "$IV/ph.md" Q1 stated --by "Buzz" --value "TBD" >/dev/null 2>&1
+PH=$(a8)
+case "$PH" in *FAIL*A8*) ok "TBD is refused as a placeholder" ;;
+              *) no "TBD was accepted as an answer" ;; esac
+"$HERE/tooling/questions.sh" answer "$IV/ph.md" Q1 stated --by "Buzz" --value "Weekly, on the Monday after close" >/dev/null 2>&1
+PH=$(a8)
+case "$PH" in *PASS*A8*) ok "a real answer passes A8" ;;
+              *) no "A8 refused a real answer" ;; esac
+
 # use_case_sha256 holds digits. A key pattern of letters alone drops it silently.
 grep -q 'use_case_sha256' "$IV/Q.md" && \
   "$HERE/tooling/questions.sh" validate "$IV/Q.md" 2>&1 | grep -q 'PASS.*I1' \
