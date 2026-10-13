@@ -170,6 +170,83 @@ The pipeline's shape follows from one observation, which is the sharpest thing w
 Ask too early and nobody can answer. Refuse too early and the question is never asked at all. The
 test for any gate is not whether the thing is known, but whether it was **knowable yet**.
 
+## Five kinds of step, and how each one gets an oracle
+
+A design's `@steps` already carries a kind in its third column and an actor in its fourth.
+Across the five designs written so far that vocabulary has produced:
+
+| kind / actor | steps |
+|---|---|
+| `mechanical / code` | 38 |
+| `gate / code` | 31 |
+| `coordination / code` | 11 |
+| `test / code` | 8 |
+| `thinking / model` | 3 |
+| `thinking / human` | 3 |
+
+That column groups steps by what the work is. The grouping that decides whether a step can be
+trusted is a different one: **where its oracle comes from.** The thesis holds that every artifact
+shape must carry a way of being checked that is derived from the specification rather than from
+the implementation, and the five kinds below are that sentence applied to a single step.
+
+### 1. Tool call — generated from the catalog
+
+The step reads or writes through a catalogued tool. None of it needs authoring: the catalog entry
+already states the endpoint, the data class, the permission in force and the review date, so both
+the step body and the provenance row it must leave are derivable from the entry. The oracle is the
+entry. A step that reads a field the entry does not list is refusable before anything runs.
+
+### 2. Decision — generated from a table, provably complete and non-overlapping
+
+The step maps inputs to an outcome. Written as a decision table, two properties are machine-checkable
+ahead of any run: every combination of inputs lands in at least one row, and no combination lands in
+two. `tooling/lib/dt-cell.awk` holds the cell semantics and is loaded by the validator and copied
+verbatim into every emitted bundle, so the authoring side and the running side cannot drift into two
+dialects of the same table. The oracle is the table's own geometry.
+
+### 3. Gate — authored, fixtures generated from the condition
+
+A gate's refusal condition is prose in the design and a script in the bundle, and the script is the
+part a model writes. The condition names its inputs and its boundary, so the fixture set is derivable
+from the condition alone: a passing case, a refusing case, and a case on each side of each boundary.
+`check-authoring` generates the fixtures in `load-gate` and authors the script in `author-check`,
+in that order, which is what makes the fixtures independent of the thing they judge. The oracle is
+the condition.
+
+### 4. Test step — authored, fixtures generatable from what it claims to recompute
+
+A test step recomputes what an earlier step produced and checks the result against the record. Its
+description is a list of claims — *"that each name holds one answer of same, different or unsure
+with no number in it"* — and every claim admits a case that violates it. `tooling/test-fixtures.sh`
+enumerates the claims from the description and demands one violating fixture for each, so a test
+step that checks four things cannot ship with fixtures for three.
+
+This is the newest of the five and the least exercised. The generator is built and no design has yet
+been authored against it, so its claim-splitting has been tested on fixtures rather than on a run.
+
+### 5. Judgment — a prompt, surrounded by a test and a gate
+
+The only kind where a model's output is the step's product. Nothing checks the prompt, and nothing
+is going to. What makes the step admissible is the pair placed around it: a test step that recomputes
+what the model was given and what it returned, and a gate that refuses the unit when the two disagree.
+In med-rec, step 12 is the model's judgment, step 13 recomputes its inputs and outputs, and step 14
+refuses the unit on any inconsistency. The oracle is never the judgment; it is the recomputation
+standing beside it.
+
+### What the taxonomy exposes
+
+`mechanical` is 38 of 94 steps and covers at least three of the five kinds — catalogued tool calls,
+decision tables, and plumbing that is neither. Those have different oracles, and a single label
+cannot tell the validator which evidence to demand of which step. Splitting that column is the next
+change to the design format.
+
+`coordination` — ordering, capping, admitting — is the residue. It carries no oracle of its own
+today. The open question is whether it should acquire one or stop being authored: a step that only
+orders and admits units may be fully derivable from the unit definition, in which case the right
+answer is to generate it whole.
+
+---
+
 ## The pipeline as it stands
 
 ```
