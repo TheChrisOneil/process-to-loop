@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Bind a run's checks to its values, once, at the start of the run.
 #
-#   bind-checks.sh <artifact_root> <checks_dir> KEY=VALUE ...
+#   bind-checks.sh [--checks "a b c"] <artifact_root> <checks_dir> KEY=VALUE ...
 #
 # A formula declares [vars] at cook time. An exec check needs those values at run
 # time, and gc passes it only GC_BEAD_ID. Recovering them at run time means a
@@ -17,13 +17,16 @@
 # Exit 1  a named check is missing, so nothing was written
 # Exit 64 wrong arguments
 set -uo pipefail
+# Which checks to bind. design-authoring's set is the default because it was the
+# first caller; check-authoring passes its own. A formula whose checks are not
+# bound reaches its gates with nothing in the environment, which is how
+# check-authoring failed on its first run: both of its gates reported "not set"
+# and neither had anything to do with the script being judged.
+CHECKS="design-reviewed design-validate design-audited diagrams-complete bundle-records prior-archived questions-asked questions-answered"
+case "${1:-}" in --checks) CHECKS=${2:-}; shift 2 ;; esac
 R=${1:?artifact_root}; C=${2:?checks_dir}; shift 2
 [ -d "$R" ] || { echo "no artifact_root at $R" >&2; exit 64; }
 [ -d "$C" ] || { echo "no checks directory at $C" >&2; exit 64; }
-
-# The checks a design-authoring run uses. A name here that is not in $C is a
-# dropped gate, so it refuses rather than emitting a partial set.
-CHECKS="design-reviewed design-validate design-audited diagrams-complete bundle-records prior-archived questions-asked questions-answered"
 
 MISSING=""
 for n in $CHECKS; do [ -f "$C/$n.sh" ] || MISSING="$MISSING $n"; done
@@ -55,6 +58,12 @@ for n in $CHECKS; do
   } > "$W"
   chmod +x "$W" || { echo "could not make $W executable" >&2; exit 1; }
 done
+
+# A manifest of what was bound, so the gate that verifies the binding reads this
+# rather than carrying its own copy of the list. Two hardcoded lists drift, and
+# the one that drifts silently is the verifier.
+: > "$OUT/.bound"
+for n in $CHECKS; do printf '%s\n' "$n" >> "$OUT/.bound"; done
 
 echo "bound $(echo $CHECKS | wc -w | tr -d ' ') check(s) into $OUT, against $C"
 echo "values: $(for kv in "$@"; do printf '%s ' "${kv%%=*}"; done)"

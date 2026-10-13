@@ -68,6 +68,14 @@ default = "claude"
 description = "Model for the audit lane. MUST differ from author_model; the verdict check refuses when it does not."
 default = "claude-sonnet-5"
 
+[vars.checks_root]
+description = "Absolute path to the directory holding the real check scripts — the rig's checks/. The run binds its own wrappers against these. Explicit because a step computing it from the working directory is the implicit dependency that made every check pass by hand and fail under the controller."
+required = true
+
+[vars.tooling_root]
+description = "Absolute path to the tooling directory, so the binding step does not have to find it."
+required = true
+
 [vars.notify]
 description = "Who is asked to accept the finished check. A named role, never a team."
 required = true
@@ -76,10 +84,58 @@ required = true
 description = "Absolute path where this run writes the script, the verdict and the log."
 required = true
 
+
+# ---------------------------------------------------------------- mechanical ----
+[[steps]]
+id = "bind-checks"
+title = "Bind this run's checks to this run's values"
+description = """
+Deterministic work only. This runs before anything else.
+
+A formula declares its [vars] when it is cooked. An exec check needs those values
+when it runs, and gc hands a check only GC_BEAD_ID — not the workflow output a
+step recorded. On 2026-10-13 this formula's first ever run reached both of its
+gates and both reported the same thing: "CHECK_SCRIPT and CHECK_FIXTURES are not
+set", "AUDIT_VERDICT is not set". Neither had anything to do with the script
+being judged. The script was sound and passed all nine of its fixtures when the
+values were supplied by hand.
+
+So bind them here, once, while every value is already known:
+
+    {{tooling_root}}/bind-checks.sh --checks "selftest-gate audit-verdict" \
+      {{artifact_root}} {{checks_root}} \
+      CHECK_SCRIPT={{check_path}} \
+      CHECK_FIXTURES={{fixtures_path}} \
+      AUDIT_VERDICT={{artifact_root}}/check-audit-verdict.json \
+      DESIGN_PATH={{design_path}} \
+      ARTIFACT_ROOT={{artifact_root}} \
+      AUTHOR_MODEL={{author_model}} \
+      AUDIT_MODEL={{audit_model}} \
+      TOOLING_ROOT={{tooling_root}}
+
+It writes one wrapper per check into {{artifact_root}}/checks/, each exporting its
+values literally and exec'ing the real check. Every later gate in this formula
+runs the bound wrapper.
+
+Close with `gc.outcome=pass`, or `gc.outcome=fail` and the reason. Do not continue
+past a failed binding: every gate after this one would run on whatever the
+environment happened to carry, which is how the first run failed.
+"""
+metadata = { "gc.run_target" = "gc.run-operator" }
+
+[steps.check]
+max_attempts = 2
+
+[steps.check.check]
+mode = "exec"
+path = "checks/checks-bound.sh"
+timeout = "2m"
+
 # ---------------------------------------------------------------- mechanical ----
 [[steps]]
 id = "load-gate"
 title = "Read the gate and generate its fixtures"
+needs = ["bind-checks"]
 description = """
 Deterministic work only. Do not infer, do not fill gaps, and do not decide
 anything this step was not told to decide.
@@ -156,7 +212,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/selftest-gate.sh"
+path = "{{artifact_root}}/checks/selftest-gate.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- thinking ----
@@ -233,7 +289,7 @@ max_attempts = 2
 
 [steps.check.check]
 mode = "exec"
-path = "checks/audit-verdict.sh"
+path = "{{artifact_root}}/checks/audit-verdict.sh"
 timeout = "2m"
 
 # ---------------------------------------------------------------- thinking ----

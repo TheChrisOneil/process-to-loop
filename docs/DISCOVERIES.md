@@ -475,3 +475,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** A proposal built on a mechanism that is not in the path. Caught by probing rather than by a maintainer.
 **changed** PR 2 split in two. Part 1 asks gc to honour the classification it ALREADY computes, which needs no conventions, no exit codes and no compatibility gate. Part 2 is the genuine convention case: a check that ran and found its own dependency missing, which only the check can report, via EX_TEMPFAIL.
 **generalizes** Before arguing that a system should honour a convention, check that the convention is reachable from where the system stands. Twice now the stronger argument was already in the system's own output, and reading it was faster than reasoning about what ought to be there.
+
+---
+
+## D38 · 2026-10-13 · check-authoring failed on a defect design-authoring was fixed for weeks earlier
+
+**believed** The three workflows share a method and a vocabulary, so a defect found and fixed in one would have been noticed in the others. design-authoring got bind-checks.sh on 2026-10-02 after exactly this failure.
+**happened** check-authoring's first ever run reached both of its gates and both reported the same thing: CHECK_SCRIPT and CHECK_FIXTURES are not set, AUDIT_VERDICT is not set. It still told each step to 'record X in your output', which gc does not export to an exec check. The authored script was sound — nine fixtures, zero failures, when the values were supplied by hand.
+**cost** One full run, and the finding was the harness rather than the thing being tested.
+**changed** bind-checks takes --checks so a formula binds its own set, and writes a manifest of what it bound. checks-bound reads that manifest instead of carrying its own copy of the list, which removes the duplication that would have drifted next.
+**generalizes** A fix applied to one caller of a shared pattern is not a fix to the pattern. The untouched callers look identical until one is exercised, and the first thing to run after a long gap is the thing most likely to be carrying an old defect.

@@ -4,14 +4,23 @@ One sentence, and everything else in this repository is a consequence of it.
 
 > **A model may write something only where something that is not a model can check it.**
 
-That is not a statement about trust. It is a statement about what can be put in front of a
-regulator, and it has a sharp operational form:
+The constraint is about what can be demonstrated afterwards, which is a different property from
+whether the model was right. A model may well produce a correct gate condition. What it cannot
+produce is evidence that the condition is correct, because the only witness is the thing that
+wrote it. A regulator asking *"what checked this"* will not accept *"we read it carefully"*, and
+that answer does not improve by being true.
+
+So the constraint has an operational form:
 
 > **Every artifact shape must carry its own oracle** — a way of being checked that is derived from
 > the specification rather than from the implementation.
 
-Where no oracle exists, the shape is wrong, and the answer is to change the shape rather than to
-review harder.
+"Derived from the specification" is the load-bearing half. A check written against the
+implementation tests that the code does what the code does. A check derived from the declaration
+tests that the code does what was asked, and those come apart precisely where it matters.
+
+Where no oracle exists, the shape is wrong. Reviewing harder does not help, because the thing
+missing is not attention but an independent witness.
 
 ---
 
@@ -21,14 +30,17 @@ The obvious alternative is: let a model write whatever is needed, and have a per
 model review it. That fails in two directions at once.
 
 **A second model is one opinion twice.** Two models from one lab share training data and tooling,
-so their blind spots correlate. A review that agrees is indistinguishable from a review that did
-not look. This is why the audit here runs on a different *provider*, and why a deterministic check
-refuses a verdict whose author and auditor are the same model.
+so where one has a blind spot the other usually has the same one. The reviewing model then agrees,
+and an agreeing review and an absent review produce the same artifact: a verdict saying nothing
+was found. Nothing in the output distinguishes them. That is why the audit here runs on a
+different *provider*, and why a deterministic check refuses a verdict whose author and auditor
+share a model.
 
-**A person does not have time, and knows it.** One analysis puts AI-generated code at 12× more
-expensive to review than to generate. At that ratio review is not a control; it is a queue. And
-the review that matters least is the one of a thing that looks right — which is exactly what a
-model produces.
+**A person does not have the time.** One analysis puts AI-generated code at 12× more expensive to
+review than to generate: a contributor produces a pull request in 7 minutes, a maintainer spends
+85 understanding it. At that ratio the review queue grows faster than it drains, so review becomes
+something that happens to a sample. And the sample skews away from code that looks right, which is
+the category a model reliably produces.
 
 So: an oracle, derived from the spec, applied before anybody is asked.
 

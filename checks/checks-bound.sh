@@ -24,13 +24,33 @@ R=${ARTIFACT_ROOT:-}
 # it per check, rather than testing DESIGN_PATH for all of them, is the
 # difference between proving the binding and proving a binding happened: the
 # question gates would pass a DESIGN_PATH test while carrying no questions.
-EXPECT="design-reviewed:DESIGN_PATH design-validate:DESIGN_PATH design-audited:DESIGN_PATH
-        diagrams-complete:DESIGN_PATH bundle-records:BUNDLE_PATH prior-archived:ARTIFACT_ROOT
-        questions-asked:QUESTIONS_PATH questions-answered:QUESTIONS_PATH"
+# What bind-checks says it bound. Read from its manifest rather than carried
+# here: two hardcoded lists drift, and the one that drifts silently is the
+# verifier. A missing manifest means nothing was bound, which is itself the
+# failure this gate exists to catch.
+MANIFEST="$R/checks/.bound"
+[ -f "$MANIFEST" ] || { echo "REFUSED: no $MANIFEST — bind-checks did not run, or ran an older version." >&2
+  echo "         Next human action: run tooling/bind-checks.sh for $R and try again." >&2; exit 1; }
+
+# The one variable without which a given check is running on nothing. A check not
+# named here is still verified for existence and a target; naming it just makes
+# the test sharper.
+need_for() {
+  case "$1" in
+    bundle-records)   echo BUNDLE_PATH ;;
+    prior-archived)   echo ARTIFACT_ROOT ;;
+    questions-asked|questions-answered) echo QUESTIONS_PATH ;;
+    selftest-gate)    echo CHECK_SCRIPT ;;
+    audit-verdict)    echo AUDIT_VERDICT ;;
+    *)                echo DESIGN_PATH ;;
+  esac
+}
+
 BAD=""
 NCHECK=0
-for spec in $EXPECT; do
-  n=${spec%%:*}; need=${spec#*:}
+while IFS= read -r n; do
+  [ -n "$n" ] || continue
+  need=$(need_for "$n")
   NCHECK=$((NCHECK+1))
   W="$R/checks/$n.sh"
   if   [ ! -f "$W" ];            then BAD="$BAD $n(absent)"
@@ -45,7 +65,7 @@ for spec in $EXPECT; do
     elif [ ! -f "$t" ];          then BAD="$BAD $n(target-missing)"
     fi
   fi
-done
+done < "$MANIFEST"
 
 if [ -n "$BAD" ]; then
   echo "REFUSED: these bound checks are not usable:$BAD" >&2
