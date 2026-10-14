@@ -8,6 +8,6 @@ We never write a formula. A signed design compiles into one, so what a clinician
 
 We work with Gas City as a design partner, because running a platform at the edge of its spec finds things worth reporting back.
 
-Four-part series on how EverBetter is advancing medical AI. Link in comments.
+Four-part series on EverBetter and medical AI. Link in comments.
 
 #gascity #HealthIT #HIPAA #VerticalAI
