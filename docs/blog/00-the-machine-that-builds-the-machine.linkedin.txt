@@ -10,7 +10,7 @@ We call the engine a deterministic control loop. Code owns every path through th
 
 We build that pipeline in layers.
 
-Process modeling: we apply BPMN and DMN concepts to AI-drafted workflows. Every step is one of five kinds. Rule decisions become decision tables.
+Process modeling: we apply BPMN and DMN concepts to AI-drafted workflows. Every step declares one of six kinds, and the kind names what checks that step rather than what the work feels like. Rule decisions become decision tables.
 
 Determinism: we refactor the process to remove thinking points. At most one judgment per unit of work. Everything else runs as code.
 

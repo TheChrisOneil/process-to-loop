@@ -1,0 +1,111 @@
+<!-- wp:paragraph -->
+<p><em>Day log, 13 October 2026. What broke, what it cost, and what changed.</em></p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Six defects surfaced in my workflow compiler yesterday. Five of them share one shape: a control that had been written down, believed, and never watched run. I am writing them up together because the shape is more useful than any of them individually.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>A signature that covered the wrong bytes</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>A design is accepted by content. The register records the SHA-256 of the file as it stood when a named person signed it, and the project README has said since its first version that changing one character stops the acceptance covering what would be built.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Nothing enforced it. The compiler read the design rules and a rehearsal marker and never opened the register. An acceptance gate closed over design <code>ef478341</code> while the authoring step of that same run was still working, and the next thing that step wrote was a different design under the same filename. The register held the right answer the whole time and nothing asked it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The general form is worth stating. A claim that an acceptance stops covering an artifact once the artifact changes is a claim about the step that <em>consumes</em> the artifact. It had only ever been written down beside the step that produces it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>The refusal that refused in silence</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>I added that check in the morning, with three tests: an unsigned design is refused, a signed one compiles, and one appended byte is refused. All three passed.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Running it against a real design gave exit 1 and not one word of output. The script runs under <code>set -e</code>, and the status lookup was a bare assignment whose command exits non-zero for exactly the case the block exists to report. The assignment killed the script before the first line of explanation. All three tests passed because all three checked the exit code and none checked that anything was printed.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A test that asserts only an exit code cannot tell a refusal from a crash, and those are the two things a user most needs told apart. Every refusal this system makes is a message with an exit code attached, so the message is the thing to assert.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>The same trap, in the guard for the worst case</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>That generalization told me to look at every refusal, so I read the two scripts in the repository that run under <code>set -e</code>. The bundle emitter ends with a build guard: it counts how many gates reached the bundle, refuses when the count differs from the design, and removes the half-built output.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The count ended in a <code>grep</code> that exits 1 when it matches nothing. Nothing matching is precisely the case the guard exists for, every gate dropped, so in its worst case the script died before the refusal and left the broken bundle on disk. A guard is least tested in the case it exists for, because that case is the one that has not happened yet.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>An example command, run as written</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>I wrote a command to show the syntax of an interview answer. It was run verbatim, placeholder included, and a structural question acquired the answer <code>...</code>. That answer has a type, an author, a date, a value and a provenance, so all seven rules an answer must satisfy passed it. Downstream nothing distinguished it from an answer somebody had thought about.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>An example command is a thing people run. Any placeholder in one is a value the system will eventually receive, so the validator has to know the placeholder by sight. Writing the example and writing the rule that catches its placeholder are one task. The validator now refuses punctuation alone and the words people type when they mean "not yet".</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>One type, three oracles</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>Counting step types across five designs put 38 of 94 steps under a single label, <code>mechanical</code>. Those 38 are catalogued tool calls, decision tables, and plumbing that is neither, and the property generator gave all three the same two promises: no model call, and byte-identical output when run twice.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Determinism is true of every code step and is the oracle for none of them. Nothing checked that a tool call read a field its catalog entry covers, or that a decision table had a row for every combination of its inputs. A type is useful to a validator in proportion to how much it narrows the evidence, and a type covering several oracles narrows nothing.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A step's kind now names where its oracle comes from. A tool call is checked against its catalog entry, a decision against its table being complete and non-overlapping, a gate against its own condition, a test against one violating case per claim, and a judgment against the test and gate placed around it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>Two copies of the toolchain</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>This was the largest of the six. A workflow step resolves the tooling through a declared variable pointing at the repository. An executable gate resolved it relative to its own location, inside the rig, which is a copy somebody updates by hand.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>The rig's validator was 23 lines behind, with none of the rule that had been added that morning to warn about unclassified steps. So a validation gate passed a design using a validator that could not have warned about it, and reported a clean pass. The rig's compiler had no acceptance check at all.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>Two copies of an executable are two dialects. That sentence was already written as a comment on a decision table, while the whole toolchain had the same defect one directory up. The binding step had been exporting the correct path all along and no check read it; a bound value nothing reads is a second source of truth that has not announced itself yet.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":3} -->
+<h3>The part that worked</h3>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph -->
+<p>At 19:59Z the repaired control refused a live run. The close reason named the design it refused, the register row that covers a different one, the time the authoring step replaced it, and the fact that the bundle directory was untouched. It also recorded that no person had rejected the design, which is a different fact from nobody having signed it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p>A control you have written is not a control that runs. Everything above is the distance between the two, and in a regulated system that distance is where the failure lives.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:paragraph -->
+<p><em>#gascity #HealthIT #AIGovernance</em></p>
+<!-- /wp:paragraph -->

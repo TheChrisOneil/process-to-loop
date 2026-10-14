@@ -1,0 +1,19 @@
+Six defects in my workflow compiler yesterday. Five were the same shape: a control I wrote down, believed, and never watched run.
+
+A design is signed by content hash. The authoring step then rewrote it under the same filename. The compiler had never read the acceptance register, so it would have built something nobody signed.
+
+I added that check in the morning. It refused correctly and printed nothing, because under set -e the status lookup exited the script first. All three of my tests passed, since all three checked the exit code and none checked that anything was printed.
+
+The sweep that implied found the same trap in a build guard, silent in exactly the case it guards.
+
+A documented example was run with its placeholder still in it. The answer "..." passed all seven rules an answer must satisfy.
+
+One step type covered 38 of 94 steps and named three different oracles.
+
+The gates and the steps were resolving two different copies of the tooling. The gate's validator was 23 lines behind, and the gate's compiler had no acceptance check at all.
+
+At 19:59Z the repaired control refused a live run, emitted nothing, and said why.
+
+A control you have written is not a control that runs. The distance between the two is where regulated systems fail.
+
+#gascity #HealthIT #AIGovernance

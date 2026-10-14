@@ -1,0 +1,11 @@
+1/ Six defects in my workflow compiler yesterday. Five were the same shape: a control I had written down, believed, and never watched run. #gascity #HealthIT
+
+2/ A design is signed by content hash. The authoring step rewrote it under the same filename. The compiler had never read the acceptance register, so it would have built something nobody signed.
+
+3/ I added that check in the morning. It refused correctly and printed nothing: under set -e the status lookup exited first. Three tests passed, because all three checked the exit code and none checked the output.
+
+4/ The sweep that implied found the same trap in a build guard. It died before speaking in exactly the case it guards, every gate dropped from a bundle.
+
+5/ The gates and the steps were resolving two different copies of the tooling. The gate's validator was 23 lines behind. The gate's compiler had no acceptance check at all.
+
+6/ At 19:59Z the repaired control refused a live run, emitted nothing, and said why. A control you have written is not a control that runs.
