@@ -15,7 +15,7 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>Healthcare is that vertical. Automating regulated clinical workflows is an active research area, and EverBetter is participating in it. Our research is producing a factory that lets a clinician, a nurse, or a patient create a new workflow in their own space while every safety, security, and HIPAA obligation is maintainedThat is what makes the problem hard. HIPAA requires audit controls that record and examine system activity [3], a security evaluation after operational changes [4], and six-year retention of compliance documentation [5]. A new clinical workflow is an operational change.</p>
+<p>Healthcare is a vertical. Automating regulated clinical workflows is an active research area, and EverBetter is participating in it. Our research is producing a factory that lets a clinician, a nurse, or a patient create a new workflow in their own space while every safety, security, and HIPAA obligation is maintained.  That is what makes the problem hard. HIPAA requires audit controls that record and examine system activity [3], a security evaluation after operational changes [4], and six-year retention of compliance documentation [5]. A new clinical workflow is an operational change.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -67,15 +67,17 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>We do not write formulas. An accepted design <em>compiles</em> into one. The design is the source and the formula is the object code, which means the artifact a clinician signs and the artifact the orchestrator runs are related by a compiler rather than by somebody&rsquo;s good intentions. That is the whole of the fit, and it is worth being specific about what the platform supplies that we would otherwise have had to build:</p>
+<p>We do not write formulas. An accepted design <em>compiles</em> into one. The design is the source and the formula is the object code, which means the artifact a clinician signs and the artifact the orchestrator runs are related by a compiler rather than by somebody&rsquo;s good intentions. That is the whole of the fit;  specifically what the platform supplies that we would otherwise have had to build:</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:list -->
 <ul>
-<li><strong>A formula is a compilation target.</strong> Gas City already treats a method as a first-class executable object. We needed somewhere for a signed design to land, and a format whose semantics were specified rather than improvised.</li>
+<li><strong>A formula is a compilation target.</strong> Gas City already treats a method as a first-class executable object. We needed somewhere for a signed design to land, and a format whose semantics were specified and versioned explicitly.</li>
 <li><strong>Beads are the audit trail.</strong> Every step transition is a durable unit of work that survives a crash. In an ordinary pipeline that is a convenience. In a regulated one it is the record an auditor reads, so we never had to build state persistence &mdash; only to decide what belongs in it.</li>
 <li><strong>Executable checks are gates.</strong> A step can be made to depend on an external script&rsquo;s exit code. Our gate conditions compile into those scripts, so a refusal is deterministic, blocks everything downstream, and can be read by a person afterwards.</li>
 <li><strong>The dependency graph holds a human gate open.</strong> An approval step is a bead that nothing can pass until a named person closes it. That is the primitive a regulated approval needs, and it was already there.</li>
+<li><strong>The cross provider coordination.</strong> Coordination between different providers is handled by the orchestrator, which ensures that dependencies across provider boundaries are respected and that approvals and checks are synchronized. An approval step is a bead that nothing can pass until a named person closes it. That is the primitive a regulated approval needs, and it was already there.</li>
+<li><strong>Economic model deployment.</strong> The economic model dictates how agents are allocated such as which agents get which tasks with a model assisgnment at a desire thinking level of optimization and resource utilization, and how costs are tracked across the dependency graph. </li>
 </ul>
 <!-- /wp:list -->
 
@@ -88,7 +90,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>The fifth layer is regulatory boundary enforcement. Every data source comes from a catalog that declares its data class. A design may narrow a tool's permissions and may never widen them. A source carrying protected health information may feed a model step only when the catalog records a business associate agreement covering that model provider [15], with a current attestation date. A lapsed attestation refuses the design. A different model audits each design for defects the deterministic rules cannot catch.</p>
+<p>The fifth layer is regulatory boundary enforcement. Every data source comes from a catalog that declares its data class. A design may narrow a tool's permissions and precludes any attempt to widen them. A source carrying protected health information may feed a model step only when the catalog records a business associate agreement covering that model provider [15], with a current attestation date. A lapsed attestation refuses the design. A different model audits each design for defects the deterministic rules cannot catch.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->

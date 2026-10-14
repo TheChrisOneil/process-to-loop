@@ -19,7 +19,7 @@
 <!-- /wp:html -->
 
 <!-- wp:paragraph -->
-<p>The format is plain text, organized in sections that open with an @ name. I rejected JSON because the process owner must read and own the logic. A clinic manager can read a pipe-delimited table. Few can read nested braces.</p>
+<p>The format is plain text, organized in sections that open with an @ name. Thus the same design artifact is both human-readable and machine-parseable. I rejected JSON because the process owner must read and own the logic.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
@@ -43,7 +43,7 @@
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>A gate written in prose compiles to a stub somebody must implement. A gate backed by a decision table compiles to working logic. Tables answer three questions that conditionals hide: does any input fall through, do two rules claim the same input, and does any output never occur? Under the unique hit policy the validator proves no two rules overlap. A case that matches no rule is a refusal. The workflow never invents a default, because inventing an answer is the guess this system exists to prevent.</p>
+<p>Earlier interations had gates written in prose compiles to a stub somebody must implement. The current design compiles to working logic. A gate backed by a decision table compiles to working logic. Tables answer three questions that conditionals hide: does any input fall through, do two rules claim the same input, and does any output never occur? Under the unique hit policy the validator proves no two rules overlap. A case that matches no rule is a refusal.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:html -->
