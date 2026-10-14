@@ -152,6 +152,20 @@ printf '{"author_model":"m1","audit_model":"m2","verdict":"defective","defects":
 if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
 then no "a defective verdict naming no defect was accepted"
 else ok "a defective verdict that names no defect is refused"; fi
+# A sound verdict used to have to describe nothing, so listing every dimension
+# as checked and finding no fault was the cheapest way through this gate. A real
+# verdict did exactly that on 2026-10-14 and passed.
+NOTES='"dimension_notes":{"polarity":"exits 1 when the condition holds","boundary":"0 proceeds, 1 refuses","source-of-truth":"values come from the unit row","exit-75":"75 only when it cannot run","refusal-text":"matches the design verbatim"}'
+ALL='"checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"]'
+printf '{"author_model":"m1","audit_model":"m2","verdict":"sound",%s}' "$ALL" > "$T/v.json"
+if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then no "a sound verdict with no reasoning for any dimension was accepted"
+else ok "a sound verdict that records no finding per dimension is refused"; fi
+# One blank note is the same defect as five.
+printf '{"author_model":"m1","audit_model":"m2","verdict":"sound",%s,"dimension_notes":{"polarity":"ok","boundary":"","source-of-truth":"ok","exit-75":"ok","refusal-text":"ok"}}' "$ALL" > "$T/v.json"
+if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
+then no "a verdict with one empty dimension note was accepted"
+else ok "one dimension claimed with an empty note is refused"; fi
 printf '{"author_model":"m1","audit_model":"m2","verdict":"sound","checked":["polarity"]}' > "$T/v.json"
 if AUDIT_VERDICT="$T/v.json" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
 then no "an audit that skipped four of five dimensions was accepted"
@@ -276,7 +290,7 @@ printf '{"author_model":"a","audit_model":"b","verdict":"sound","checked":["unit
 grep -q "It found nothing" "$FT/FINDINGS.md" 2>/dev/null \
   && ok "a clean audit still writes the file — absence is a result" || no "a clean audit wrote nothing"
 AV=$(mktemp); AVS=$(mktemp); printf 'the audited artifact\n' > "$AVS"
-printf '{"author_model":"a","audit_model":"b","verdict":"defective","checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"],"defects":[{"severity":"major","what":"w","why":"y"}],"subject_sha256":"%s"}' \
+printf '{"author_model":"a","audit_model":"b","verdict":"defective","dimension_notes":{"polarity":"n","boundary":"n","source-of-truth":"n","exit-75":"n","refusal-text":"n"},"checked":["polarity","boundary","source-of-truth","exit-75","refusal-text"],"defects":[{"severity":"major","what":"w","why":"y"}],"subject_sha256":"%s"}' \
   "$(shasum -a 256 "$AVS" | awk '{print $1}')" > "$AV"
 if AUDIT_VERDICT="$AV" AUDIT_SUBJECT="$AVS" "$HERE/checks/audit-verdict.sh" >/dev/null 2>&1
 then ok "a defective verdict passes the gate — soundness is a person's call"
@@ -2015,9 +2029,11 @@ DIMS="unit-of-work,judgment-isolated,gate-coverage,refusal-quality,evidence-chai
 mkverdict() {  # $1 out, $2 sha-or-empty
   python3 - "$1" "$2" <<'PY3'
 import json, sys
+v_dims = ["unit-of-work","judgment-isolated","gate-coverage","refusal-quality","evidence-chain","exit-criterion"]
 v = {"author_model":"model-a","audit_model":"model-b","verdict":"sound",
      "checked":["unit-of-work","judgment-isolated","gate-coverage",
                 "refusal-quality","evidence-chain","exit-criterion"],
+     "dimension_notes":{k:"examined; nothing to report" for k in v_dims},
      "defects":[],"confidence":"high"}
 if sys.argv[2]: v["subject_sha256"] = sys.argv[2]
 json.dump(v, open(sys.argv[1],"w"))

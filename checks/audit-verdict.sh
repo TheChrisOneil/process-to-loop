@@ -98,6 +98,23 @@ if missing:
         "re-run the audit against every required dimension. A skipped dimension is "
         "a review that did not happen.")
 
+# A defective verdict must describe every defect. A sound verdict had to
+# describe nothing, so the cheapest way through this gate was to list every
+# dimension as checked and find no fault. On 2026-10-14 a verdict did exactly
+# that: checked named all five dimensions and dimension_notes was empty, and
+# the gate passed it. "I looked" is not evidence that anybody looked.
+#
+# The project's own thesis is that a model may write something only where
+# something that is not a model can check it. Whether a note exists for each
+# dimension the auditor claims to have checked is exactly that kind of thing.
+notes = d.get("dimension_notes") or {}
+thin = sorted(r for r in REQUIRED if not str(notes.get(r, "")).strip())
+if thin:
+    bad("the audit claims to have checked " + ", ".join(thin) + " and records no finding for "
+        + ("it" if len(thin) == 1 else "them") + ".",
+        "re-run the audit; a dimension listed as checked carries a note saying what was "
+        "examined and what was concluded. A verdict with no reasoning is a verdict nobody can weigh.")
+
 defects = d.get("defects") or []
 if verdict == "defective":
     # A defective verdict is NOT a reason to refuse. This gate asks whether the

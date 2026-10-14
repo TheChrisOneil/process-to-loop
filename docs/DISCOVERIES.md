@@ -587,3 +587,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. The live run was parked at a human gate and needed no agent, so the gap was invisible. Had a step been mid-flight it would have lost its session.
 **changed** Nothing in the code. Recorded here because the next person to clean up a rig will see 0/4 agents and conclude they broke the city. The repair is gc supervisor reload.
 **generalizes** Cleaning up finished work removes the thing the work was running on. A queue and the workers serving it are the same object seen twice, so a change that looks like bookkeeping on one side is a teardown on the other. Check what is mid-flight before closing a convoy, and reconcile afterwards.
+
+---
+
+## D49 · 2026-10-14 · A sound verdict had to describe nothing, so the cheapest audit was one that found nothing
+
+**believed** The audit-verdict gate asks whether the audit was real: a different model, every required dimension covered, and every defect described with severity, what and why.
+**happened** Those requirements are asymmetric. A defective verdict must describe each defect; a sound verdict must describe nothing at all. On 2026-10-14 an audit returned sound with all five dimensions listed as checked and dimension_notes empty, and the gate passed it. The two verdicts before it carried a paragraph per dimension, so the prompt asks for them and nothing enforced it. The cheapest way through the gate was to claim everything and find nothing.
+**cost** Nothing yet. The script it blessed had passed 19 fixtures, so the verdict was probably right. It was unweighable either way.
+**changed** A dimension listed in checked must carry a non-empty note. Three tests, and the suite's own verdict fixtures now model a real verdict rather than the minimum that passed.
+**generalizes** Where a control treats the negative finding more strictly than the positive one, the positive one is the cheap exit. Compare what each verdict has to prove before trusting either, because the asymmetry is invisible until somebody takes the cheap exit.
