@@ -597,3 +597,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing yet. The script it blessed had passed 19 fixtures, so the verdict was probably right. It was unweighable either way.
 **changed** A dimension listed in checked must carry a non-empty note. Three tests, and the suite's own verdict fixtures now model a real verdict rather than the minimum that passed.
 **generalizes** Where a control treats the negative finding more strictly than the positive one, the positive one is the cheap exit. Compare what each verdict has to prove before trusting either, because the asymmetry is invisible until somebody takes the cheap exit.
+
+---
+
+## D50 · 2026-10-14 · The verdict gate could not run for two runs and reported a failed audit
+
+**believed** bind-checks fixed the class of defect where a gate reports a missing variable instead of a verdict. check-authoring's binding was written by reading the formula and listing what the checks seemed to want.
+**happened** The binding omitted AUDIT_SUBJECT. The generic verdict check needs it to decide whether a verdict describes the artifact being gated or an earlier one, which is the entire question it exists to answer, so without it the check exits 75. gc has no outcome for could-not-run, so two runs reported a FAILED audit for a gate that had never evaluated anything. The verdict under it was sound both times.
+**cost** Two gate-2 runs. The second was re-slung on the belief that a stricter rule had refused it, when the gate had not run at all.
+**changed** Every check declares the values it must be handed on a '# requires:' line. bind-checks reads those lines and refuses a binding that omits one, writing nothing. Four tests. AUDIT_SUBJECT is now bound to the check path.
+**generalizes** A component that discovers a missing input at run time can only report that it could not run, and that is the one outcome an orchestrator has no word for. Move the discovery to the moment the inputs are assembled, where the missing one can still be named.

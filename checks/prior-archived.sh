@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# requires: ARTIFACT_ROOT
+# bind-checks.sh reads this line and refuses a binding that omits any of
+# them. A check that discovers a missing value at run time reports it as
+# "could not run", and gc has no outcome for that, so it surfaces as a
+# failed check with a reason about the environment rather than the artifact.
 # Gate check: can anything downstream still read a previous run's conclusions?
 #
 # The archive step's job is not "a copy was made". It is that NO artifact which

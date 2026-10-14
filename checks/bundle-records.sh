@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# requires: BUNDLE_PATH DESIGN_PATH
+# bind-checks.sh reads this line and refuses a binding that omits any of
+# them. A check that discovers a missing value at run time reports it as
+# "could not run", and gc has no outcome for that, so it surfaces as a
+# failed check with a reason about the environment rather than the artifact.
 # Gate check: does the emitted bundle actually keep the records its design promised?
 #
 # A design declares @record. The bundle must have those records wired, not merely

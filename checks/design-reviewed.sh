@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# requires: DESIGN_PATH
+# bind-checks.sh reads this line and refuses a binding that omits any of
+# them. A check that discovers a missing value at run time reports it as
+# "could not run", and gc has no outcome for that, so it surfaces as a
+# failed check with a reason about the environment rather than the artifact.
 # Gate check: is this design finished with the model, or can the model still fix it?
 #
 # This is the revision loop. It sits on the authoring step, so a non-zero exit

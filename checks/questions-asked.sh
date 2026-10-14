@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# requires: QUESTIONS_PATH
+# bind-checks.sh reads this line and refuses a binding that omits any of
+# them. A check that discovers a missing value at run time reports it as
+# "could not run", and gc has no outcome for that, so it surfaces as a
+# failed check with a reason about the environment rather than the artifact.
 # Gate check: were the questions actually asked, and asked properly?
 #
 # This runs between the interview and the answers. It does not ask whether the

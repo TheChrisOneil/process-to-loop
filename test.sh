@@ -137,6 +137,24 @@ if "$HERE/tooling/validate-formula.sh" "$OUT/f5.toml" --checkroot "$OUT" >/dev/n
 then no "a formula naming a check script that does not exist still validated"
 else ok "a check script that does not exist fails F5 — the dropped-gate class of bug"; fi
 
+# bind-checks refuses a binding that omits a value a check declares it needs.
+# AUDIT_SUBJECT was omitted from check-authoring's binding and two runs reported
+# a failed audit for a gate that had never run.
+BC=$(mktemp -d)
+if "$HERE/tooling/bind-checks.sh" --checks "selftest-gate audit-verdict" "$BC" "$HERE/checks" \
+     CHECK_SCRIPT=/tmp/x CHECK_FIXTURES=/tmp/y AUDIT_VERDICT=/tmp/z >/dev/null 2>&1
+then no "a binding that omits AUDIT_SUBJECT was written anyway"
+else ok "a binding that omits a value its check requires is refused"; fi
+[ -d "$BC/checks" ] && no "the refused binding still wrote wrappers" \
+                    || ok "nothing was written when the binding was refused"
+if "$HERE/tooling/bind-checks.sh" --checks "selftest-gate audit-verdict" "$BC" "$HERE/checks" \
+     CHECK_SCRIPT=/tmp/x CHECK_FIXTURES=/tmp/y AUDIT_VERDICT=/tmp/z AUDIT_SUBJECT=/tmp/s >/dev/null 2>&1
+then ok "a complete binding is written"
+else no "a complete binding was refused"; fi
+grep -q "AUDIT_SUBJECT" "$BC/checks/audit-verdict.sh" 2>/dev/null \
+  && ok "the wrapper carries every declared value" || no "a declared value did not reach the wrapper"
+rm -rf "$BC"
+
 echo
 echo "THE AUDIT WORKFLOW"
 if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/check-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
@@ -683,8 +701,13 @@ echo
 echo "COMPILE-TIME BINDING"
 BT=$(mktemp -d); mkdir -p "$BT/run"
 printf '@meta\nuse_case: x\napprover: A. Person\n' > "$BT/run/x.design"
+# The default check set declares more than DESIGN_PATH, and bind-checks now
+# refuses a binding that omits any declared value, so this fixture supplies the
+# whole set a design-authoring run supplies.
 "$HERE/tooling/bind-checks.sh" "$BT/run" "$HERE/checks" \
-  DESIGN_PATH="$BT/run/x.design" ARTIFACT_ROOT="$BT/run" >/dev/null 2>&1
+  DESIGN_PATH="$BT/run/x.design" ARTIFACT_ROOT="$BT/run" \
+  AUDIT_VERDICT="$BT/run/design-audit-verdict.json" AUDIT_SUBJECT="$BT/run/x.design" \
+  BUNDLE_PATH="$BT/run/bundle" QUESTIONS_PATH="$BT/run/QUESTIONS.md" >/dev/null 2>&1
 [ $? -eq 0 ] && ok "a run binds its checks" || no "bind-checks failed on a valid run"
 
 # BUNDLE_PATH is produced by compile, not declared as a var, so it could not be

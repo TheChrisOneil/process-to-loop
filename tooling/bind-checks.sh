@@ -33,6 +33,29 @@ for n in $CHECKS; do [ -f "$C/$n.sh" ] || MISSING="$MISSING $n"; done
 [ -z "$MISSING" ] || { echo "REFUSED: these checks are not in $C:$MISSING" >&2
   echo "         Nothing was written. A missing check is a gate that would not run." >&2; exit 1; }
 
+# Each check declares the values it must be handed, on a "# requires:" line.
+# Without this the omission is discovered at run time by the check itself, which
+# can only report "could not run" — and gc has no outcome for that, so it
+# surfaces as a failed gate with a reason about the environment rather than the
+# artifact. AUDIT_SUBJECT was left out of check-authoring's binding on
+# 2026-10-14 and two runs reported a failed audit for a gate that never ran.
+SUPPLIED=" $(for kv in "$@"; do printf '%s ' "${kv%%=*}"; done)"
+UNMET=""
+for n in $CHECKS; do
+  req=$(sed -n 's/^# requires:[[:space:]]*//p' "$C/$n.sh" | head -1)
+  [ -n "$req" ] || continue
+  for v in $req; do
+    case "$SUPPLIED" in *" $v "*) ;; *) UNMET="$UNMET $n:$v" ;; esac
+  done
+done
+if [ -n "$UNMET" ]; then
+  echo "REFUSED: the binding omits values these checks require:$UNMET" >&2
+  echo "         Nothing was written. A check that learns at run time that a value is" >&2
+  echo "         missing can only say it could not run, and that reads as a failed gate." >&2
+  echo "         Next human action: pass each NAME=VALUE above to bind-checks.sh." >&2
+  exit 1
+fi
+
 OUT="$R/checks"
 mkdir -p "$OUT" || { echo "could not create $OUT" >&2; exit 1; }
 
