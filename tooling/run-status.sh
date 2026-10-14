@@ -174,7 +174,7 @@ b=b[0] if isinstance(b,list) and b else b
 md=b.get('metadata') or {}
 print(md.get('gc.var.fixtures_path') or md.get('gc.var.properties_path') or '')" 2>/dev/null)
     if [ -n "$sub" ] && [ -s "$sub" ]; then
-      printf '    script   %s  %s\n' "$(shasum -a 256 "$sub" | cut -c1-12)" "$(basename "$sub")"
+      printf '    script   %s  %s\n' "$(shasum -a 256 "$sub" | cut -c1-16)" "$(basename "$sub")"
     else
       printf '    script   not written yet\n'
     fi
@@ -198,7 +198,7 @@ AV
   fi
   d=$(ls "$Q"/*.design 2>/dev/null | head -1)
   if [ -n "$d" ]; then
-    printf '    design   %s  %s\n' "$(shasum -a 256 "$d" | cut -c1-12)" "$(basename "$d")"
+    printf '    design   %s  %s\n' "$(shasum -a 256 "$d" | cut -c1-16)" "$(basename "$d")"
   else
     printf '    design   not written yet\n'
   fi

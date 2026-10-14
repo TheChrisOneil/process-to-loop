@@ -607,3 +607,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Two gate-2 runs. The second was re-slung on the belief that a stricter rule had refused it, when the gate had not run at all.
 **changed** Every check declares the values it must be handed on a '# requires:' line. bind-checks reads those lines and refuses a binding that omits one, writing nothing. Four tests. AUDIT_SUBJECT is now bound to the check path.
 **generalizes** A component that discovers a missing input at run time can only report that it could not run, and that is the one outcome an orchestrator has no word for. Move the discovery to the moment the inputs are assembled, where the missing one can still be named.
+
+---
+
+## D51 · 2026-10-14 · Two tools printed the same digest at different lengths, and the instruction asked a person to match them
+
+**believed** Acceptance is of content, and the approver confirms the digest before typing the phrase. The tools print the digest so the person can see what they are signing.
+**happened** accept.sh prints 16 characters and run-status prints 12. Written instructions carried the 12 and told the approver to confirm it against the 16-character line, so the step was a human comparing a prefix of one rendering against another. Buzz noticed and quoted the full 16 back. A person matching hex by eye is not an oracle, which is the exact weakness acceptance-by-content was built to remove, reintroduced in the instruction for using it.
+**cost** Nothing. The digests did agree.
+**changed** run-status prints 16, matching accept.sh. accept.sh takes --expect <prefix> and refuses, signing nothing, when the file's digest does not start with it. Three tests. Verifying is now a command rather than a comparison.
+**generalizes** A control that ends in a person comparing two strings has moved the oracle into the person. Give the expected value to the tool and let it refuse, because the machine is the only party to that comparison that cannot get bored.

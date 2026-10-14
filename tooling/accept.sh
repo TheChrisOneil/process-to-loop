@@ -5,7 +5,8 @@
 # design as it stood when somebody accepted it. Change one character afterwards and the
 # acceptance no longer covers what you are about to build — which is the whole control.
 #
-#   ./accept.sh <design> --by "Name, Role"     accept, after typing the phrase
+#   ./accept.sh <design> --by "Name, Role" [--expect <digest-prefix>]
+#                                             accept, after typing the phrase
 #   ./accept.sh --status <design>              is this exact design accepted?
 #   ./accept.sh --revoke <design> --by "Name" --reason "..."
 #   ./accept.sh --note "..." --by "Name"       append a correcting entry
@@ -27,6 +28,7 @@ GENESIS="0000000000000000000000000000000000000000000000000000000000000000"
 # every lookup skips row 1 (NR>1) — an acceptance would record and then read back as absent.
 init() { mkdir -p "$(dirname "$REG")"; [ -s "$REG" ] || printf 'seq\ttimestamp\taction\tdesign\tdesign_sha\tby\tdetail\tchain\n' > "$REG"; }
 sha_of() { shasum -a 256 "$1" | awk '{print $1}'; }
+
 
 # The design names who may approve it. A signature from anyone else is not an
 # acceptance — it is a different person's opinion recorded in the same column.
@@ -136,7 +138,12 @@ esac
 
 F="${1:?usage: accept.sh <design> --by \"Name, Role\"}"; shift
 BY=""
-while [ $# -gt 0 ]; do case "$1" in --by) BY="${2:-}"; shift 2;; *) shift;; esac; done
+EXPECT=""
+while [ $# -gt 0 ]; do case "$1" in
+  --by)     BY="${2:-}"; shift 2;;
+  --expect) EXPECT="${2:-}"; shift 2;;
+  *) shift;;
+esac; done
 [ -f "$F" ] || { echo "no such design file: $F" >&2; exit 2; }
 [ -n "$BY" ] || { echo "REFUSED: acceptance needs a named person — --by \"Name, Role\"" >&2
                   echo "         \"the team\" is not a person and cannot be held to a decision." >&2; exit 64; }
@@ -150,6 +157,22 @@ case "$BYNORM" in
     echo "         An acceptance nobody signed is not an acceptance. Use --by \"Name, Role\"." >&2
     exit 64 ;;
 esac
+
+# --expect turns verifying the digest from an eyeball comparison into a check.
+# A person reading two hex strings and deciding they match is not an oracle, and
+# the whole point of acceptance-by-content is that the bytes are what is signed.
+# Pass what you were told to expect and this refuses if the file is not it.
+if [ -n "$EXPECT" ]; then
+  ACTUAL=$(sha_of "$F")
+  case "$ACTUAL" in
+    "$EXPECT"*) : ;;
+    *) echo "REFUSED: you expected a design whose digest starts $EXPECT." >&2
+       echo "         This file is $ACTUAL." >&2
+       echo "         Nothing was signed. Either you were given the wrong digest or the" >&2
+       echo "         file changed after you were given it, and both are worth knowing." >&2
+       exit 1 ;;
+  esac
+fi
 
 # The design names who may approve it. A signature from anyone else is not an
 # acceptance — it is a different person's opinion recorded in the same column.

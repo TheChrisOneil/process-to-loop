@@ -155,6 +155,23 @@ grep -q "AUDIT_SUBJECT" "$BC/checks/audit-verdict.sh" 2>/dev/null \
   && ok "the wrapper carries every declared value" || no "a declared value did not reach the wrapper"
 rm -rf "$BC"
 
+# --expect makes verifying the digest a check rather than an eyeball comparison.
+# The instruction "confirm the content line reads f565fa2f8d98" asked a person to
+# match a 12-character prefix against a 16-character display, which is the weak
+# verification acceptance-by-content exists to replace.
+AX=$(mktemp -d)
+cp "$HERE/examples/appointments-chase.design" "$AX/d.design"
+AXBY=$(awk -F': *' '/^approver:/{sub(/^approver: */,""); print; exit}' "$AX/d.design")
+AXSHA=$(shasum -a 256 "$AX/d.design" | cut -c1-16)
+if printf 'I accept\n' | ACCEPT_REGISTER="$AX/reg.tsv" "$HERE/tooling/accept.sh" "$AX/d.design" --by "$AXBY" --expect deadbeefdeadbeef >/dev/null 2>&1
+then no "a design was signed under a digest that is not its own"
+else ok "a digest that does not match the file refuses, and signs nothing"; fi
+[ -s "$AX/reg.tsv" ] && no "the refused --expect still wrote to the register" \
+                     || ok "nothing reached the register when --expect refused"
+if printf 'I accept\n' | ACCEPT_REGISTER="$AX/reg.tsv" "$HERE/tooling/accept.sh" "$AX/d.design" --by "$AXBY" --expect "$AXSHA" >/dev/null 2>&1
+then ok "the digest the tool prints is one --expect accepts" ; else no "--expect refused the design's own digest"; fi
+rm -rf "$AX"
+
 echo
 echo "THE AUDIT WORKFLOW"
 if "$HERE/tooling/validate-formula.sh" "$HERE/formulas/check-authoring.toml" --checkroot "$HERE" >/dev/null 2>&1
