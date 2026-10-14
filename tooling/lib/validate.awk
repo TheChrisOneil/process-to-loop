@@ -125,6 +125,30 @@ END {
   # existed and refusing them would make the change a migration nobody asked for
   # today. It becomes an ERROR once those five are re-authored; the date is here
   # so a reader can tell a deliberate grace period from a rule somebody forgot.
+  # V47. The split of "mechanical" gave tool-call and decision a crisp oracle
+  # each and left coordination as the residue, which is the kind the method says
+  # carries no oracle of its own. The first design authored under the new
+  # vocabulary put 7 of 23 steps there, and one of them writes through a
+  # catalogued service — a tool call wearing the label for plumbing. A residue
+  # category is where an unclassified step goes to look classified, so the rule
+  # that retired "mechanical" has to watch its successor.
+  #
+  # WARN, not ERROR: naming a source id in a description is evidence a step
+  # reaches that source and not proof. A step may legitimately mention the
+  # source whose rows an earlier step already read. The false positive and the
+  # real finding look identical here, so a person decides.
+  coordsrc = ""
+  for (i=1;i<=s;i++) {
+    if (tolower(STYPE[i]) != "coordination") continue
+    for (j=1;j<=n_src;j++) {
+      if (SRCID[j]=="" ) continue
+      if (index(SDESC[i], SRCID[j]) > 0) { coordsrc = coordsrc " " SID[i] "->" SRCID[j]; break }
+    }
+  }
+  if (coordsrc != "")
+    rec("WARN","V47","coordination step(s) name a declared source:" coordsrc,"coordination carries no oracle; a step that reaches a catalogued tool is a tool-call, and its catalog entry is what checks it")
+  else if (s > 0) ok("V47","no coordination step reaches a declared source")
+
   if (unclassified != "")
     rec("WARN","V46","\"mechanical\" says nothing about what checks this step, at step(s)" unclassified,"tool-call is checked against its catalog entry, decision against its table being complete and non-overlapping, coordination against nothing because it should be generated — pick the one that is true (grace period opened 2026-10-13)")
   else if (s > 0) ok("V46","every step names where its oracle comes from")

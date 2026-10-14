@@ -567,3 +567,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing yet, and only because the compile STEP follows tooling_root rather than HERE. The gate result was already wrong — V46 never ran on the design it was supposed to warn about.
 **changed** All 11 checks resolve tooling through TOOLING_ROOT, which bind-checks was already exporting and no check read, falling back to HERE/tooling so an unbound check still works. The rig copy is synced from the repo.
 **generalizes** Two copies of an executable are two dialects, and the comment saying so was written on a decision table while the whole toolchain had the same defect one directory up. When a value is already bound and nothing reads it, that is not a missing feature; it is a second source of truth that has not announced itself yet.
+
+---
+
+## D47 · 2026-10-14 · The residue kind became the new dumping ground on its first run
+
+**believed** Splitting mechanical into tool-call and decision gives each kind an oracle and leaves coordination as honest plumbing. V46 warns on mechanical, so a design authored under the new method names where every step is checked.
+**happened** The first design authored under the new vocabulary has zero mechanical steps and passes V46. Its coordination count went from 2 to 7 of 23. One of those seven writes through a catalogued service and two more name a declared source. The split worked for the two kinds with a crisp oracle and the residue absorbed everything else, so the rule that retired mechanical passes a design with the same defect under a different label.
+**cost** Nothing. V46 reported a clean pass on a design that had simply relabelled the problem, which is the cost it would have had if nobody counted.
+**changed** V47 warns when a coordination step's description names a declared source, since coordination carries no oracle and a step reaching a catalogued tool is a tool-call. WARN rather than ERROR because naming a source is evidence and not proof. Two tests.
+**generalizes** Any vocabulary with a residue category will fill that category, and a validator that accepts the residue without question measures nothing. When retiring an over-broad label, write the rule that watches its successor at the same time.

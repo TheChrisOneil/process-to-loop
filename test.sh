@@ -103,6 +103,31 @@ case "$KP" in *field-covered*) ok "a tool-call step is checked against its catal
 KP=$(awk -v ID=1 -v SLUG=x -v TYPE=decision -v ACTOR=code -v SCOPE=unit -f "$HERE/tooling/lib/step-properties.awk" </dev/null)
 case "$KP" in *no-fallthrough*) ok "a decision step is checked against its table being complete" ;;
               *) no "decision got no property beyond determinism" ;; esac
+KV2=$("$HERE/tooling/validate.sh" "$KD/d.design" 2>&1)
+case "$KV2" in *"no coordination step reaches a declared source"*|*"coordination step(s) name a declared source"*)
+    ok "V47 reports on coordination steps that reach a catalogued source" ;;
+  *) no "V47 did not run" ;; esac
+# A coordination step that names a declared source must be reported: coordination
+# is the residue kind, and a residue is where an unclassified step hides.
+# appointments-chase is the only example with an @sources section, and the first
+# version of this test silently did nothing because it used one without. A test
+# that skips itself is the defect this rule exists to catch, so it refuses now.
+V47D=$(mktemp -d)
+V47SRC=$(awk '/^@sources/{f=1;next} /^@[a-z]/{f=0} f&&NF&&$0!~/^#/{split($0,F," *\\| *"); print F[1]; exit}' "$HERE/examples/appointments-chase.design")
+if [ -z "$V47SRC" ]; then
+  no "the V47 fixture has no declared source, so the test could not run"
+else
+  awk -F' *\\| *' -v src="$V47SRC" 'BEGIN{OFS=" | "}
+       /^@steps/{f=1; print; next} /^@[a-z]/{f=0}
+       f && NF>=6 && $1 ~ /^[0-9]+$/ && !seen { $3="coordination"; $5=$5 ", reading " src; seen=1; print; next }
+       {print}' "$HERE/examples/appointments-chase.design" > "$V47D/c.design"
+  grep -q "coordination" "$V47D/c.design" || no "the V47 fixture was not rewritten"
+  V47OUT=$("$HERE/tooling/validate.sh" "$V47D/c.design" 2>&1)
+  case "$V47OUT" in *"coordination step(s) name a declared source"*)
+      ok "a coordination step that names a declared source is reported" ;;
+    *) no "V47 missed a coordination step reaching a catalogued source" ;; esac
+fi
+rm -rf "$V47D"
 rm -rf "$KD"
 
 # F5: delete a check script and the formula must stop validating
