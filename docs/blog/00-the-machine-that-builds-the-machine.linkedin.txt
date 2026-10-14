@@ -16,7 +16,9 @@ Determinism: we refactor the process to remove thinking points. At most one judg
 
 Accountability: every interaction point is gated. Gates record who decided and on what evidence. A named clinician signs the exact design and knows which liabilities they accept.
 
-Execution: designs compile into formulas the orchestrator runs, with executable gates and an append-only ledger.
+Execution: this runs on Gas City, the platform for building software factories. A formula is a method made executable; beads are durable units of work that survive a crash. We never write a formula. An accepted design compiles into one, so the artifact a clinician signs and the artifact the orchestrator runs are related by a compiler rather than by good intentions. The platform already had what a regulated approval needs: a durable record, deterministic checks that block downstream work, and a dependency graph that holds a gate open until a named person closes it.
+
+We are a Gas City design partner. Running a platform at the edge of its specification finds things, and we report them back: a check block that silently dropped an unrecognized key, so a line reading as a control was inert; an orchestrator that could not distinguish a failed check from an unreachable one; and a proposed three-outcome model, since two outcomes force the third case to masquerade as one of them.
 
 Regulatory boundaries: PHI reaches a model step only under a recorded, current business associate agreement. A second model audits every design.
 
@@ -26,4 +28,4 @@ Each layer encodes knowledge of clinical operations and health regulation. That 
 
 Four-part series on how EverBetter is advancing medical AI. Link in comments.
 
-#HealthIT #HIPAA #VerticalAI
+#gascity #HealthIT #HIPAA #VerticalAI

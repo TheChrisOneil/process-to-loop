@@ -1,4 +1,4 @@
-1/ A model wrote a gate. It printed "purchase order is on file" and passed a $500 invoice. It never checked. A second model caught it for $0.44. #HealthIT #HIPAA #AIGovernance
+1/ A model wrote a gate. It printed "purchase order is on file" and passed a $500 invoice. It never checked. A second model caught it for $0.44. #gascity #HealthIT #HIPAA #AIGovernance
 
 2/ The PO clause ran only when one environment variable was set. Missing it, a three-clause control became one clause. No fixture would catch it.
 

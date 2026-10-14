@@ -14,8 +14,8 @@ A named approver then signs the design's SHA-256 hash, not its filename. Change 
 
 One new control: a vendor's model update is a logic change. Log the version. Rerun verification on every update.
 
-Since writing this: a run reached a compiled bundle, and the acceptance control refused a later one whose design had changed after signing. Unproven: nobody but me has operated it.
+Since writing this: a run reached a compiled bundle, and the acceptance control refused a later one whose design changed after signing. Unproven: nobody but me has operated it.
 
 Part 4 of 4: Auditable Workflows in a Regulated Environment. Link in comments.
 
-#HealthIT #HIPAA #AIGovernance
+#gascity #HealthIT #HIPAA #AIGovernance

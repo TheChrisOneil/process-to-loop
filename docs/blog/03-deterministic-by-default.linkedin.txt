@@ -4,7 +4,7 @@ The same rule in code costs nothing after it ships, and returns the same answer 
 
 Most teams still write their business rules as prompts.
 
-I built a design format that makes that mistake hard to commit. A model drafts the design. Code validates, renders, and compiles it.
+I built a design format that makes that mistake hard to commit. A model drafts the design. Code validates, renders, and compiles it into a Gas City formula, so what a person signs is what the orchestrator runs.
 
 The two people test: if two competent people, unable to confer, give the same answer, it is a rule and belongs in code. One judgment per unit of work. Everything else is a rule.
 
@@ -18,4 +18,4 @@ Every design must declare a Total Value Realized KPI with a baseline. A baseline
 
 Part 3 of 4: Auditable Workflows in a Regulated Environment. Link in comments.
 
-#HealthIT #DeterministicAI #AIGovernance
+#gascity #HealthIT #DeterministicAI
