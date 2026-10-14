@@ -577,3 +577,13 @@ the design was not written for, and the new paths are where the deadlocks are.
 **cost** Nothing. V46 reported a clean pass on a design that had simply relabelled the problem, which is the cost it would have had if nobody counted.
 **changed** V47 warns when a coordination step's description names a declared source, since coordination carries no oracle and a step reaching a catalogued tool is a tool-call. WARN rather than ERROR because naming a source is evidence and not proof. Two tests.
 **generalizes** Any vocabulary with a residue category will fill that category, and a validator that accepts the residue without question measures nothing. When retiring an over-broad label, write the rule that watches its successor at the same time.
+
+---
+
+## D48 · 2026-10-14 · Closing a dead convoy tore down the sessions bound to it, and the dispatcher with them
+
+**believed** Dead runs were clutter on a status screen. Closing a convoy closes its beads with outcome=skipped, which is a bookkeeping change that leaves the record and touches nothing else.
+**happened** Seven abandoned workflows held 51 of the rig's 61 ready beads and four of five operator sessions, each idle nine hours. Closing them took the ready queue to 10 and the open gates from 8 to 1. It also removed every session, including the control dispatcher, and left 0 of 4 agents running with no tmux server. Sessions are bound to the beads they were routed, so closing the beads ends the session. gc supervisor reload reconciled and brought a fresh dispatcher back in under a minute.
+**cost** Nothing. The live run was parked at a human gate and needed no agent, so the gap was invisible. Had a step been mid-flight it would have lost its session.
+**changed** Nothing in the code. Recorded here because the next person to clean up a rig will see 0/4 agents and conclude they broke the city. The repair is gc supervisor reload.
+**generalizes** Cleaning up finished work removes the thing the work was running on. A queue and the workers serving it are the same object seen twice, so a change that looks like bookkeeping on one side is a teardown on the other. Check what is mid-flight before closing a convoy, and reconcile afterwards.
