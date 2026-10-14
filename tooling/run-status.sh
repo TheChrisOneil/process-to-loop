@@ -144,6 +144,58 @@ print("    %-8s %s" % (b.get("id"), ref or (b.get("title") or "").strip()))'
 
   echo "  ── artifacts ─────────────────────────────────────"
   local d v f
+  # This section used to assume every run authors a design. A check-authoring
+  # run has no design, no interview and no findings in its artifact_root, and
+  # the screen reported "design not written yet" and "the interview has not run"
+  # for a run that was never going to have either. A reader cannot tell that
+  # from a design run that has produced nothing, and the second reading is
+  # alarming and wrong. Ask the workflow which formula it is.
+  local formula
+  formula=$(gc bd show "$ROOT_BEAD" --json 2>/dev/null | python3 -c "
+import json,sys
+try: b=json.load(sys.stdin)
+except Exception: raise SystemExit
+b=b[0] if isinstance(b,list) and b else b
+print((b.get('metadata') or {}).get('gc.formula_name') or '')" 2>/dev/null)
+  if [ "$formula" = "check-authoring" ] || [ "$formula" = "step-authoring" ]; then
+    local sub subf
+    sub=$(gc bd show "$ROOT_BEAD" --json 2>/dev/null | python3 -c "
+import json,sys
+try: b=json.load(sys.stdin)
+except Exception: raise SystemExit
+b=b[0] if isinstance(b,list) and b else b
+md=b.get('metadata') or {}
+print(md.get('gc.var.check_path') or md.get('gc.var.step_path') or '')" 2>/dev/null)
+    subf=$(gc bd show "$ROOT_BEAD" --json 2>/dev/null | python3 -c "
+import json,sys
+try: b=json.load(sys.stdin)
+except Exception: raise SystemExit
+b=b[0] if isinstance(b,list) and b else b
+md=b.get('metadata') or {}
+print(md.get('gc.var.fixtures_path') or md.get('gc.var.properties_path') or '')" 2>/dev/null)
+    if [ -n "$sub" ] && [ -s "$sub" ]; then
+      printf '    script   %s  %s\n' "$(shasum -a 256 "$sub" | cut -c1-12)" "$(basename "$sub")"
+    else
+      printf '    script   not written yet\n'
+    fi
+    if [ -n "$subf" ] && [ -s "$subf" ]; then
+      printf '    fixtures %s case(s)\n' "$(( $(grep -c . "$subf") - 1 ))"
+    else
+      printf '    fixtures not generated yet\n'
+    fi
+    if [ -s "$Q/audit-verdict.json" ]; then
+      python3 - "$Q/audit-verdict.json" <<'AV'
+import json, sys
+try: d = json.load(open(sys.argv[1]))
+except Exception: print("    verdict  unreadable"); raise SystemExit
+n = len(d.get("defects") or [])
+print(f"    verdict  {d.get('verdict')} by {d.get('audit_model')}: {n} defect(s)")
+AV
+    else
+      printf '    verdict  none yet — the script has not been audited\n'
+    fi
+    return
+  fi
   d=$(ls "$Q"/*.design 2>/dev/null | head -1)
   if [ -n "$d" ]; then
     printf '    design   %s  %s\n' "$(shasum -a 256 "$d" | cut -c1-12)" "$(basename "$d")"
